@@ -252,7 +252,7 @@ namespace OpenRA.Mods.Common.Activities
 			return EnterState.Done; // dummy to quiet dumb compiler
 		}
 
-		Activity CanceledTick(Actor self)
+		public Activity CanceledTick(Actor self)
 		{
 			if (inner == null)
 				return ActivityUtils.RunActivity(self, NextActivity);

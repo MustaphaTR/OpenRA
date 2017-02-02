@@ -21,7 +21,7 @@ using OpenRA.Traits;
 
 namespace OpenRA.Mods.RA.Traits
 {
-	class InfiltratesInfo : ITraitInfo
+	class InfiltratesInfo : ConditionalTraitInfo
 	{
 		public readonly HashSet<string> Types = new HashSet<string>();
 
@@ -40,21 +40,28 @@ namespace OpenRA.Mods.RA.Traits
 		[Desc("Experience to grant to the infiltrating player.")]
 		public readonly int PlayerExperience = 0;
 
-		public object Create(ActorInitializer init) { return new Infiltrates(this); }
+		public override object Create(ActorInitializer init) { return new Infiltrates(this); }
 	}
 
-	class Infiltrates : IIssueOrder, IResolveOrder, IOrderVoice
+	class Infiltrates : ConditionalTrait<InfiltratesInfo>, IIssueOrder, IResolveOrder, IOrderVoice
 	{
 		readonly InfiltratesInfo info;
 
 		public Infiltrates(InfiltratesInfo info)
+			: base(info)
 		{
 			this.info = info;
 		}
 
 		public IEnumerable<IOrderTargeter> Orders
 		{
-			get { yield return new InfiltrationOrderTargeter(info); }
+			get
+				{
+					if (IsTraitDisabled)
+						yield break;
+
+					yield return new InfiltrationOrderTargeter(info);
+				}
 		}
 
 		public Order IssueOrder(Actor self, IOrderTargeter order, Target target, bool queued)
@@ -70,6 +77,9 @@ namespace OpenRA.Mods.RA.Traits
 
 		bool IsValidOrder(Actor self, Order order)
 		{
+			if (IsTraitDisabled)
+				return false;
+
 			// Not targeting an actor
 			if (order.ExtraData == 0 && order.TargetActor == null)
 				return false;

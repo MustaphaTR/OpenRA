@@ -9,8 +9,10 @@
  */
 #endregion
 
+using OpenRA.Activities;
 using OpenRA.Mods.Common.Activities;
 using OpenRA.Mods.Common.Traits;
+using OpenRA.Mods.RA.Traits;
 using OpenRA.Traits;
 
 namespace OpenRA.Mods.RA.Activities
@@ -55,6 +57,14 @@ namespace OpenRA.Mods.RA.Activities
 			if (!string.IsNullOrEmpty(notification))
 				Game.Sound.PlayNotification(self.World.Map.Rules, self.Owner, "Speech",
 					notification, self.Owner.Faction.InternalName);
+		}
+
+		public override Activity Tick(Actor self)
+		{
+		if (self.Trait<Infiltrates>().IsTraitDisabled)
+			return CanceledTick(self);
+
+		return base.Tick(self);
 		}
 	}
 }
