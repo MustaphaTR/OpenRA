@@ -212,7 +212,11 @@ SPY:
 	Disguise:
 		Voice: Move
 		DisguisedCondition: disguise
+	GrantConditionOnPrerequisite@Radar:
+		Condition: spy.infiltrate
+		Prerequisites: dome
 	Infiltrates:
+		RequiresCondition: spy.infiltrate
 		Types: SpyInfiltrate
 		PlayerExperience: 50
 	AutoTarget:
