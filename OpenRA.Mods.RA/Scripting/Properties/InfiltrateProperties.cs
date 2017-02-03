@@ -13,24 +13,29 @@ using OpenRA.Mods.RA.Activities;
 using OpenRA.Mods.RA.Traits;
 using OpenRA.Scripting;
 using OpenRA.Traits;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace OpenRA.Mods.RA.Scripting
 {
 	[ScriptPropertyGroup("Ability")]
 	public class InfiltrateProperties : ScriptActorProperties, Requires<InfiltratesInfo>
 	{
-		readonly InfiltratesInfo info;
-
 		public InfiltrateProperties(ScriptContext context, Actor self)
-			: base(context, self)
-		{
-			info = Self.Info.TraitInfo<InfiltratesInfo>();
-		}
+			: base(context, self) { }
 
 		[Desc("Infiltrate the target actor.")]
 		public void Infiltrate(Actor target)
 		{
-			Self.QueueActivity(new Infiltrate(Self, target, info.EnterBehaviour, info.ValidStances, info.Notification, info.PlayerExperience));
+			var trait = Self.TraitsImplementing<Infiltrates>().FirstOrDefault(x => !x.IsTraitDisabled && x.Info.Types.Overlaps(target.GetEnabledTargetTypes()));
+
+			if (trait == null)
+			{
+				Log.Write("lua", "{0} tried to infiltrate invalid target {1}!", Self, target);
+				return;
+			}
+
+			Self.QueueActivity(new Infiltrate(Self, target, trait));
 		}
 	}
 }

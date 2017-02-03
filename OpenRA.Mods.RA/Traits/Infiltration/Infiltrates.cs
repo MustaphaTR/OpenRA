@@ -21,7 +21,7 @@ using OpenRA.Traits;
 
 namespace OpenRA.Mods.RA.Traits
 {
-	class InfiltratesInfo : ConditionalTraitInfo
+	public class InfiltratesInfo : ConditionalTraitInfo
 	{
 		public readonly HashSet<string> Types = new HashSet<string>();
 
@@ -43,15 +43,11 @@ namespace OpenRA.Mods.RA.Traits
 		public override object Create(ActorInitializer init) { return new Infiltrates(this); }
 	}
 
-	class Infiltrates : ConditionalTrait<InfiltratesInfo>, IIssueOrder, IResolveOrder, IOrderVoice
+	public class Infiltrates : ConditionalTrait<InfiltratesInfo>, IIssueOrder, IResolveOrder, IOrderVoice
 	{
-		readonly InfiltratesInfo info;
 
 		public Infiltrates(InfiltratesInfo info)
-			: base(info)
-		{
-			this.info = info;
-		}
+			: base(info) { }
 
 		public IEnumerable<IOrderTargeter> Orders
 		{
@@ -60,7 +56,7 @@ namespace OpenRA.Mods.RA.Traits
 					if (IsTraitDisabled)
 						yield break;
 
-					yield return new InfiltrationOrderTargeter(info);
+					yield return new InfiltrationOrderTargeter(Info);
 				}
 		}
 
@@ -102,30 +98,30 @@ namespace OpenRA.Mods.RA.Traits
 			else
 				targetTypes = order.TargetActor.GetEnabledTargetTypes();
 
-			return info.Types.Overlaps(targetTypes);
+			return Info.Types.Overlaps(targetTypes);
 		}
 
 		public string VoicePhraseForOrder(Actor self, Order order)
 		{
 			return order.OrderString == "Infiltrate" && IsValidOrder(self, order)
-				? info.Voice : null;
+				? Info.Voice : null;
 		}
 
 		public void ResolveOrder(Actor self, Order order)
 		{
-			if (order.OrderString != "Infiltrate" || !IsValidOrder(self, order))
+			if (order.OrderString != "Infiltrate" || !IsValidOrder(self, order) || IsTraitDisabled)
 				return;
 
 			var target = self.ResolveFrozenActorOrder(order, Color.Red);
 			if (target.Type != TargetType.Actor
-				|| !info.Types.Overlaps(target.Actor.GetAllTargetTypes()))
+				|| !Info.Types.Overlaps(target.Actor.GetAllTargetTypes()))
 				return;
 
 			if (!order.Queued)
 				self.CancelActivity();
 
 			self.SetTargetLine(target, Color.Red);
-			self.QueueActivity(new Infiltrate(self, target.Actor, info.EnterBehaviour, info.ValidStances, info.Notification, info.PlayerExperience));
+			self.QueueActivity(new Infiltrate(self, target.Actor, this));
 		}
 	}
 
