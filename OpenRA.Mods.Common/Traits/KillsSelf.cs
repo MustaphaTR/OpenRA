@@ -14,7 +14,7 @@ using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.Traits
 {
-	class KillsSelfInfo : ConditionalTraitInfo
+	class KillsSelfInfo : PausableConditionalTraitInfo
 	{
 		[Desc("Remove the actor from the world (and destroy it) instead of killing it.")]
 		public readonly bool RemoveInstead = false;
@@ -32,19 +32,18 @@ namespace OpenRA.Mods.Common.Traits
 		public override object Create(ActorInitializer init) { return new KillsSelf(init.Self, this); }
 	}
 
-	class KillsSelf : ConditionalTrait<KillsSelfInfo>, INotifyAddedToWorld, ITick
+	class KillsSelf : PausableConditionalTrait<KillsSelfInfo>, INotifyAddedToWorld, ITick
 	{
 		int lifetime;
 		ConditionManager conditionManager;
 
 		public KillsSelf(Actor self, KillsSelfInfo info)
-			: base(info)
-		{
-			lifetime = Util.RandomDelay(self.World, info.Delay);
-		}
+			: base(info) { }
 
 		protected override void TraitEnabled(Actor self)
 		{
+			lifetime = Util.RandomDelay(self.World, Info.Delay);
+
 			// Actors can be created without being added to the world
 			// We want to make sure that this only triggers once they are inserted into the world
 			if (lifetime == 0 && self.IsInWorld)
@@ -59,13 +58,13 @@ namespace OpenRA.Mods.Common.Traits
 
 		void INotifyAddedToWorld.AddedToWorld(Actor self)
 		{
-			if (!IsTraitDisabled)
-				TraitEnabled(self);
+			if (lifetime == 0 && !IsTraitDisabled && !IsTraitPaused)
+				self.World.AddFrameEndTask(w => Kill(self));
 		}
 
 		void ITick.Tick(Actor self)
 		{
-			if (!self.IsInWorld || self.IsDead || IsTraitDisabled)
+			if (!self.IsInWorld || self.IsDead || IsTraitDisabled || IsTraitPaused)
 				return;
 
 			if (!self.World.Map.Contains(self.Location))
