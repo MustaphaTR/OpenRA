@@ -43,6 +43,16 @@ V2RL:
 	SelectionDecorations:
 	Explodes:
 		Weapon: V2Explode
+	KillsSelf:
+		Delay: 200
+		PauseOnCondition: !stek
+		RequiresCondition: dome
+	GrantConditionOnPrerequisite@dome:
+		Prerequisites: dome
+		Condition: dome
+	GrantConditionOnPrerequisite@stek:
+		Prerequisites: stek
+		Condition: stek
 	ProducibleWithLevel:
 		Prerequisites: vehicles.upgraded
 	Selectable:
