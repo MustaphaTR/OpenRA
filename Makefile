@@ -302,26 +302,22 @@ cli-dependencies:
 	@ $(CP_R) thirdparty/download/*.dll .
 	@ $(CP_R) thirdparty/download/*.dll.config .
 
-linux-dependencies: cli-dependencies geoip-dependencies linux-native-dependencies
+linux-dependencies: cli-dependencies linux-native-dependencies
 
 linux-native-dependencies:
 	@./thirdparty/configure-native-deps.sh
 
-windows-dependencies: cli-dependencies geoip-dependencies
+windows-dependencies: cli-dependencies
 	@./thirdparty/fetch-thirdparty-deps-windows.sh
 
-osx-dependencies: cli-dependencies geoip-dependencies
+osx-dependencies: cli-dependencies
 	@./thirdparty/fetch-thirdparty-deps-osx.sh
 	@ $(CP_R) thirdparty/download/osx/*.dylib .
 	@ $(CP_R) thirdparty/download/osx/*.dll.config .
 
-geoip-dependencies:
-	@./thirdparty/fetch-geoip-db.sh
-	@ $(CP) thirdparty/download/GeoLite2-Country.mmdb.gz .
-
 dependencies: $(os-dependencies)
 
-all-dependencies: cli-dependencies windows-dependencies osx-dependencies geoip-dependencies
+all-dependencies: cli-dependencies windows-dependencies osx-dependencies
 
 version: VERSION mods/ra/mod.yaml mods/cnc/mod.yaml mods/d2k/mod.yaml mods/ts/mod.yaml mods/modcontent/mod.yaml mods/all/mod.yaml
 	@echo "$(VERSION)" > VERSION
@@ -343,7 +339,6 @@ install-engine:
 	@$(INSTALL_DIR) "$(DATA_INSTALL_DIR)"
 	@$(INSTALL_PROGRAM) $(foreach prog,$(CORE),$($(prog)_TARGET)) "$(DATA_INSTALL_DIR)"
 
-	@$(INSTALL_DATA) "GeoLite2-Country.mmdb.gz" "$(DATA_INSTALL_DIR)/GeoLite2-Country.mmdb.gz"
 	@$(INSTALL_DATA) VERSION "$(DATA_INSTALL_DIR)/VERSION"
 	@$(INSTALL_DATA) AUTHORS "$(DATA_INSTALL_DIR)/AUTHORS"
 	@$(INSTALL_DATA) COPYING "$(DATA_INSTALL_DIR)/COPYING"

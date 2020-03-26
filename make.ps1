@@ -106,7 +106,6 @@ function Dependencies-Command
 	cd thirdparty
 	./fetch-thirdparty-deps.ps1
 	cp download/*.dll ..
-	cp download/GeoLite2-Country.mmdb.gz ..
 	cp download/windows/*.dll ..
 	cd ..
 	echo "Dependencies copied."
