@@ -185,10 +185,10 @@ namespace OpenRA.Mods.Common.Traits
 				if (!baseBuilder.Info.BuildingLimits.ContainsKey(actor.Name))
 					return true;
 
-				var producers = world.Actors.Where(a => a.Owner == player && a.TraitsImplementing<ProductionQueue>() != null);
+				var producers = world.Actors.Where(a => a.Owner == player && a.TraitsImplementing<ProductionQueue>().Any());
 				var productionQueues = producers.SelectMany(a => a.TraitsImplementing<ProductionQueue>());
 				var activeProductionQueues = productionQueues.Where(pq => pq.AllQueued().Any());
-				var queues = activeProductionQueues.Select(pq => pq.AllQueued().Where(q => q.Item == actor.Name));
+				var queues = activeProductionQueues.Where(pq => pq.AllQueued().Where(q => q.Item == actor.Name).Any());
 
 				return playerBuildings.Count(a => a.Info.Name == actor.Name) + queues.Count() < baseBuilder.Info.BuildingLimits[actor.Name];
 			});
@@ -328,6 +328,10 @@ namespace OpenRA.Mods.Common.Traits
 					baseBuilder.Info.BuildingDelays[name] > world.WorldTick)
 					continue;
 
+				// Can we build this structure? 
+				if (!buildableThings.Any(b => b.Name == name))
+					continue;
+
 				if (playerResources != null && playerResources.Cash <= baseBuilder.Info.ConstructionMinimumCash && !baseBuilder.Info.CashGeneratorTypes.Contains(name))
 					continue;
 
@@ -345,10 +349,10 @@ namespace OpenRA.Mods.Common.Traits
 				//}
 
 				// Do we want to build this structure?
-				var producers = world.Actors.Where(a => a.Owner == queue.Actor.Owner && a.TraitsImplementing<ProductionQueue>() != null);
+				var producers = world.Actors.Where(a => a.Owner == queue.Actor.Owner && a.TraitsImplementing<ProductionQueue>().Any());
 				var productionQueues = producers.SelectMany(a => a.TraitsImplementing<ProductionQueue>());
 				var activeProductionQueues = productionQueues.Where(pq => pq.AllQueued().Any());
-				var queues = activeProductionQueues.Select(pq => pq.AllQueued().Where(q => q.Item == name));
+				var queues = activeProductionQueues.Where(pq => pq.AllQueued().Where(q => q.Item == name).Any());
 
 				var count = playerBuildings.Count(a => a.Info.Name == name) + (queues == null ? 0 : queues.Count());
 				if (count * 100 > frac.Value * playerBuildings.Length)
@@ -365,14 +369,30 @@ namespace OpenRA.Mods.Common.Traits
 						|| !AIUtils.IsAreaAvailable<GivesBuildableArea>(world, player, world.Map, baseBuilder.Info.CheckForWaterRadius, baseBuilder.Info.WaterTerrainTypes)))
 					continue;
 
-				// Will this put us into low power?
 				if (!world.Map.Rules.Actors.ContainsKey(name))
 				{
 					AIUtils.BotDebug("{0} tryed to build an actor named {1}, no such actor exists.", queue.Actor.Owner, name);
 					continue;
 				}
 
+				// Maybe we can't queue this because of InstantCashDrain logic?
 				var actor = world.Map.Rules.Actors[name];
+				if (playerResources != null)
+				{
+					var nonICDQueues = productionQueues.Where(pq => !pq.Info.InstantCashDrain);
+					if (!nonICDQueues.Any())
+					{
+						var ICDQueues = productionQueues.Where(pq => pq.Info.InstantCashDrain);
+						if (ICDQueues.Any())
+						{
+							var cost = ICDQueues.Min(q => q.GetProductionCost(actor));
+							if (playerResources.Cash < cost)
+								continue;
+						}
+					}
+				}
+
+				// Will this put us into low power?
 				if (playerPower != null && (playerPower.ExcessPower < minimumExcessPower || !HasSufficientPowerForActor(actor)))
 				{
 					// Try building a power plant instead

@@ -42,6 +42,12 @@ namespace OpenRA.Mods.Common.Traits
 			"Those units are not used by defensive squads.")]
 		public readonly HashSet<string> SiegeUnitTypes = new HashSet<string>();
 
+		[Desc("These units are built and deployed in a safe position in the base. Needs GrantConditionOnDeploy on the unit.")]
+		public readonly HashSet<string> FragileDeployerTypes = new HashSet<string>();
+
+		[Desc("These units are randomly sent around after their production.")]
+		public readonly HashSet<string> DozerTypes = new HashSet<string>();
+
 		[Desc("Minimum number of units AI must have before attacking.")]
 		public readonly int SquadSize = 8;
 
@@ -65,6 +71,15 @@ namespace OpenRA.Mods.Common.Traits
 
 		[Desc("Radius in cells around the base that should be scanned for units to be protected.")]
 		public readonly int ProtectUnitScanRadius = 15;
+
+		[Desc("Minimum radius in cells around base center to send dozer after building it.")]
+		public readonly int MinDozerSendingRadius = 4;
+
+		[Desc("Maximum radius in cells around base center to send dozer after building it.")]
+		public readonly int MaxDozerSendingRadius = 16;
+
+		[Desc("Same as MinBaseRadius but for fragile structures to push them further away.")]
+		public readonly int MinFragilePlacementRadius = 8;
 
 		[Desc("Maximum distance in cells from center of the base when checking for MCV deployment location.",
 			"Only applies if RestrictMCVDeploymentFallbackToBase is enabled and there's at least one construction yard.")]
@@ -100,6 +115,7 @@ namespace OpenRA.Mods.Common.Traits
 		public readonly Player Player;
 
 		readonly Predicate<Actor> unitCannotBeOrdered;
+
 
 		public List<Squad> Squads = new List<Squad>();
 
@@ -218,6 +234,57 @@ namespace OpenRA.Mods.Common.Traits
 			}
 		}
 
+		CPos FindPosFrontForUnit(CPos center, CVec front, int minRange, int maxRange, Actor actor)
+		{
+			var mobile = actor.TraitOrDefault<Mobile>();
+			if (mobile == null)
+				return center;
+
+			// zero vector case. we can't define front or rear.
+			if (front == CVec.Zero)
+				return FindPosForUnit(center, center, minRange, maxRange, actor);
+
+			var cells = World.Map.FindTilesInAnnulus(center, minRange, maxRange).Shuffle(World.LocalRandom);
+			foreach (var cell in cells)
+			{
+				var v = cell - center;
+				if (!mobile.CanEnterCell(cell))
+					continue;
+
+				if (CVec.Dot(front, v) > 0)
+					return cell;
+			}
+
+			// Front is so full of stuff that we can't move there.
+			return center;
+		}
+
+		// Find the moveable cell that is closest to pos and centered around center
+		CPos FindPosForUnit(CPos center, CPos target, int minRange, int maxRange, Actor actor)
+		{
+			var mobile = actor.TraitOrDefault<Mobile>();
+			if (mobile == null)
+				return center;
+
+			var cells = World.Map.FindTilesInAnnulus(center, minRange, maxRange);
+
+			// Sort by distance to target if we have one
+			if (center != target)
+				cells = cells.OrderBy(c => (c - target).LengthSquared);
+			else
+				cells = cells.Shuffle(World.LocalRandom);
+
+			foreach (var cell in cells)
+			{
+				if (!mobile.CanEnterCell(cell))
+					continue;
+
+				return cell;
+			}
+
+			return center;
+		}
+
 		void FindNewUnits(IBot bot)
 		{
 			var newUnits = World.ActorsHavingTrait<IPositionable>()
@@ -227,7 +294,31 @@ namespace OpenRA.Mods.Common.Traits
 
 			foreach (var a in newUnits)
 			{
-				unitsHangingAroundTheBase.Add(a);
+				var closestEnemy = World.ActorsHavingTrait<Building>().Where(actor => !actor.Disposed && AIUtils.IsOwnedByEnemy(actor, bot.Player))
+					.ClosestTo(World.Map.CenterOfCell(GetRandomBaseCenter()));
+				var baseCenter = GetRandomBaseCenter();
+				var mobile = a.TraitOrDefault<Mobile>();
+
+				CVec direction = CVec.Zero;
+				if (closestEnemy != null)
+					direction = baseCenter - closestEnemy.Location;
+
+				if (Info.FragileDeployerTypes.Contains(a.Info.Name) && mobile != null)
+				{
+					bot.QueueOrder(new Order("Move", a,
+						Target.FromCell(World, FindPosFrontForUnit(baseCenter, direction, Info.MinFragilePlacementRadius, Info.MaxBaseRadius, a)), true));
+					bot.QueueOrder(new Order("GrantConditionOnDeploy", a, true));
+				}
+				else if (Info.DozerTypes.Contains(a.Info.Name) && mobile != null)
+				{
+					var dozerTargetPos = World.Map.FindTilesInAnnulus(baseCenter, Info.MinDozerSendingRadius, Info.MaxDozerSendingRadius)
+						.Where(c => mobile.CanEnterCell(c)).Random(World.LocalRandom);
+
+					AIUtils.BotDebug("AI: {0} has chosen {1} to move its Dozer ({2})".F(a.Owner, dozerTargetPos, a));
+					bot.QueueOrder(new Order("Move", a, Target.FromCell(World, dozerTargetPos), true));
+				}
+				else
+					unitsHangingAroundTheBase.Add(a);
 
 				if (a.Info.HasTraitInfo<AircraftInfo>() && a.Info.HasTraitInfo<AttackBaseInfo>() && a.Info.HasTraitInfo<SelectableInfo>())
 				{

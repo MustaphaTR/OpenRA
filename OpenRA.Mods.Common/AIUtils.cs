@@ -51,6 +51,11 @@ namespace OpenRA.Mods.Common
 							.Any(availableCells => availableCells > 0);
 		}
 
+		public static bool IsOwnedByEnemy(Actor a, Player player)
+		{
+			return player.Stances[a.Owner] == Stance.Enemy && a.Owner.InternalName.ToLowerInvariant().StartsWith("multi");
+		}
+
 		public static IEnumerable<ProductionQueue> FindQueues(Player player, string category)
 		{
 			return player.World.ActorsWithTrait<ProductionQueue>()
