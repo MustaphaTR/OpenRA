@@ -33,8 +33,6 @@
 # to start the game, run:
 #   openra
 
-
-
 ############################## TOOLCHAIN ###############################
 #
 SDK         ?=
@@ -80,6 +78,9 @@ INSTALL = install
 INSTALL_DIR = $(INSTALL) -d
 INSTALL_PROGRAM = $(INSTALL) -m755
 INSTALL_DATA = $(INSTALL) -m644
+
+# Toolchain
+MSBUILD = msbuild -verbosity:m -nologo
 
 # program targets
 CORE = pdefault game utility server
