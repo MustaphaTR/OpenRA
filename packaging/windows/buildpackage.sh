@@ -51,7 +51,6 @@ makelauncher "${BUILTDIR}/Dune2000.exe" "Dune 2000" "d2k" Dune2000.ico
 
 # Windows specific files
 cp OpenRA.ico RedAlert.ico TiberianDawn.ico Dune2000.ico "${BUILTDIR}"
-cp "${SRCDIR}/OpenRA.Game.exe.config" "${BUILTDIR}"
 
 curl -s -L -O https://raw.githubusercontent.com/wiki/OpenRA/OpenRA/Changelog.md
 markdown Changelog.md > "${BUILTDIR}/CHANGELOG.html"
