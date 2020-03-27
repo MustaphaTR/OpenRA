@@ -98,7 +98,6 @@ Section "Game" GAME
 	File "${SRCDIR}\TiberianDawn.exe"
 	File "${SRCDIR}\Dune2000.exe"
 	File "${SRCDIR}\OpenRA.Game.exe"
-	File "${SRCDIR}\OpenRA.Game.exe.config"
 	File "${SRCDIR}\OpenRA.Utility.exe"
 	File "${SRCDIR}\OpenRA.Server.exe"
 	File "${SRCDIR}\OpenRA.Platforms.Default.dll"
@@ -221,7 +220,6 @@ Function ${UN}Clean
 	Delete $INSTDIR\TiberianDawn.exe
 	Delete $INSTDIR\Dune2000.exe
 	Delete $INSTDIR\OpenRA.Game.exe
-	Delete $INSTDIR\OpenRA.Game.exe.config
 	Delete $INSTDIR\OpenRA.Utility.exe
 	Delete $INSTDIR\OpenRA.Server.exe
 	Delete $INSTDIR\OpenRA.Platforms.Default.dll
