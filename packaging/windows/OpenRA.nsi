@@ -182,9 +182,9 @@ Section "-DotNet" DotNet
 	ClearErrors
 	ReadRegDWORD $0 HKLM "SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full" "Install"
 	IfErrors error 0
-	IntCmp $0 1 done error done
+	IntCmp $0 394254 done error done
 	error:
-		MessageBox MB_OK ".NET Framework v4.5 or later is required to run OpenRA."
+		MessageBox MB_OK ".NET Framework v4.6.1 or later is required to run OpenRA."
 		Abort
 	done:
 SectionEnd
