@@ -29,13 +29,14 @@ namespace OpenRA.Mods.Common.Activities
 
 		public override Activity Tick(Actor self)
 		{
+			if (NextActivity != null && remainingTicks <= 0)
+				return NextActivity;
+
 			if (IsCanceled)
 				return NextActivity;
 
 			if (remainingTicks > 0)
 				remainingTicks--;
-			else if (remainingTicks == 0)
-				return NextActivity;
 
 			// We can't possibly turn this fast
 			var desiredFacing = aircraft.Facing + 64;

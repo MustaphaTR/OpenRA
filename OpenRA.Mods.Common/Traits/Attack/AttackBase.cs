@@ -34,6 +34,9 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Allow firing into the fog to target frozen actors without requiring force-fire.")]
 		public readonly bool TargetFrozenActors = false;
 
+		[Desc("Force-fire mode ignores actors and targets the ground instead.")]
+		public readonly bool ForceFireIgnoresActors = false;
+
 		[VoiceReference] public readonly string Voice = "Action";
 
 		public override abstract object Create(ActorInitializer init);
@@ -139,8 +142,7 @@ namespace OpenRA.Mods.Common.Traits
 				if (armament == null)
 					yield break;
 
-				var negativeDamage = (armament.Weapon.Warheads.FirstOrDefault(w => (w is DamageWarhead)) as DamageWarhead).Damage < 0;
-				yield return new AttackOrderTargeter(this, 6, negativeDamage);
+				yield return new AttackOrderTargeter(this, 6);
 			}
 		}
 
@@ -360,7 +362,10 @@ namespace OpenRA.Mods.Common.Traits
 				self.CancelActivity();
 
 			self.QueueActivity(GetAttackActivity(self, target, allowMove, forceAttack));
+			OnQueueAttackActivity(self, target, queued, allowMove, forceAttack);
 		}
+
+		public virtual void OnQueueAttackActivity(Actor self, Target target, bool queued, bool allowMove, bool forceAttack) { }
 
 		public bool IsReachableTarget(Target target, bool allowMove)
 		{
@@ -383,7 +388,7 @@ namespace OpenRA.Mods.Common.Traits
 		{
 			readonly AttackBase ab;
 
-			public AttackOrderTargeter(AttackBase ab, int priority, bool negativeDamage)
+			public AttackOrderTargeter(AttackBase ab, int priority)
 			{
 				this.ab = ab;
 				OrderID = ab.attackOrderName;
@@ -399,6 +404,9 @@ namespace OpenRA.Mods.Common.Traits
 				IsQueued = modifiers.HasModifier(TargetModifiers.ForceQueue);
 
 				if (modifiers.HasModifier(TargetModifiers.ForceMove))
+					return false;
+
+				if (ab.Info.ForceFireIgnoresActors && modifiers.HasModifier(TargetModifiers.ForceAttack))
 					return false;
 
 				// Disguised actors are revealed by the attack cursor

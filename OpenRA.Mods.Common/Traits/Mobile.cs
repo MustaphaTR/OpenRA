@@ -524,11 +524,33 @@ namespace OpenRA.Mods.Common.Traits
 
 		#region IMove
 
-		public Activity MoveTo(CPos cell, int nearEnough) { return new Move(self, cell, WDist.FromCells(nearEnough)); }
-		public Activity MoveTo(CPos cell, Actor ignoreActor) { return new Move(self, cell, WDist.Zero, ignoreActor); }
-		public Activity MoveWithinRange(Target target, WDist range) { return new MoveWithinRange(self, target, WDist.Zero, range); }
-		public Activity MoveWithinRange(Target target, WDist minRange, WDist maxRange) { return new MoveWithinRange(self, target, minRange, maxRange); }
-		public Activity MoveFollow(Actor self, Target target, WDist minRange, WDist maxRange) { return new Follow(self, target, minRange, maxRange); }
+		public Activity MoveTo(CPos cell, int nearEnough)
+		{
+			return new Move(self, cell, WDist.FromCells(nearEnough));
+		}
+
+		public Activity MoveTo(CPos cell, Actor ignoreActor)
+		{
+			return new Move(self, cell, WDist.Zero, ignoreActor);
+		}
+
+		public Activity MoveWithinRange(Target target, WDist range,
+			WPos? initialTargetPosition = null, Color? targetLineColor = null)
+		{
+			return new MoveWithinRange(self, target, WDist.Zero, range, initialTargetPosition, targetLineColor);
+		}
+
+		public Activity MoveWithinRange(Target target, WDist minRange, WDist maxRange,
+			WPos? initialTargetPosition = null, Color? targetLineColor = null)
+		{
+			return new MoveWithinRange(self, target, minRange, maxRange, initialTargetPosition, targetLineColor);
+		}
+
+		public Activity MoveFollow(Actor self, Target target, WDist minRange, WDist maxRange,
+			WPos? initialTargetPosition = null, Color? targetLineColor = null)
+		{
+			return new Follow(self, target, minRange, maxRange, initialTargetPosition, targetLineColor);
+		}
 
 		public Activity MoveIntoWorld(Actor self, CPos cell, SubCell subCell = SubCell.Any)
 		{
@@ -548,12 +570,13 @@ namespace OpenRA.Mods.Common.Traits
 			return VisualMove(self, pos, self.World.Map.CenterOfSubCell(cell, subCell), cell);
 		}
 
-		public Activity MoveToTarget(Actor self, Target target)
+		public Activity MoveToTarget(Actor self, Target target,
+			WPos? initialTargetPosition = null, Color? targetLineColor = null)
 		{
 			if (target.Type == TargetType.Invalid)
 				return null;
 
-			return new MoveAdjacentTo(self, target);
+			return new MoveAdjacentTo(self, target, initialTargetPosition, targetLineColor);
 		}
 
 		public Activity MoveIntoTarget(Actor self, Target target)
@@ -561,7 +584,9 @@ namespace OpenRA.Mods.Common.Traits
 			if (target.Type == TargetType.Invalid)
 				return null;
 
-			return VisualMove(self, self.CenterPosition, target.Positions.PositionClosestTo(self.CenterPosition));
+			// Activity cancels if the target moves by more than half a cell
+			// to avoid problems with the cell grid
+			return new VisualMoveIntoTarget(self, target, new WDist(512));
 		}
 
 		public Activity VisualMove(Actor self, WPos fromPos, WPos toPos)
@@ -583,6 +608,9 @@ namespace OpenRA.Mods.Common.Traits
 
 		public bool CanEnterTargetNow(Actor self, Target target)
 		{
+			if (target.Type == TargetType.FrozenActor && !target.FrozenActor.IsValid)
+				return false;
+
 			return self.Location == self.World.Map.CellContaining(target.CenterPosition) || Util.AdjacentCells(self.World, target).Any(c => c == self.Location);
 		}
 

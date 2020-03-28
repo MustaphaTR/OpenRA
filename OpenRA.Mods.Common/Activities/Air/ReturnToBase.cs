@@ -45,11 +45,6 @@ namespace OpenRA.Mods.Common.Activities
 				.Where(a => a.Owner == self.Owner && rearmActors.Contains(a.Info.Name));
 		}
 
-		int CalculateTurnRadius(int speed)
-		{
-			return 45 * speed / aircraft.Info.TurnSpeed;
-		}
-
 		void CalculateLandingPath(Actor self, Dock dock, out WPos w1, out WPos w2, out WPos w3)
 		{
 			var landPos = dock.CenterPosition;
@@ -63,7 +58,7 @@ namespace OpenRA.Mods.Common.Activities
 
 			// Add 10% to the turning radius to ensure we have enough room
 			var speed = aircraft.MovementSpeed * 32 / 35;
-			var turnRadius = CalculateTurnRadius(speed);
+			var turnRadius = Fly.CalculateTurnRadius(speed, aircraft.Info.TurnSpeed);
 
 			// Find the center of the turning circles for clockwise and counterclockwise turns
 			var angle = WAngle.FromFacing(aircraft.Facing);
@@ -149,7 +144,7 @@ namespace OpenRA.Mods.Common.Activities
 			if (!dest.Trait<DockManager>().HasFreeServiceDock(self))
 			{
 				Queue(ActivityUtils.SequenceActivities(
-					new Fly(self, Target.FromActor(dest), WDist.Zero, aircraft.Info.WaitDistanceFromResupplyBase),
+					new Fly(self, Target.FromActor(dest), WDist.Zero, aircraft.Info.WaitDistanceFromResupplyBase, targetLineColor: Color.Green),
 					new FlyCircle(self, aircraft.Info.NumberOfTicksToVerifyAvailableAirport),
 					new ReturnToBase(self, abortOnResupply, null, alwaysLand)));
 				return NextActivity;
@@ -168,7 +163,7 @@ namespace OpenRA.Mods.Common.Activities
 
 			List<Activity> landingProcedures = new List<Activity>();
 
-			var turnRadius = CalculateTurnRadius(aircraft.Info.Speed);
+			var turnRadius = Fly.CalculateTurnRadius(aircraft.Info.Speed, aircraft.Info.TurnSpeed);
 
 			landingProcedures.Add(new Fly(self, Target.FromPos(w1), WDist.Zero, new WDist(turnRadius * 3)));
 			landingProcedures.Add(new Fly(self, Target.FromPos(w2)));

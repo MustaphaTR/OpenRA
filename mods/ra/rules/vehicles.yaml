@@ -31,6 +31,7 @@ V2RL:
 		ScanRadius: 10
 	AttackFrontal:
 		TargetFrozenActors: True
+		ForceFireIgnoresActors: True
 	WithFacingSpriteBody:
 		RequiresCondition: !reloading
 		Name: loaded
@@ -277,6 +278,7 @@ ARTY:
 		MuzzleSequence: muzzle
 	AttackFrontal:
 		TargetFrozenActors: True
+		ForceFireIgnoresActors: True
 	WithMuzzleOverlay:
 	Explodes:
 		Weapon: ArtilleryExplode
@@ -551,7 +553,7 @@ MGG:
 	Armor:
 		Type: Heavy
 	Mobile:
-		Speed: 99
+		Speed: 85
 	WithIdleOverlay@SPINNER:
 		Offset: -299,0,171
 		Sequence: spinner
@@ -569,7 +571,7 @@ MGG:
 MRJ:
 	Inherits: ^Vehicle
 	Valued:
-		Cost: 1100
+		Cost: 1000
 	Tooltip:
 		Name: Mobile Radar Jammer
 	UpdatesPlayerStatistics:
@@ -585,7 +587,7 @@ MRJ:
 	Armor:
 		Type: Heavy
 	Mobile:
-		Speed: 99
+		Speed: 85
 	RevealsShroud:
 		Range: 7c0
 	WithIdleOverlay@SPINNER:
@@ -721,10 +723,17 @@ DTRK:
 		Weapon: MiniNuke
 		EmptyWeapon: MiniNuke
 		DamageSource: Killer
-	AttackSuicides:
+	AttackFrontal:
+		FacingTolerance: 128
+	Armament@PRIMARY:
+		Weapon: DemoTruckTargeting
+	GrantConditionOnAttack:
+		Condition: triggered
+	GrantConditionOnDeploy:
+		DeployedCondition: triggered
 	-DamageMultiplier@IRONCURTAIN:
 	KillsSelf:
-		RequiresCondition: invulnerability
+		RequiresCondition: invulnerability || triggered
 	Chronoshiftable:
 		ExplodeInstead: yes
 

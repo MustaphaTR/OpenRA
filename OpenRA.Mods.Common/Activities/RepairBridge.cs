@@ -9,6 +9,7 @@
  */
 #endregion
 
+using System.Drawing;
 using OpenRA.Mods.Common.Traits;
 using OpenRA.Traits;
 
@@ -16,49 +17,70 @@ namespace OpenRA.Mods.Common.Activities
 {
 	class RepairBridge : Enter
 	{
-		readonly Actor target;
-		readonly LegacyBridgeHut legacyHut;
-		readonly BridgeHut hut;
+		readonly EnterBehaviour enterBehaviour;
 		readonly string notification;
 
-		public RepairBridge(Actor self, Actor target, EnterBehaviour enterBehaviour, string notification)
-			: base(self, target, enterBehaviour, WDist.Zero)
+		Actor enterActor;
+		BridgeHut enterHut;
+		LegacyBridgeHut enterLegacyHut;
+
+		public RepairBridge(Actor self, Target target, EnterBehaviour enterBehaviour, string notification)
+			: base(self, target, WDist.Zero, Color.Yellow)
 		{
-			this.target = target;
-			legacyHut = target.TraitOrDefault<LegacyBridgeHut>();
-			hut = target.TraitOrDefault<BridgeHut>();
+			this.enterBehaviour = enterBehaviour;
 			this.notification = notification;
 		}
 
-		protected override bool CanReserve(Actor self)
+		bool CanEnterHut()
 		{
-			if (legacyHut != null)
-				return legacyHut.BridgeDamageState != DamageState.Undamaged && !legacyHut.Repairing && legacyHut.Bridge.GetHut(0) != null && legacyHut.Bridge.GetHut(1) != null;
+			if (enterLegacyHut != null)
+				return enterLegacyHut.BridgeDamageState != DamageState.Undamaged && !enterLegacyHut.Repairing &&
+					enterLegacyHut.Bridge.GetHut(0) != null && enterLegacyHut.Bridge.GetHut(1) != null;
 
-			if (hut != null)
-				return hut.BridgeDamageState != DamageState.Undamaged && !hut.Repairing;
+			if (enterHut != null)
+				return enterHut.BridgeDamageState != DamageState.Undamaged && !enterHut.Repairing;
 
 			return false;
 		}
 
-		protected override void OnInside(Actor self)
+		protected override bool TryStartEnter(Actor self, Actor targetActor)
 		{
-			if (legacyHut != null)
-			{
-				if (legacyHut.BridgeDamageState == DamageState.Undamaged || legacyHut.Repairing || legacyHut.Bridge.GetHut(0) == null || legacyHut.Bridge.GetHut(1) == null)
-					return;
+			enterActor = targetActor;
+			enterLegacyHut = enterActor.TraitOrDefault<LegacyBridgeHut>();
+			enterHut = enterActor.TraitOrDefault<BridgeHut>();
 
-				legacyHut.Repair(self);
-			}
-			else if (hut != null)
+			// Make sure we can still repair the target before entering
+			// (but not before, because this may stop the actor in the middle of nowhere)
+			if (!CanEnterHut())
 			{
-				if (hut.BridgeDamageState == DamageState.Undamaged || hut.Repairing)
-					return;
-
-				hut.Repair(target, self);
+				Cancel(self, true);
+				return false;
 			}
+
+			return true;
+		}
+
+		protected override void OnEnterComplete(Actor self, Actor targetActor)
+		{
+			// Make sure the target hasn't changed while entering
+			// OnEnterComplete is only called if targetActor is alive
+			if (targetActor != enterActor)
+				return;
+
+			if (!CanEnterHut())
+				return;
+
+			if (enterLegacyHut != null)
+				enterLegacyHut.Repair(self);
+			else if (enterHut != null)
+				enterHut.Repair(enterActor, self);
 
 			Game.Sound.PlayNotification(self.World.Map.Rules, self.Owner, "Speech", notification, self.Owner.Faction.InternalName);
+
+			if (enterBehaviour == EnterBehaviour.Dispose)
+				self.Dispose();
+			else if (enterBehaviour == EnterBehaviour.Suicide)
+				self.Kill(self);
 		}
 	}
 }

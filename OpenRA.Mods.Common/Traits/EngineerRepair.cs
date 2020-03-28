@@ -29,10 +29,6 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("What diplomatic stances allow target to be repaired by this actor.")]
 		public readonly Stance ValidStances = Stance.Ally;
 
-		[GrantedConditionReference]
-		[Desc("External condition to removed for the target actor.")]
-		public readonly string[] RevokeExternalConditions = { };
-
 		public object Create(ActorInitializer init) { return new EngineerRepair(init, this); }
 	}
 
@@ -78,10 +74,6 @@ namespace OpenRA.Mods.Common.Traits
 		public void ResolveOrder(Actor self, Order order)
 		{
 			if (order.OrderString != "EngineerRepair" || !IsValidOrder(self, order))
-				return;
-
-			var target = self.ResolveFrozenActorOrder(order, Color.Yellow);
-			if (target.Type != TargetType.Actor)
 				return;
 
 			if (!order.Queued)

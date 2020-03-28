@@ -36,19 +36,12 @@ namespace OpenRA.Mods.Common.Traits
 		public override object Create(ActorInitializer init) { return new GivesBounty(this); }
 	}
 
-	class GivesBounty : ConditionalTrait<GivesBountyInfo>, INotifyKilled
+	class GivesBounty : ConditionalTrait<GivesBountyInfo>, INotifyKilled, INotifyPassengerEntered, INotifyPassengerExited
 	{
-		Cargo cargo;
+		Dictionary<Actor, GivesBounty[]> passengerBounties = new Dictionary<Actor, GivesBounty[]>();
 
 		public GivesBounty(GivesBountyInfo info)
 			: base(info) { }
-
-		protected override void Created(Actor self)
-		{
-			base.Created(self);
-
-			cargo = self.TraitOrDefault<Cargo>();
-		}
 
 		int GetBountyValue(Actor self, TakesBounty activeAttackerTakesBounty)
 		{
@@ -58,15 +51,10 @@ namespace OpenRA.Mods.Common.Traits
 		int GetDisplayedBountyValue(Actor self, TakesBounty activeAttackerTakesBounty)
 		{
 			var bounty = GetBountyValue(self, activeAttackerTakesBounty);
-			if (cargo == null)
-				return bounty;
-
-			foreach (var a in cargo.Passengers)
-			{
-				var givesBounties = a.TraitsImplementing<GivesBounty>().Where(gb => !gb.IsTraitDisabled);
-				foreach (var givesBounty in givesBounties)
-					bounty += givesBounty.GetDisplayedBountyValue(a, activeAttackerTakesBounty);
-			}
+			foreach (var pb in passengerBounties)
+				foreach (var b in pb.Value)
+					if (!b.IsTraitDisabled)
+						bounty += givesBounty.GetDisplayedBountyValue(a, activeAttackerTakesBounty);
 
 			return bounty;
 		}
@@ -92,6 +80,16 @@ namespace OpenRA.Mods.Common.Traits
 				e.Attacker.World.AddFrameEndTask(w => w.Add(new FloatingText(self.CenterPosition, e.Attacker.Owner.Color.RGB, FloatingText.FormatCashTick(displayedBounty), 30)));
 
 			e.Attacker.Owner.PlayerActor.Trait<PlayerResources>().ChangeCash(GetBountyValue(self, activeAttackerTakesBounty));
+		}
+
+		void INotifyPassengerEntered.OnPassengerEntered(Actor self, Actor passenger)
+		{
+			passengerBounties.Add(passenger, passenger.TraitsImplementing<GivesBounty>().ToArray());
+		}
+
+		void INotifyPassengerExited.OnPassengerExited(Actor self, Actor passenger)
+		{
+			passengerBounties.Remove(passenger);
 		}
 	}
 }

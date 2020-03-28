@@ -10,6 +10,7 @@
 #endregion
 
 using System.Collections.Generic;
+using System.Drawing;
 using System.Linq;
 using OpenRA.Traits;
 
@@ -20,8 +21,9 @@ namespace OpenRA.Mods.Common.Activities
 		readonly WDist maxRange;
 		readonly WDist minRange;
 
-		public MoveWithinRange(Actor self, Target target, WDist minRange, WDist maxRange)
-			: base(self, target)
+		public MoveWithinRange(Actor self, Target target, WDist minRange, WDist maxRange,
+			WPos? initialTargetPosition = null, Color? targetLineColor = null)
+			: base(self, target, initialTargetPosition, targetLineColor)
 		{
 			this.minRange = minRange;
 			this.maxRange = maxRange;
@@ -36,7 +38,7 @@ namespace OpenRA.Mods.Common.Activities
 
 		protected override bool ShouldRepath(Actor self, CPos oldTargetPosition)
 		{
-			return targetPosition != oldTargetPosition && (!AtCorrectRange(self.CenterPosition)
+			return lastVisibleTargetLocation != oldTargetPosition && (!AtCorrectRange(self.CenterPosition)
 				|| !Mobile.CanInteractWithGroundLayer(self));
 		}
 
@@ -46,7 +48,7 @@ namespace OpenRA.Mods.Common.Activities
 			var maxCells = (maxRange.Length + 1023) / 1024;
 			var minCells = minRange.Length / 1024;
 
-			return map.FindTilesInAnnulus(targetPosition, minCells, maxCells)
+			return map.FindTilesInAnnulus(lastVisibleTargetLocation, minCells, maxCells)
 				.Where(c => AtCorrectRange(map.CenterOfSubCell(c, Mobile.FromSubCell)));
 		}
 

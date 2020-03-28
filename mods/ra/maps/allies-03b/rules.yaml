@@ -18,16 +18,14 @@ powerproxy.paratroopers:
 	ParatroopersPower:
 		DropItems: E1,E1,E1,E2,E2
 
-HACKE6:
-	Inherits: E6
+E6:
+	Buildable:
+		Prerequisites: ~disabled
 	-RepairsBridges:
-	WithInfantryBody:
 	Targetable:
 		RequiresCondition: !jail
 	Targetable@PRISONER:
 		TargetTypes: Prisoner
-	RenderSprites:
-		Image: E6
 	ExternalCondition@JAIL:
 		Condition: jail
 
@@ -107,6 +105,7 @@ TRAN:
 	-Selectable:
 	RevealsShroud:
 		Range: 0c0
+	-RevealsShroud@GAPGEN:
 	Cargo:
 		Types: ~disabled
 	Interactable:
@@ -133,10 +132,6 @@ E3:
 		Prerequisites: ~disabled
 
 E4:
-	Buildable:
-		Prerequisites: ~disabled
-
-E6:
 	Buildable:
 		Prerequisites: ~disabled
 

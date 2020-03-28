@@ -21,7 +21,14 @@ namespace OpenRA
 	{
 		public int Hash { get; private set; }
 		public IEnumerable<Actor> Actors { get { return actors; } }
+
 		readonly HashSet<Actor> actors = new HashSet<Actor>();
+		readonly INotifySelection[] worldNotifySelection;
+
+		internal Selection(IEnumerable<INotifySelection> worldNotifySelection)
+		{
+			this.worldNotifySelection = worldNotifySelection.ToArray();
+		}
 
 		void UpdateHash()
 		{
@@ -31,15 +38,39 @@ namespace OpenRA
 			Hash += 1;
 		}
 
-		public void Add(World w, Actor a)
+		public void Add(Actor a)
 		{
 			actors.Add(a);
 			UpdateHash();
 
 			foreach (var sel in a.TraitsImplementing<INotifySelected>())
 				sel.Selected(a);
-			foreach (var ns in w.WorldActor.TraitsImplementing<INotifySelection>())
+
+			foreach (var ns in worldNotifySelection)
 				ns.SelectionChanged();
+		}
+
+		public void Remove(Actor a)
+		{
+			if (actors.Remove(a))
+			{
+				UpdateHash();
+				foreach (var ns in worldNotifySelection)
+					ns.SelectionChanged();
+			}
+		}
+
+		internal void OnOwnerChanged(Actor a, Player oldOwner, Player newOwner)
+		{
+			if (!actors.Contains(a))
+				return;
+
+			// Remove the actor from the original owners selection
+			// Call UpdateHash directly for everyone else so watchers can account for the owner change if needed
+			if (oldOwner == a.World.LocalPlayer)
+				Remove(a);
+			else
+				UpdateHash();
 		}
 
 		public bool Contains(Actor a)
@@ -77,7 +108,7 @@ namespace OpenRA
 				foreach (var sel in a.TraitsImplementing<INotifySelected>())
 					sel.Selected(a);
 
-			foreach (var ns in world.WorldActor.TraitsImplementing<INotifySelection>())
+			foreach (var ns in worldNotifySelection)
 				ns.SelectionChanged();
 
 			if (world.IsGameOver)
