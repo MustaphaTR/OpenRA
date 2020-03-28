@@ -77,8 +77,6 @@
     <Compile Include="Activities\Supply\DeliverGoods.cs" />
     <Compile Include="Activities\Supply\FindGoods.cs" />
     <Compile Include="Activities\OpportunityTeleport.cs" />
-    <Compile Include="Activities\EnterTransportWithWait.cs" />
-    <Compile Include="Activities\EnterNydus.cs" />
     <Compile Include="Activities\EnterCarrierMaster.cs" />
     <Compile Include="Activities\SpawnerHarvesterHarvest.cs" />
     <Compile Include="Activities\FallDown.cs" />
@@ -91,7 +89,6 @@
     <Compile Include="Projectiles\RadBeam.cs" />
     <Compile Include="Traits\AIDeployHelper.cs" />
     <Compile Include="Traits\DelayedWeaponAttachable.cs" />
-    <Compile Include="Traits\AegisAutoTarget.cs" />
     <Compile Include="Traits\AcceptCashRallyPointAcceptor.cs" />
     <Compile Include="Traits\MissileSpawnerMaster.cs" />
     <Compile Include="Traits\MissileSpawnerSlave.cs" />
@@ -126,7 +123,6 @@
     <Compile Include="Traits\Air\AutoTakesOff.cs" />
     <Compile Include="Traits\Air\FlyCircleOnIdle.cs" />
     <Compile Include="Traits\CargoCashTrickler.cs" />
-    <Compile Include="Traits\CargoTransformer.cs" />
     <Compile Include="Traits\Conditions\GrantTimedConditionOnDeploy.cs" />
     <Compile Include="Traits\SupportPowers\CashHackPower.cs" />
     <Compile Include="Traits\SupportPowers\DetonateWeaponPower.cs" />
@@ -140,8 +136,6 @@
     <Compile Include="Traits\DelayedWeaponTrigger.cs" />
     <Compile Include="Traits\ExplodeWeapon.cs" />
     <Compile Include="Traits\ExperienceTrickler.cs" />
-    <Compile Include="Traits\Nydus.cs" />
-    <Compile Include="Traits\NydusPrimaryExit.cs" />
     <Compile Include="Traits\ResourcePurifier.cs" />
     <Compile Include="Traits\MobSpawnerMaster.cs" />
     <Compile Include="Traits\SpawnerHarvesterMaster.cs" />

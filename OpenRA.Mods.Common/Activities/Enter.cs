@@ -128,9 +128,6 @@ namespace OpenRA.Mods.Common.Activities
 					if (useLastVisibleTarget || target.Type != TargetType.Actor)
 						return NextActivity;
 
-					// Otherwise, try to recover from moving target
-					else if ()
-
 					// Are we ready to move into the target?
 					if (TryStartEnter(self, target.Actor))
 					{

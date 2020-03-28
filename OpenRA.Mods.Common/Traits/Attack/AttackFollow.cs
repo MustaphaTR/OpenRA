@@ -190,13 +190,13 @@ namespace OpenRA.Mods.Common.Traits
 
 				// Check that AttackFollow hasn't cancelled the target by modifying attack.Target
 				// Having both this and AttackFollow modify that field is a horrible hack.
-				if (hasTicked && attackFollows.All(a => a.Target.Type == TargetType.Invalid))
+				if (hasTicked && attackFollows.All(a => a.requestedTarget.Type == TargetType.Invalid))
 					return NextActivity;
 
 				if (attackFollows.All(a => a.IsTraitPaused))
 					return this;
 
-				bool targetIsHiddenActor;
+				bool targetIsHiddenActor = false;
 				foreach (var attack in attackFollows)
 				{
 					attack.requestedForceAttack = forceAttack;

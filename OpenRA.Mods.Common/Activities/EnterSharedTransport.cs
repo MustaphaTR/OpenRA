@@ -10,6 +10,7 @@
 #endregion
 
 using System;
+using System.Drawing;
 using OpenRA.Mods.Common.Traits;
 using OpenRA.Traits;
 
@@ -18,41 +19,61 @@ namespace OpenRA.Mods.Common.Activities
 	public class EnterSharedTransport : Enter
 	{
 		readonly SharedPassenger passenger;
-		Actor transport;
-		SharedCargo cargo;
 
-		public EnterSharedTransport(Actor self, Actor transport, int maxTries = 0, bool repathWhileMoving = true)
-			: base(self, transport, EnterBehaviour.Exit, WDist.Zero, maxTries, repathWhileMoving)
+		Actor enterActor;
+		SharedCargo enterCargo;
+
+		public EnterSharedTransport(Actor self, Target target)
+			: base(self, target, WDist.Zero, Color.Green)
 		{
-			this.transport = transport;
-			cargo = transport.Trait<SharedCargo>();
 			passenger = self.Trait<SharedPassenger>();
 		}
 
-		protected override void Unreserve(Actor self, bool abort) { passenger.Unreserve(self); }
-		protected override bool CanReserve(Actor self) { return cargo.Unloading || cargo.CanLoad(transport, self); }
-		protected override ReserveStatus Reserve(Actor self)
+		protected override bool TryStartEnter(Actor self, Actor targetActor)
 		{
-			var status = base.Reserve(self);
-			if (status != ReserveStatus.Ready)
-				return status;
-			if (passenger.Reserve(self, cargo))
-				return ReserveStatus.Ready;
-			return ReserveStatus.Pending;
+			enterActor = targetActor;
+			enterCargo = targetActor.TraitOrDefault<SharedCargo>();
+
+			// Make sure we can still enter the transport
+			// (but not before, because this may stop the actor in the middle of nowhere)
+			if (enterCargo == null || !passenger.Reserve(self, enterCargo))
+			{
+				Cancel(self, true);
+				return false;
+			}
+
+			return true;
 		}
 
-		protected override void OnInside(Actor self)
+		protected override void OnEnterComplete(Actor self, Actor targetActor)
 		{
 			self.World.AddFrameEndTask(w =>
 			{
-				if (self.IsDead || transport.IsDead || !cargo.CanLoad(transport, self))
+				// Make sure the target hasn't changed while entering
+				// OnEnterComplete is only called if targetActor is alive
+				if (targetActor != enterActor)
 					return;
 
-				cargo.Load(transport, self);
-				w.Remove(self);
-			});
+				if (self.IsDead || enterActor.IsDead || !enterCargo.CanLoad(enterActor, self))
+					return;
 
-			Done(self);
+				enterCargo.Load(enterActor, self);
+				w.Remove(self);
+
+				// Preemptively cancel any activities to avoid an edge-case where successively queued
+				// EnterTransports corrupt the actor state. Activities are cancelled again on unload
+				self.CancelActivity();
+			});
+		}
+
+		protected override void OnCancel(Actor self)
+		{
+			passenger.Unreserve(self);
+		}
+
+		protected override void OnLastRun(Actor self)
+		{
+			passenger.Unreserve(self);
 		}
 	}
 }

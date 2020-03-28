@@ -156,7 +156,7 @@ namespace OpenRA.Mods.Common.Traits
 				self.CancelActivity();
 		
 			self.SetTargetLine(order.Target, Color.Green);
-			self.QueueActivity(new EnterSharedTransport(self, targetActor));
+			self.QueueActivity(new EnterSharedTransport(self, order.Target));
 		}
 
 		public bool Reserve(Actor self, SharedCargo cargo)

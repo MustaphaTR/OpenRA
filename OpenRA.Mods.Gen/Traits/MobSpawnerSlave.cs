@@ -118,7 +118,7 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 			// self.World.Selection.Remove(self.World, self); No need to remove when you don't wee the selection decoration.
 			// -SelectionDecorations: is all you need.
 			// Also use RejectsOrder if necessary.
-			self.World.Selection.Add(self.World, Master);
+			self.World.Selection.Add(Master);
 		}
 	}
 }

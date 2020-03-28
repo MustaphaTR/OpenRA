@@ -54,7 +54,7 @@ namespace OpenRA.Mods.Common.Traits
 			foreach (var pb in passengerBounties)
 				foreach (var b in pb.Value)
 					if (!b.IsTraitDisabled)
-						bounty += givesBounty.GetDisplayedBountyValue(a, activeAttackerTakesBounty);
+						bounty += b.GetDisplayedBountyValue(pb.Key, activeAttackerTakesBounty);
 
 			return bounty;
 		}

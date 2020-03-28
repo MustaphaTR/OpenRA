@@ -270,7 +270,7 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 			foreach (var se in SlaveEntries)
 			{
 				se.SpawnerSlave.Stop(se.Actor);
-				se.Actor.QueueActivity(new Follow(se.Actor, Target.FromActor(self), WDist.FromCells(1), WDist.FromCells(3)));
+				se.Actor.QueueActivity(new Follow(se.Actor, Target.FromActor(self), WDist.FromCells(1), WDist.FromCells(3), self.CenterPosition));
 			}
 		}
 

@@ -106,39 +106,4 @@ namespace OpenRA.Mods.Common.Scripting
 			return Target.FromActor(targetActor).IsValidFor(Self);
 		}
 	}
-
-	[ScriptPropertyGroup("Combat")]
-	public class AttackSuicidesProperties : ScriptActorProperties, Requires<AttackSuicidesInfo>, Requires<IMoveInfo>
-	{
-		readonly AttackSuicides attackSuicides;
-		readonly IMove move;
-
-		public AttackSuicidesProperties(ScriptContext context, Actor self)
-			: base(context, self)
-		{
-			attackSuicides = self.TraitOrDefault<AttackSuicides>();
-			move = self.Trait<IMove>();
-		}
-
-		[Desc("Attack the target actor.")]
-		public void DetonateAttack(Actor targetActor, bool queued = true)
-		{
-			if (attackSuicides != null)
-			{
-				Self.QueueActivity(move.MoveToTarget(Self, Target.FromActor(targetActor)));
-				Self.QueueActivity(new CallFunc(() => Self.Kill(Self, attackSuicides.Info.DamageTypes)));
-			}
-			else
-				Log.Write("lua", "Actor {0} doesn't have AttackSuicides trait!", Self);
-		}
-
-		[Desc("Self destruct.")]
-		public void Detonate()
-		{
-			if (attackSuicides != null)
-				Self.Kill(Self, attackSuicides.Info.DamageTypes);
-			else
-				Log.Write("lua", "Actor {0} doesn't have AttackSuicides trait!", Self);
-		}
-	}
 }

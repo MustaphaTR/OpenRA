@@ -40,7 +40,7 @@ namespace OpenRA.Mods.Common.Traits
 		{
 			var info = produced.Info.TraitInfo<DeliversCashInfo>();
 			produced.SetTargetLine(Target.FromActor(dest), Color.Yellow);
-			return new DonateCash(produced, dest, info.Payload, info.PlayerExperience);
+			return new DonateCash(produced, Target.FromActor(dest), info.Payload, info.PlayerExperience);
 		}
 	}
 }
