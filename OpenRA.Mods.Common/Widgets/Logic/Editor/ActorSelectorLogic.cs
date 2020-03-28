@@ -83,7 +83,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			foreach (var a in mapRules.Actors.Values)
 			{
 				// Partial templates are not allowed
-				if (a.Name.Contains('^'))
+				if (a.Name.Contains("^"))
 					continue;
 
 				// Actor must have a preview associated with it

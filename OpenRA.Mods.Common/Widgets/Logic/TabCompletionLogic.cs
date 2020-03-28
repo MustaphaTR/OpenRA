@@ -49,7 +49,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			}
 			else if (Names != null)
 			{
-				var oneWord = text.Contains(' ');
+				var oneWord = text.Contains(" ");
 				if (oneWord)
 				{
 					prefix = text.Substring(0, text.LastIndexOf(' ') + 1);

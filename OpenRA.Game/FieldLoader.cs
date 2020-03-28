@@ -211,14 +211,14 @@ namespace OpenRA
 			{
 				float res;
 				if (value != null && float.TryParse(value.Replace("%", ""), NumberStyles.Float, NumberFormatInfo.InvariantInfo, out res))
-					return res * (value.Contains('%') ? 0.01f : 1f);
+					return res * (value.Contains("%") ? 0.01f : 1f);
 				return InvalidValueAction(value, fieldType, fieldName);
 			}
 			else if (fieldType == typeof(decimal))
 			{
 				decimal res;
 				if (value != null && decimal.TryParse(value.Replace("%", ""), NumberStyles.Float, NumberFormatInfo.InvariantInfo, out res))
-					return res * (value.Contains('%') ? 0.01m : 1m);
+					return res * (value.Contains("%") ? 0.01m : 1m);
 				return InvalidValueAction(value, fieldType, fieldName);
 			}
 			else if (fieldType == typeof(string))
@@ -565,9 +565,9 @@ namespace OpenRA
 					float yy = 0;
 					float res;
 					if (float.TryParse(parts[0].Replace("%", ""), NumberStyles.Float, NumberFormatInfo.InvariantInfo, out res))
-						xx = res * (parts[0].Contains('%') ? 0.01f : 1f);
+						xx = res * (parts[0].Contains("%") ? 0.01f : 1f);
 					if (float.TryParse(parts[1].Replace("%", ""), NumberStyles.Float, NumberFormatInfo.InvariantInfo, out res))
-						yy = res * (parts[1].Contains('%') ? 0.01f : 1f);
+						yy = res * (parts[1].Contains("%") ? 0.01f : 1f);
 					return new float2(xx, yy);
 				}
 
