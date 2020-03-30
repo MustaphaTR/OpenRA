@@ -298,7 +298,7 @@ NASTLH:
 		Range: 6c0
 		MaxHeightDelta: 3
 	WithIdleOverlay@pulse:
-		RequiresCondition: !build-incomplete && !disabled
+		RequiresCondition: !build-incomplete && !empdisable && !disabled
 		Sequence: pulse
 	WithRangeCircle:
 		Range: 12c0
@@ -306,7 +306,7 @@ NASTLH:
 	Power:
 		Amount: -350
 	ProximityExternalCondition:
-		RequiresCondition: !disabled
+		RequiresCondition: !empdisable && !disabled
 		Condition: cloakgenerator
 		Range: 12c0
 		EnableSound: cloak5.aud
@@ -358,18 +358,25 @@ NAMISL:
 		Icon: clustermissile
 		ChargeInterval: 13500
 		Description: Cluster Missile
-		LongDesc: Launches a conventional warhead\nat a target location.
+		LongDesc: Launches an explosive cluster warhead\nat a target location.
 		EndChargeSpeechNotification: ClusterMissileReady
 		SelectTargetSpeechNotification: SelectTarget
 		IncomingSpeechNotification: MissileLaunchDetected
 		LaunchSound: icbm1.aud
 		MissileWeapon: ClusterMissile
-		SpawnOffset: 0,427,0
+		MissileDelay: 10
+		DetonationAltitude: 5c0
+		SpawnOffset: 72,72,0
 		DisplayTimerStances: None
 		DisplayBeacon: False
 		DisplayRadarPing: True
 		BeaconPoster:
 		CameraRange: 10c0
+		FlightVelocity: 1c0
+		TrailImage: small_smoke_trail
+		TrailPalette: effectalpha75
+		TrailInterval: 0
+		TrailSequences: idle
 	WithNukeLaunchOverlay:
 	SelectionDecorations:
 

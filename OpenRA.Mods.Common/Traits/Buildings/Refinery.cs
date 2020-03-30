@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2018 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -37,18 +37,23 @@ namespace OpenRA.Mods.Common.Traits
 		public virtual object Create(ActorInitializer init) { return new Refinery(init.Self, this); }
 	}
 
-	public class Refinery : ITick, IResourceExchange, INotifySold, INotifyCapture, INotifyOwnerChanged, ISync, INotifyActorDisposing
+	public class Refinery : INotifyCreated, ITick, IResourceExchange, INotifySold, INotifyCapture,
+		INotifyOwnerChanged, ISync, INotifyActorDisposing
 	{
 		readonly Actor self;
 		readonly RefineryInfo info;
 		readonly DockManager docks;
 		PlayerResources playerResources;
+		RefineryResourceMultiplier[] resourceMultipliers;
 
 		int currentDisplayTick = 0;
 		int currentDisplayValue = 0;
 
-		[Sync] public int Ore = 0;
-		[Sync] bool preventDock = false;
+		[Sync]
+		public int Ore = 0;
+
+		[Sync]
+		bool preventDock = false;
 
 		public bool AllowDocking { get { return !preventDock; } }
 
@@ -59,6 +64,11 @@ namespace OpenRA.Mods.Common.Traits
 			playerResources = self.Owner.PlayerActor.Trait<PlayerResources>();
 			currentDisplayTick = info.TickRate;
 			docks = self.Trait<DockManager>();
+		}
+
+		void INotifyCreated.Created(Actor self)
+		{
+			resourceMultipliers = self.TraitsImplementing<RefineryResourceMultiplier>().ToArray();
 		}
 
 		public virtual Activity DockSequence(Actor harv, Actor self, Dock dock)
@@ -77,6 +87,8 @@ namespace OpenRA.Mods.Common.Traits
 
 		public void GiveResource(int amount, string harvester)
 		{
+			amount = Util.ApplyPercentageModifiers(amount, resourceMultipliers.Select(m => m.GetModifier()));
+
 			if (info.UseStorage)
 			{
 				if (info.DiscardExcessResources)
@@ -87,13 +99,12 @@ namespace OpenRA.Mods.Common.Traits
 			else
 				amount = playerResources.ChangeCash(amount);
 
-			var purifiers = self.World.ActorsWithTrait<IResourcePurifier>().Where(x => x.Actor.Owner == self.Owner).Select(x => x.Trait);
-			foreach (var p in purifiers)
+			foreach (var notify in self.World.ActorsWithTrait<INotifyResourceAccepted>())
 			{
-				var cash = p.RefineAmount(amount, self.Info.Name, harvester);
+				if (notify.Actor.Owner != self.Owner)
+					continue;
 
-				if (p.ShowTicksOnRefinery && info.ShowTicks)
-					currentDisplayValue += cash;
+				notify.Trait.OnResourceAccepted(notify.Actor, self, amount);
 			}
 
 			if (info.ShowTicks)
@@ -111,7 +122,7 @@ namespace OpenRA.Mods.Common.Traits
 			{
 				var temp = currentDisplayValue;
 				if (self.Owner.IsAlliedWith(self.World.RenderPlayer))
-					self.World.AddFrameEndTask(w => w.Add(new FloatingText(self.CenterPosition, self.Owner.Color.RGB, FloatingText.FormatCashTick(temp), 30)));
+					self.World.AddFrameEndTask(w => w.Add(new FloatingText(self.CenterPosition, self.Owner.Color, FloatingText.FormatCashTick(temp), 30)));
 				currentDisplayTick = info.TickRate;
 				currentDisplayValue = 0;
 			}

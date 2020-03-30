@@ -170,9 +170,6 @@ camera.spyplane:
 	Inherits: CAMERA
 	EditorOnlyTooltip:
 		Name: (support power proxy camera)
-	DetectCloaked:
-		Range: 10c0
-		CloakTypes: Cloak, Thief
 
 SONAR:
 	Inherits: camera.spyplane
@@ -181,6 +178,7 @@ SONAR:
 	-RevealsShroud:
 	DetectCloaked:
 		CloakTypes: Underwater
+		Range: 10c0
 
 FLARE:
 	Immobile:
@@ -218,6 +216,8 @@ MINE:
 	AppearsOnRadar:
 	RadarColorFromTerrain:
 		Terrain: Ore
+	AppearsOnMapPreview:
+		Terrain: Ore
 	SeedsResource:
 	MapEditorData:
 		Categories: Resource spawn
@@ -238,6 +238,8 @@ GMINE:
 		Dimensions: 1,1
 	AppearsOnRadar:
 	RadarColorFromTerrain:
+		Terrain: Gems
+	AppearsOnMapPreview:
 		Terrain: Gems
 	SeedsResource:
 		ResourceType: Gems
@@ -336,6 +338,7 @@ powerproxy.sonarpulse:
 		DeploySound: sonpulse.aud
 		EffectImage: moveflsh
 		EffectPalette: moveflash
+		SupportPowerPaletteOrder: 80
 
 powerproxy.paratroopers:
 	AlwaysVisible:

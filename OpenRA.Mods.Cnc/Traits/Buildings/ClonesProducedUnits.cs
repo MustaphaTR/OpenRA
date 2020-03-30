@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2018 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -18,34 +18,36 @@ using OpenRA.Traits;
 namespace OpenRA.Mods.Cnc.Traits
 {
 	[Desc("Creates a free duplicate of produced units.")]
-	public class ClonesProducedUnitsInfo : ITraitInfo, Requires<ProductionInfo>, Requires<ExitInfo>
+	public class ClonesProducedUnitsInfo : ConditionalTraitInfo, Requires<ProductionInfo>, Requires<ExitInfo>
 	{
 		[FieldLoader.Require]
 		[Desc("Uses the \"Cloneable\" trait to determine whether or not we should clone a produced unit.")]
 		public readonly BitSet<CloneableType> CloneableTypes = default(BitSet<CloneableType>);
 
-		public object Create(ActorInitializer init) { return new ClonesProducedUnits(init, this); }
+		public override object Create(ActorInitializer init) { return new ClonesProducedUnits(init, this); }
 	}
 
-	public class ClonesProducedUnits : INotifyOtherProduction
+	public class ClonesProducedUnits : ConditionalTrait<ClonesProducedUnitsInfo>, INotifyOtherProduction
 	{
-		readonly ClonesProducedUnitsInfo info;
 		readonly Production[] productionTraits;
 
 		public ClonesProducedUnits(ActorInitializer init, ClonesProducedUnitsInfo info)
+			: base(info)
 		{
-			this.info = info;
 			productionTraits = init.Self.TraitsImplementing<Production>().ToArray();
 		}
 
 		public void UnitProducedByOther(Actor self, Actor producer, Actor produced, string productionType, TypeDictionary init)
 		{
+			if (IsTraitDisabled)
+				return;
+
 			// No recursive cloning!
 			if (producer.Owner != self.Owner || producer.Info.HasTraitInfo<ClonesProducedUnitsInfo>())
 				return;
 
 			var ci = produced.Info.TraitInfoOrDefault<CloneableInfo>();
-			if (ci == null || !info.CloneableTypes.Overlaps(ci.Types))
+			if (ci == null || !Info.CloneableTypes.Overlaps(ci.Types))
 				return;
 
 			var factionInit = init.GetOrDefault<FactionInit>();

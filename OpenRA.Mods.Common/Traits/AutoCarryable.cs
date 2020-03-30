@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2018 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -26,7 +26,6 @@ namespace OpenRA.Mods.Common.Traits
 	public class AutoCarryable : Carryable, ICallForTransport
 	{
 		readonly AutoCarryableInfo info;
-		Activity afterLandActivity;
 
 		public AutoCarryable(Actor self, AutoCarryableInfo info)
 			: base(self, info)
@@ -38,7 +37,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		// No longer want to be carried
 		void ICallForTransport.MovementCancelled(Actor self) { MovementCancelled(self); }
-		void ICallForTransport.RequestTransport(Actor self, CPos destination, Activity afterLandActivity) { RequestTransport(self, destination, afterLandActivity); }
+		void ICallForTransport.RequestTransport(Actor self, CPos destination) { RequestTransport(self, destination); }
 
 		void MovementCancelled(Actor self)
 		{
@@ -46,12 +45,11 @@ namespace OpenRA.Mods.Common.Traits
 				return;
 
 			Destination = null;
-			afterLandActivity = null;
 
 			// TODO: We could implement something like a carrier.Trait<Carryall>().CancelTransportNotify(self) and call it here
 		}
 
-		Activity RequestTransport(Actor self, CPos destination, Activity afterLandActivity)
+		Activity RequestTransport(Actor self, CPos destination)
 		{
 			var delta = self.World.Map.CenterOfCell(destination) - self.CenterPosition;
 			if (delta.HorizontalLengthSquared < info.MinDistance.LengthSquared)
@@ -61,7 +59,6 @@ namespace OpenRA.Mods.Common.Traits
 			}
 
 			Destination = destination;
-			this.afterLandActivity = afterLandActivity;
 
 			if (state != State.Free)
 				return null;
@@ -86,9 +83,6 @@ namespace OpenRA.Mods.Common.Traits
 				return;
 
 			Destination = null;
-
-			if (afterLandActivity != null)
-				self.QueueActivity(false, afterLandActivity);
 
 			base.Detached(self);
 		}

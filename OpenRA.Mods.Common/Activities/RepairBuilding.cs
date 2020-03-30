@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2018 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -9,26 +9,24 @@
  */
 #endregion
 
-using System.Drawing;
 using System.Linq;
 using OpenRA.Mods.Common.Traits;
+using OpenRA.Primitives;
 using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.Activities
 {
 	class RepairBuilding : Enter
 	{
-		readonly EnterBehaviour enterBehaviour;
-		readonly Stance validStances;
+		readonly EngineerRepairInfo info;
 
 		Actor enterActor;
 		IHealth enterHealth;
 
-		public RepairBuilding(Actor self, Target target, EnterBehaviour enterBehaviour, Stance validStances)
+		public RepairBuilding(Actor self, Target target, EngineerRepairInfo info)
 			: base(self, target, WDist.Zero, Color.Yellow)
 		{
-			this.enterBehaviour = enterBehaviour;
-			this.validStances = validStances;
+			this.info = info;
 		}
 
 		protected override bool TryStartEnter(Actor self, Actor targetActor)
@@ -39,7 +37,7 @@ namespace OpenRA.Mods.Common.Activities
 			// Make sure we can still repair the target before entering
 			// (but not before, because this may stop the actor in the middle of nowhere)
 			var stance = self.Owner.Stances[enterActor.Owner];
-			if (enterHealth == null || enterHealth.DamageState == DamageState.Undamaged || !stance.HasStance(validStances))
+			if (enterHealth == null || enterHealth.DamageState == DamageState.Undamaged || !info.ValidStances.HasStance(stance))
 			{
 				Cancel(self, true);
 				return false;
@@ -59,17 +57,19 @@ namespace OpenRA.Mods.Common.Activities
 				return;
 
 			var stance = self.Owner.Stances[enterActor.Owner];
-			if (!stance.HasStance(validStances))
+			if (!info.ValidStances.HasStance(stance))
 				return;
 
 			if (enterHealth.DamageState == DamageState.Undamaged)
 				return;
 
 			enterActor.InflictDamage(self, new Damage(-enterHealth.MaxHP));
+			if (!string.IsNullOrEmpty(info.RepairSound))
+				Game.Sound.Play(SoundType.World, info.RepairSound, enterActor.CenterPosition);
 
-			if (enterBehaviour == EnterBehaviour.Dispose)
+			if (info.EnterBehaviour == EnterBehaviour.Dispose)
 				self.Dispose();
-			else if (enterBehaviour == EnterBehaviour.Suicide)
+			else if (info.EnterBehaviour == EnterBehaviour.Suicide)
 				self.Kill(self);
 		}
 	}

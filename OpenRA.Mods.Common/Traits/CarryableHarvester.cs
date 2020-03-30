@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2018 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -29,20 +29,20 @@ namespace OpenRA.Mods.Common.Traits
 			transports = self.TraitsImplementing<ICallForTransport>().ToArray();
 		}
 
-		Activity INotifyHarvesterAction.MovingToResources(Actor self, CPos targetCell, Activity next)
+		Activity INotifyHarvesterAction.MovingToResources(Actor self, CPos targetCell)
 		{
 			foreach (var t in transports)
-				t.RequestTransport(self, targetCell, next);
+				t.RequestTransport(self, targetCell);
 
 			return null;
 		}
 
-		Activity INotifyHarvesterAction.MovingToRefinery(Actor self, Actor refineryActor, Activity next)
+		Activity INotifyHarvesterAction.MovingToRefinery(Actor self, Actor refineryActor)
 		{
 			var dock = refineryActor.TraitsImplementing<Dock>().First();
 			var location = refineryActor.Location + dock.Info.DockOffset;
 			foreach (var t in transports)
-				t.RequestTransport(self, location, next);
+				t.RequestTransport(self, location);
 
 			return null;
 		}

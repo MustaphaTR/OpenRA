@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2018 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -11,7 +11,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Drawing;
 using OpenRA.Activities;
 using OpenRA.Graphics;
 using OpenRA.Mods.Common.Activities;
@@ -24,6 +23,14 @@ namespace OpenRA.Mods.Common.Traits
 	public enum VisibilityType { Footprint, CenterPosition, GroundPosition }
 
 	public enum AttackDelayType { Preparation, Attack }
+
+	[Flags]
+	public enum ResupplyType
+	{
+		None = 0,
+		Rearm = 1,
+		Repair = 2
+	}
 
 	public interface IQuantizeBodyOrientationInfo : ITraitInfo
 	{
@@ -83,6 +90,7 @@ namespace OpenRA.Mods.Common.Traits
 	public interface ICrushable
 	{
 		bool CrushableBy(Actor self, Actor crusher, BitSet<CrushClass> crushClasses);
+		LongBitSet<PlayerBitMask> CrushableBy(Actor self, BitSet<CrushClass> crushClasses);
 	}
 
 	[RequireExplicitImplementation]
@@ -117,11 +125,10 @@ namespace OpenRA.Mods.Common.Traits
 	public interface INotifyAppliedDamage { void AppliedDamage(Actor self, Actor damaged, AttackInfo e); }
 
 	[RequireExplicitImplementation]
-	public interface INotifyRepair
+	public interface INotifyResupply
 	{
-		void BeforeRepair(Actor self, Actor target);
-		void RepairTick(Actor self, Actor target);
-		void AfterRepair(Actor self, Actor target);
+		void BeforeResupply(Actor host, Actor target, ResupplyType types);
+		void ResupplyTick(Actor host, Actor target, ResupplyType types);
 	}
 
 	[RequireExplicitImplementation]
@@ -135,6 +142,9 @@ namespace OpenRA.Mods.Common.Traits
 	public interface INotifyOtherProduction { void UnitProducedByOther(Actor self, Actor producer, Actor produced, string productionType, TypeDictionary init); }
 	public interface INotifyDelivery { void IncomingDelivery(Actor self); void Delivered(Actor self); }
 	public interface INotifyDocking { void Docked(Actor self, Actor client); void Undocked(Actor self, Actor client); }
+
+	[RequireExplicitImplementation]
+	public interface INotifyResourceAccepted { void OnResourceAccepted(Actor self, Actor refinery, int amount); }
 	public interface INotifyParachute { void OnParachute(Actor self); void OnLanded(Actor self, Actor ignore); }
 
 	[RequireExplicitImplementation]
@@ -199,8 +209,8 @@ namespace OpenRA.Mods.Common.Traits
 
 	public interface INotifyHarvesterAction
 	{
-		Activity MovingToResources(Actor self, CPos targetCell, Activity next);
-		Activity MovingToRefinery(Actor self, Actor refineryActor, Activity next);
+		Activity MovingToResources(Actor self, CPos targetCell,);
+		Activity MovingToRefinery(Actor self, Actor refineryActor);
 		void MovementCancelled(Actor self);
 		void Harvested(Actor self, ResourceType resource);
 		void Docked();
@@ -286,7 +296,7 @@ namespace OpenRA.Mods.Common.Traits
 		WDist MinimumDistance { get; }
 		bool WantsTransport { get; }
 		void MovementCancelled(Actor self);
-		void RequestTransport(Actor self, CPos destination, Activity afterLandActivity);
+		void RequestTransport(Actor self, CPos destination);
 	}
 
 	public interface IDeathActorInitModifier
@@ -299,9 +309,16 @@ namespace OpenRA.Mods.Common.Traits
 		void ModifyTransformActorInit(Actor self, TypeDictionary init);
 	}
 
-	public interface IPreventsAutoTarget
+	[RequireExplicitImplementation]
+	public interface IDisableEnemyAutoTarget
 	{
-		bool PreventsAutoTarget(Actor self, Actor attacker);
+		bool DisableEnemyAutoTarget(Actor self, Actor attacker);
+	}
+
+	[RequireExplicitImplementation]
+	public interface IDisableAutoTarget
+	{
+		bool DisableAutoTarget(Actor self);
 	}
 
 	[RequireExplicitImplementation]
@@ -333,6 +350,12 @@ namespace OpenRA.Mods.Common.Traits
 	}
 
 	[RequireExplicitImplementation]
+	public interface IProductionCostModifierInfo : ITraitInfo { int GetProductionCostModifier(TechTree techTree, string queue); }
+
+	[RequireExplicitImplementation]
+	public interface IProductionTimeModifierInfo : ITraitInfo { int GetProductionTimeModifier(TechTree techTree, string queue); }
+
+	[RequireExplicitImplementation]
 	public interface ICashTricklerModifier { int GetCashTricklerModifier(); }
 
 	[RequireExplicitImplementation]
@@ -346,6 +369,9 @@ namespace OpenRA.Mods.Common.Traits
 
 	[RequireExplicitImplementation]
 	public interface IReloadModifier { int GetReloadModifier(string armamentName); }
+
+	[RequireExplicitImplementation]
+	public interface IReloadAmmoModifier { int GetReloadAmmoModifier(); }
 
 	[RequireExplicitImplementation]
 	public interface IInaccuracyModifier { int GetInaccuracyModifier(); }
@@ -372,10 +398,14 @@ namespace OpenRA.Mods.Common.Traits
 	public interface IRevealsShroudModifier { int GetRevealsShroudModifier(); }
 
 	[RequireExplicitImplementation]
+	public interface IDetectCloakedModifier { int GetDetectCloakedModifier(); }
+
+	[RequireExplicitImplementation]
 	public interface ICustomMovementLayer
 	{
 		byte Index { get; }
 		bool InteractsWithDefaultLayer { get; }
+		bool ReturnToGroundLayerOnIdle { get; }
 
 		bool EnabledForActor(ActorInfo a, LocomotorInfo li);
 		int EntryMovementCost(ActorInfo a, LocomotorInfo li, CPos cell);
@@ -403,8 +433,8 @@ namespace OpenRA.Mods.Common.Traits
 
 	public interface IMove
 	{
-		Activity MoveTo(CPos cell, int nearEnough);
-		Activity MoveTo(CPos cell, Actor ignoreActor);
+		Activity MoveTo(CPos cell, int nearEnough, Color? targetLineColor = null);
+		Activity MoveTo(CPos cell, Actor ignoreActor, Color? targetLineColor = null);
 		Activity MoveWithinRange(Target target, WDist range,
 			WPos? initialTargetPosition = null, Color? targetLineColor = null);
 		Activity MoveWithinRange(Target target, WDist minRange, WDist maxRange,
@@ -413,15 +443,29 @@ namespace OpenRA.Mods.Common.Traits
 			WPos? initialTargetPosition = null, Color? targetLineColor = null);
 		Activity MoveToTarget(Actor self, Target target,
 			WPos? initialTargetPosition = null, Color? targetLineColor = null);
-		Activity MoveIntoWorld(Actor self, CPos cell, SubCell subCell = SubCell.Any);
+		Activity MoveIntoWorld(Actor self, int delay = 0);
 		Activity MoveIntoTarget(Actor self, Target target);
 		Activity VisualMove(Actor self, WPos fromPos, WPos toPos);
 		int EstimatedMoveDuration(Actor self, WPos fromPos, WPos toPos);
 		CPos NearestMoveableCell(CPos target);
-		bool IsMoving { get; set; }
-		bool IsMovingVertically { get; set; }
+		MovementType CurrentMovementTypes { get; set; }
 		bool CanEnterTargetNow(Actor self, Target target);
 		bool TurnWhileDisabled(Actor self);
+	}
+
+	public interface IWrapMove
+	{
+		Activity WrapMove(Activity moveInner);
+	}
+
+	public interface IAircraftCenterPositionOffset
+	{
+		WVec PositionOffset { get; }
+	}
+
+	public interface IOverrideAircraftLanding
+	{
+		HashSet<string> LandableTerrainTypes { get; }
 	}
 
 	public interface IRadarSignature
@@ -440,11 +484,16 @@ namespace OpenRA.Mods.Common.Traits
 	[RequireExplicitImplementation]
 	public interface INotifyObjectivesUpdated
 	{
-		void OnPlayerWon(Player winner);
-		void OnPlayerLost(Player loser);
 		void OnObjectiveAdded(Player player, int objectiveID);
 		void OnObjectiveCompleted(Player player, int objectiveID);
 		void OnObjectiveFailed(Player player, int objectiveID);
+	}
+
+	[RequireExplicitImplementation]
+	public interface INotifyWinStateChanged
+	{
+		void OnPlayerWon(Player winner);
+		void OnPlayerLost(Player loser);
 	}
 
 	public interface INotifyCashTransfer
@@ -461,6 +510,9 @@ namespace OpenRA.Mods.Common.Traits
 
 	[RequireExplicitImplementation]
 	public interface IPreventsShroudReset { bool PreventShroudReset(Actor self); }
+
+	[RequireExplicitImplementation]
+	public interface IBotEnabled { void BotEnabled(IBot bot); }
 
 	[RequireExplicitImplementation]
 	public interface IBotTick { void BotTick(IBot bot); }
@@ -558,10 +610,24 @@ namespace OpenRA.Mods.Common.Traits
 		bool PreventMapSpawn(World world, ActorReference actorReference);
 	}
 
-	[RequireExplicitImplementation]
-	public interface IResourcePurifier
+	[Flags]
+	public enum MovementType
 	{
-		int RefineAmount(int amount, string refinery, string harvester);
-		bool ShowTicksOnRefinery { get; }
+		None = 0,
+		Horizontal = 1,
+		Vertical = 2,
+		Turn = 4
+	}
+
+	[RequireExplicitImplementation]
+	public interface INotifyMoving
+	{
+		void MovementTypeChanged(Actor self, MovementType type);
+	}
+
+	[RequireExplicitImplementation]
+	public interface INotifyTimeLimit
+	{
+		void NotifyTimerExpired(Actor self);
 	}
 }

@@ -15,7 +15,7 @@ APC:
 	Mobile:
 		TurnSpeed: 5
 		Speed: 113
-		RequiresCondition: !empdisable && !loading && !being-captured
+		PauseOnCondition: empdisable || loading || being-captured || carried
 		Locomotor: amphibious
 	Health:
 		HP: 20000
@@ -67,6 +67,8 @@ HVR:
 	Mobile:
 		Speed: 99
 		Locomotor: hover
+	Selectable:
+		Bounds: 40,24,0,-10
 	Health:
 		HP: 23000
 	Armor:
@@ -86,8 +88,13 @@ HVR:
 		PauseOnCondition: empdisable
 	WithVoxelTurret:
 	Hovers:
+		RequiresCondition: !empdisable
+		BobDistance: -64
+		InitialHeight: 384
+	Carryable:
+		CarriedCondition: carried
 	LeavesTrails:
-		RequiresCondition: !inside-tunnel
+		RequiresCondition: !inside-tunnel && !carried
 		Image: wake
 		Palette: effect
 		TerrainTypes: Water
@@ -115,7 +122,6 @@ SMECH:
 	Mobile:
 		TurnSpeed: 5
 		Speed: 99
-		AlwaysConsiderTurnAsMove: true
 	Health:
 		HP: 17500
 	Armor:
@@ -139,6 +145,7 @@ SMECH:
 		Sequence: shoot
 	WithMoveAnimation:
 		MoveSequence: walk
+		ValidMovementTypes: Horizontal, Turn
 	Selectable:
 		Bounds: 20, 32, 0, -8
 	-DamagedByTerrain@VEINS:
@@ -162,7 +169,6 @@ MMCH:
 	Mobile:
 		TurnSpeed: 5
 		Speed: 56
-		AlwaysConsiderTurnAsMove: true
 	Health:
 		HP: 40000
 	Armor:
@@ -178,6 +184,7 @@ MMCH:
 		Sequence: stand
 	WithMoveAnimation:
 		MoveSequence: walk
+		ValidMovementTypes: Horizontal, Turn
 	Turreted:
 		TurnSpeed: 5
 	AttackTurreted:
@@ -225,7 +232,6 @@ HMEC:
 	Mobile:
 		TurnSpeed: 3
 		Speed: 42
-		AlwaysConsiderTurnAsMove: true
 	Health:
 		HP: 80000
 	SelfHealing:
@@ -270,7 +276,7 @@ SONIC:
 		Prerequisites: ~gaweap, gatech, ~techlevel.high
 		Description: Armored high-tech vehicle with\nlong range and sonic armament.\n  Strong vs Infantry, Vehicles, Buildings\n  Weak vs Aircraft
 	Targetable:
-		TargetTypes: Ground, Vehicle, Repair, Disruptor
+		TargetTypes: Ground, Vehicle, Disruptor
 	Mobile:
 		TurnSpeed: 4
 		Speed: 56
@@ -326,8 +332,7 @@ JUGG:
 	Mobile:
 		Speed: 71
 		TurnSpeed: 5
-		RequiresCondition: !empdisable && undeployed && !being-captured
-		AlwaysConsiderTurnAsMove: true
+		RequireForceMoveCondition: !undeployed
 	RevealsShroud:
 		RequiresCondition: !inside-tunnel
 		Range: 9c0
@@ -343,13 +348,23 @@ JUGG:
 		RequiresCondition: undeployed
 	WithMoveAnimation:
 		MoveSequence: walk
+		ValidMovementTypes: Horizontal, Turn
 	GrantConditionOnDeploy:
+		PauseOnCondition: empdisable || being-captured
 		DeployedCondition: deployed
 		UndeployedCondition: undeployed
+		UndeployOnMove: true
 		Facing: 96
 		AllowedTerrainTypes: Clear, Road, DirtRoad, Rough
-		DeploySound: place2.aud
-		UndeploySound: clicky1.aud
+		DeploySounds: place2.aud
+		UndeploySounds: clicky1.aud
+		Voice: Move
+	EntersTunnels:
+		RequireForceMoveCondition: !undeployed
+	Repairable:
+		RequireForceMoveCondition: !undeployed
+	Passenger:
+		RequireForceMoveCondition: !undeployed
 	GrantCondition@PREVIEWWORKAROUND:
 		Condition: real-actor
 	QuantizeFacingsFromSequence:
@@ -380,6 +395,7 @@ JUGG:
 		PauseOnCondition: empdisable
 		TargetFrozenActors: True
 		ForceFireIgnoresActors: True
+		OutsideRangeRequiresForceFire: True
 	Armament@deployed:
 		Name: deployed
 		Turret: deployed

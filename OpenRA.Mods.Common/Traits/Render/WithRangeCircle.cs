@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2018 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -10,9 +10,9 @@
 #endregion
 
 using System.Collections.Generic;
-using System.Drawing;
 using OpenRA.Graphics;
 using OpenRA.Mods.Common.Graphics;
+using OpenRA.Primitives;
 using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.Traits.Render
@@ -52,10 +52,10 @@ namespace OpenRA.Mods.Common.Traits.Render
 					Color,
 					Color.FromArgb(96, Color.Black));
 
-			foreach (var a in w.ActorsWithTrait<WithRangeCircle>())
-				if (a.Trait.Info.Type == Type)
-					foreach (var r in a.Trait.RenderRangeCircle(a.Actor, wr))
-						yield return r;
+				foreach (var a in w.ActorsWithTrait<WithRangeCircle>())
+					if (a.Trait.Info.Type == Type)
+						foreach (var r in a.Trait.RenderRangeCircle(a.Actor, wr))
+							yield return r;
 			}
 		}
 
@@ -76,6 +76,9 @@ namespace OpenRA.Mods.Common.Traits.Render
 		{
 			get
 			{
+				if (IsTraitDisabled)
+					return false;
+
 				var p = self.World.RenderPlayer;
 				return p == null || Info.ValidStances.HasStance(self.Owner.Stances[p]) || (p.Spectating && !p.NonCombatant);
 			}
@@ -88,7 +91,7 @@ namespace OpenRA.Mods.Common.Traits.Render
 					self.CenterPosition,
 					Info.Range,
 					0,
-					Info.UsePlayerColor ? self.Owner.Color.RGB : Info.Color,
+					Info.UsePlayerColor ? self.Owner.Color : Info.Color,
 					Color.FromArgb(96, Color.Black));
 
 			yield break;
@@ -109,7 +112,7 @@ namespace OpenRA.Mods.Common.Traits.Render
 					self.CenterPosition,
 					Info.Range,
 					1,
-					Info.UsePlayerColor ? self.Owner.Color.RGB : Info.Color,
+					Info.UsePlayerColor ? self.Owner.Color : Info.Color,
 					3,
 					Color.FromArgb(96, Color.Black));
 		}

@@ -1,5 +1,6 @@
 mcv:
 	Inherits: ^Tank
+	Inherits@SELECTION_MODE: ^LowPrioritySelectionMode
 	Buildable:
 		Prerequisites: repair_pad, upgrade.heavy, ~techlevel.medium
 		Queue: Armor
@@ -50,6 +51,7 @@ mcv:
 
 harvester:
 	Inherits: ^Tank
+	Inherits@SELECTION_MODE: ^LowPrioritySelectionMode
 	Buildable:
 		Queue: Armor
 		Prerequisites: refinery
@@ -71,8 +73,8 @@ harvester:
 		HarvestFacings: 8
 		Resources: Spice
 		BaleUnloadDelay: 5
-		SearchFromProcRadius: 30
-		SearchFromOrderRadius: 15
+		SearchFromProcRadius: 15
+		SearchFromHarvesterRadius: 8
 	CarryableHarvester:
 	Health:
 		HP: 45000
@@ -343,7 +345,8 @@ devastator:
 		TurnSpeed: 3
 		Speed: 31
 		Locomotor: devastator
-		RequiresCondition: !overload && !notmobile
+		RequiresCondition: !overload
+		PauseOnCondition: notmobile
 	AutoCarryable:
 		RequiresCondition: !overload
 	RevealsShroud:

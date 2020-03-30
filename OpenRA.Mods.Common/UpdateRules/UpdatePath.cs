@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2018 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -86,7 +86,7 @@ namespace OpenRA.Mods.Common.UpdateRules
 
 			new UpdatePath("release-20180923", "release-20181215", new UpdateRule[0]),
 
-			new UpdatePath("release-20181215", "playtest-20190106", new UpdateRule[]
+			new UpdatePath("release-20181215", "release-20190314", new UpdateRule[]
 			{
 				new AddCarryableHarvester(),
 				new RenameEditorTilesetFilter(),
@@ -112,15 +112,29 @@ namespace OpenRA.Mods.Common.UpdateRules
 				new RemoveAttackIgnoresVisibility(),
 				new ReplacedWithChargeAnimation(),
 				new RefactorResourceLevelAnimating(),
-			}),
-
-			new UpdatePath("playtest-20190106", "playtest-20190209", new UpdateRule[]
-			{
 				new RemoveAttackSuicides(),
 			}),
 
-			new UpdatePath("playtest-20190209", "playtest-20190302", new UpdateRule[0]),
-			new UpdatePath("playtest-20190302", new UpdateRule[0])
+			new UpdatePath("release-20190314", new UpdateRule[]
+			{
+				// Bleed only changes here
+				new MultipleDeploySounds(),
+				new RemoveSimpleBeacon(),
+				new MakeMobilePausableConditional(),
+				new StreamlineRepairableTraits(),
+				new ReplaceSpecialMoveConsiderations(),
+				new RefactorHarvesterIdle(),
+				new SplitHarvesterSpriteBody(),
+				new RenameAttackMoveConditions(),
+				new RemovePlaceBuildingPalettes(),
+				new RenameHoversOffsetModifier(),
+				new AddAirAttackTypes(),
+				new RenameCarryallDelays(),
+				new AddCanSlide(),
+				new AddAircraftIdleBehavior(),
+				new RenameSearchRadius(),
+				new RemoveMoveIntoWorldFromExit(),
+			})
 		};
 
 		public static IEnumerable<UpdateRule> FromSource(ObjectCreator objectCreator, string source, bool chain = true)

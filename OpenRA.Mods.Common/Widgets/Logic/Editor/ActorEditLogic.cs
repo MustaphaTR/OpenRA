@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2018 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -21,7 +21,8 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 	public class ActorEditLogic : ChromeLogic
 	{
 		// Error states define overlapping bits to simplify panel reflow logic
-		[Flags] enum ActorIDStatus { Normal = 0, Duplicate = 1, Empty = 3 }
+		[Flags]
+		enum ActorIDStatus { Normal = 0, Duplicate = 1, Empty = 3 }
 
 		readonly WorldRenderer worldRenderer;
 		readonly EditorActorLayer editorActorLayer;
@@ -212,12 +213,12 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 						});
 
 						item.Get<LabelWidget>("LABEL").GetText = () => option.Name;
-						item.GetColor = () => option.Color.RGB;
+						item.GetColor = () => option.Color;
 						return item;
 					};
 
 					ownerDropdown.GetText = () => selectedOwner.Name;
-					ownerDropdown.GetColor = () => selectedOwner.Color.RGB;
+					ownerDropdown.GetColor = () => selectedOwner.Color;
 					ownerDropdown.OnClick = () =>
 					{
 						var owners = editorActorLayer.Players.Players.Values.OrderBy(p => p.Name);

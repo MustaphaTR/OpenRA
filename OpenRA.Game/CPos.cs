@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2018 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -34,7 +34,8 @@ namespace OpenRA
 		public byte Layer { get { return (byte)Bits; } }
 
 		public CPos(int bits) { Bits = bits; }
-		public CPos(int x, int y) : this(x, y, 0) { }
+		public CPos(int x, int y)
+			: this(x, y, 0) { }
 		public CPos(int x, int y, byte layer)
 		{
 			Bits = (x & 0xFFF) << 20 | (y & 0xFFF) << 8 | layer;

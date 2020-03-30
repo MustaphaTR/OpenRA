@@ -20,16 +20,29 @@ FACT:
 	Production:
 		Produces: Building.GDI, Building.Nod, Defence.GDI, Defence.Nod
 	Transforms:
-		RequiresCondition: factundeploy && !build-incomplete
-		PauseOnCondition: being-demolished
+		RequiresCondition: factundeploy
+		PauseOnCondition: being-demolished || build-incomplete
 		IntoActor: mcv
 		Offset: 1,1
 		Facing: 108
+	TransformsIntoMobile:
+		RequiresCondition: factundeploy
+		Locomotor: heavywheeled
+		RequiresForceMove: true
+	TransformsIntoPassenger:
+		RequiresCondition: factundeploy
+		CargoType: Vehicle
+		RequiresForceMove: true
+	TransformsIntoRepairable:
+		RequiresCondition: factundeploy
+		RepairActors: fix
+		RequiresForceMove: true
 	GrantConditionOnPrerequisite@GLOBALFACTUNDEPLOY:
 		Condition: factundeploy
 		Prerequisites: global-factundeploy
 	ProductionQueue@GDIBuilding:
 		Type: Building.GDI
+		DisplayOrder: 0
 		Factions: gdi
 		Group: Building
 		LowPowerModifier: 200
@@ -41,6 +54,7 @@ FACT:
 		CancelledAudio: Cancelled
 	ProductionQueue@NodBuilding:
 		Type: Building.Nod
+		DisplayOrder: 0
 		Factions: nod
 		Group: Building
 		LowPowerModifier: 200
@@ -52,6 +66,7 @@ FACT:
 		CancelledAudio: Cancelled
 	ProductionQueue@GDIDefense:
 		Type: Defence.GDI
+		DisplayOrder: 1
 		Factions: gdi
 		Group: Defence
 		LowPowerModifier: 300
@@ -63,6 +78,7 @@ FACT:
 		CancelledAudio: Cancelled
 	ProductionQueue@NodDefense:
 		Type: Defence.Nod
+		DisplayOrder: 1
 		Factions: nod
 		Group: Defence
 		LowPowerModifier: 300
@@ -217,7 +233,7 @@ PROC:
 	StoresResources:
 		PipColor: Green
 		PipCount: 10
-		Capacity: 700
+		Capacity: 1000
 	Selectable:
 		Bounds: 72,56
 		DecorationBounds: 73,72
@@ -239,7 +255,7 @@ SILO:
 	Inherits: ^BaseBuilding
 	Inherits@shape: ^2x1Shape
 	Valued:
-		Cost: 300
+		Cost: 100
 	Tooltip:
 		Name: Tiberium Silo
 	Buildable:
@@ -316,6 +332,7 @@ PYLE:
 		Condition: produced
 	ProductionQueue:
 		Type: Infantry.GDI
+		DisplayOrder: 2
 		Group: Infantry
 		LowPowerModifier: 300
 		ReadyAudio: UnitReady
@@ -367,6 +384,7 @@ HAND:
 		Produces: Infantry.Nod
 	ProductionQueue:
 		Type: Infantry.Nod
+		DisplayOrder: 2
 		Group: Infantry
 		LowPowerModifier: 300
 		ReadyAudio: UnitReady
@@ -428,6 +446,7 @@ AFLD:
 		RequiresCondition: !build-incomplete
 	ProductionQueue:
 		Type: Vehicle.Nod
+		DisplayOrder: 3
 		Group: Vehicle
 		LowPowerModifier: 300
 		BlockedAudio: NoBuild
@@ -486,6 +505,7 @@ WEAP:
 		Produces: Vehicle.GDI
 	ProductionQueue:
 		Type: Vehicle.GDI
+		DisplayOrder: 3
 		Group: Vehicle
 		LowPowerModifier: 300
 		ReadyAudio: UnitReady
@@ -499,6 +519,10 @@ WEAP:
 	Power:
 		Amount: -40
 	ProvidesPrerequisite@buildingname:
+	-ActorPreviewPlaceBuildingPreview:
+	SequencePlaceBuildingPreview:
+		Sequence: place
+		SequencePalette: placebuilding
 
 HPAD:
 	Inherits: ^BaseBuilding
@@ -538,6 +562,7 @@ HPAD:
 	RallyPoint:
 	ProductionQueue@GDI:
 		Type: Aircraft.GDI
+		DisplayOrder: 4
 		Factions: gdi
 		Group: Aircraft
 		LowPowerModifier: 300
@@ -549,6 +574,7 @@ HPAD:
 		CancelledAudio: Cancelled
 	ProductionQueue@Nod:
 		Type: Aircraft.Nod
+		DisplayOrder: 4
 		Factions: nod
 		Group: Aircraft
 		LowPowerModifier: 300
@@ -628,6 +654,9 @@ HQ:
 		ArrowSequence: arrow
 		ClockSequence: clock
 		CircleSequence: circles
+		UseDirectionalTarget: True
+		DirectionArrowAnimation: airstrikedirection
+		SupportPowerPaletteOrder: 10
 	SupportPowerChargeBar:
 	Power:
 		Amount: -50
@@ -728,6 +757,7 @@ EYE:
 		OnFireSound: ion1.aud
 		DisplayRadarPing: True
 		CameraActor: camera.small
+		SupportPowerPaletteOrder: 20
 	SupportPowerChargeBar:
 	Power:
 		Amount: -200
@@ -791,6 +821,7 @@ TMPL:
 		ArrowSequence: arrow
 		ClockSequence: clock
 		CircleSequence: circles
+		SupportPowerPaletteOrder: 30
 	WithBuildingBib:
 	WithNukeLaunchAnimation:
 		RequiresCondition: !build-incomplete
@@ -896,6 +927,10 @@ SAM:
 		Amount: -20
 	BodyOrientation:
 		UseClassicFacingFudge: True
+	-ActorPreviewPlaceBuildingPreview:
+	SequencePlaceBuildingPreview:
+		Sequence: place
+		SequencePalette: placebuilding
 
 OBLI:
 	Inherits: ^Defense

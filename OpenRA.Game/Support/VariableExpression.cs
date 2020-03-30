@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2018 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -561,7 +561,8 @@ namespace OpenRA.Support
 
 			public override string Symbol { get { return Name; } }
 
-			public VariableToken(int index, string symbol) : base(TokenType.Variable, index) { Name = symbol; }
+			public VariableToken(int index, string symbol)
+				: base(TokenType.Variable, index) { Name = symbol; }
 		}
 
 		class NumberToken : Token
@@ -589,7 +590,7 @@ namespace OpenRA.Support
 			var tokens = new List<Token>();
 			var currentOpeners = new Stack<Token>();
 			Token lastToken = null;
-			for (var i = 0;;)
+			for (var i = 0; ;)
 			{
 				var token = Token.GetNext(Expression, ref i, lastToken != null ? lastToken.Type : TokenType.Invalid);
 				if (token == null)
@@ -957,7 +958,8 @@ namespace OpenRA.Support
 	{
 		readonly Func<IReadOnlyDictionary<string, int>, bool> asFunction;
 
-		public BooleanExpression(string expression) : base(expression)
+		public BooleanExpression(string expression)
+			: base(expression)
 		{
 			asFunction = Compile<bool>();
 		}
@@ -972,7 +974,8 @@ namespace OpenRA.Support
 	{
 		readonly Func<IReadOnlyDictionary<string, int>, int> asFunction;
 
-		public IntegerExpression(string expression) : base(expression)
+		public IntegerExpression(string expression)
+			: base(expression)
 		{
 			asFunction = Compile<int>();
 		}

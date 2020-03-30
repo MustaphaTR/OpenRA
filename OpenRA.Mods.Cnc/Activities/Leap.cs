@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2018 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -70,20 +70,11 @@ namespace OpenRA.Mods.Cnc.Activities
 			attack.GrantLeapCondition(self);
 		}
 
-		public override Activity Tick(Actor self)
+		public override bool Tick(Actor self)
 		{
-			if (canceled)
-				return NextActivity;
-
 			// Correct the visual position after we jumped
-			if (jumpComplete)
-			{
-				if (ChildActivity == null)
-					return NextActivity;
-
-				ChildActivity = ActivityUtils.RunActivity(self, ChildActivity);
-				return this;
-			}
+			if (canceled || jumpComplete)
+				return true;
 
 			if (target.Type != TargetType.Invalid)
 				targetPosition = target.CenterPosition;
@@ -94,8 +85,6 @@ namespace OpenRA.Mods.Cnc.Activities
 			// We are at the destination
 			if (++ticks >= length)
 			{
-				mobile.IsMoving = false;
-
 				// Revoke the run condition
 				attack.IsAiming = false;
 
@@ -103,19 +92,19 @@ namespace OpenRA.Mods.Cnc.Activities
 				// (This does not update the visual position!)
 				mobile.SetLocation(destinationCell, destinationSubCell, destinationCell, destinationSubCell);
 
+				// Update movement which results in movementType set to MovementType.None.
+				// This is needed to prevent the move animation from playing.
+				mobile.UpdateMovement(self);
+
 				// Revoke the condition before attacking, as it is usually used to pause the attack trait
 				attack.RevokeLeapCondition(self);
 				attack.DoAttack(self, target);
 
 				jumpComplete = true;
 				QueueChild(mobile.VisualMove(self, position, self.World.Map.CenterOfSubCell(destinationCell, destinationSubCell)));
-
-				return this;
 			}
 
-			mobile.IsMoving = true;
-
-			return this;
+			return false;
 		}
 
 		protected override void OnLastRun(Actor self)

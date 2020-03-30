@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2018 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -27,22 +27,26 @@ namespace OpenRA.Mods.Common.Activities
 			this.turnSpeedOverride = turnSpeedOverride;
 		}
 
-		public override Activity Tick(Actor self)
+		public override bool Tick(Actor self)
 		{
-			if (NextActivity != null && remainingTicks <= 0)
-				return NextActivity;
+			if (remainingTicks == 0 || (NextActivity != null && remainingTicks < 0))
+				return true;
 
-			if (IsCanceled)
-				return NextActivity;
+			if (IsCanceling)
+				return true;
 
 			if (remainingTicks > 0)
 				remainingTicks--;
 
 			// We can't possibly turn this fast
 			var desiredFacing = aircraft.Facing + 64;
-			Fly.FlyToward(self, aircraft, desiredFacing, aircraft.Info.CruiseAltitude, turnSpeedOverride);
 
-			return this;
+			// This override is necessary, otherwise aircraft with CanSlide would circle sideways
+			var move = aircraft.FlyStep(aircraft.Facing);
+
+			Fly.FlyTick(self, aircraft, desiredFacing, aircraft.Info.CruiseAltitude, move, turnSpeedOverride);
+
+			return false;
 		}
 	}
 }

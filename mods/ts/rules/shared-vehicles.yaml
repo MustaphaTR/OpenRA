@@ -1,6 +1,7 @@
 MCV:
 	Inherits: ^Tank
 	Inherits@VOXELS: ^VoxelActor
+	Inherits@SELECTION_MODE: ^LowPrioritySelectionMode
 	Buildable:
 		Queue: Vehicle
 		BuildPaletteOrder: 160
@@ -27,6 +28,7 @@ MCV:
 		RequiredForShortGame: true
 	BaseBuilding:
 	Transforms:
+		PauseOnCondition: empdisable || being-captured
 		IntoActor: gacnst
 		Offset: -1,-1
 		Facing: 96
@@ -43,6 +45,7 @@ MCV:
 HARV:
 	Inherits: ^Tank
 	Inherits@VOXELS: ^VoxelActor
+	Inherits@SELECTION_MODE: ^LowPrioritySelectionMode
 	Valued:
 		Cost: 1400
 	Tooltip:
@@ -63,8 +66,8 @@ HARV:
 		BaleLoadDelay: 15
 		BaleUnloadDelay: 15
 		FullyLoadedSpeed: 100
-		SearchFromProcRadius: 36
-		SearchFromOrderRadius: 18
+		SearchFromProcRadius: 15
+		SearchFromHarvesterRadius: 8
 		HarvestVoice: Attack
 		DeliverVoice: Move
 		EmptyCondition: no-tiberium
@@ -124,7 +127,7 @@ LPST:
 	Mobile:
 		Speed: 85
 		TurnSpeed: 5
-		RequiresCondition: !empdisable && undeployed && !being-captured
+		RequireForceMoveCondition: !undeployed
 	RevealsShroud:
 		RequiresCondition: !inside-tunnel && undeployed
 		Range: 10c0
@@ -142,12 +145,21 @@ LPST:
 			gdi: lpst.gdi
 			nod: lpst.nod
 	GrantConditionOnDeploy:
+		PauseOnCondition: empdisable || being-captured
 		DeployedCondition: deployed
 		UndeployedCondition: undeployed
+		UndeployOnMove: true
 		Facing: 160
 		AllowedTerrainTypes: Clear, Road, DirtRoad, Rough
-		DeploySound: place2.aud
-		UndeploySound: clicky1.aud
+		DeploySounds: place2.aud
+		UndeploySounds: clicky1.aud
+		Voice: Move
+	EntersTunnels:
+		RequireForceMoveCondition: !undeployed
+	Repairable:
+		RequireForceMoveCondition: !undeployed
+	Passenger:
+		RequireForceMoveCondition: !undeployed
 	WithVoxelBody:
 		RequiresCondition: undeployed
 	WithSpriteBody@deployed:

@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2018 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -10,7 +10,6 @@
 #endregion
 
 using System;
-using System.Drawing;
 using OpenRA.Mods.Common.Activities;
 using OpenRA.Primitives;
 using OpenRA.Traits;
@@ -44,14 +43,13 @@ namespace OpenRA.Mods.Common.Traits
 		{
 			var exit = CPos.Zero;
 			var exitLocation = CPos.Zero;
-			var target = Target.Invalid;
 
 			// Clone the initializer dictionary for the new actor
 			var td = new TypeDictionary();
 			foreach (var init in inits)
 				td.Add(init);
 
-			if (self.OccupiesSpace != null)
+			if (exitinfo != null && self.OccupiesSpace != null && producee.HasTraitInfo<IOccupySpaceInfo>())
 			{
 				exit = self.Location + exitinfo.ExitCell;
 				var spawn = self.CenterPosition + exitinfo.SpawnOffset;
@@ -71,11 +69,12 @@ namespace OpenRA.Mods.Common.Traits
 				}
 
 				exitLocation = rp.Value != null ? rp.Value.Location : exit;
-				target = Target.FromCell(self.World, exitLocation);
 
 				td.Add(new LocationInit(exit));
 				td.Add(new CenterPositionInit(spawn));
 				td.Add(new FacingInit(initialFacing));
+				if (exitinfo != null)
+					td.Add(new MoveIntoWorldDelayInit(exitinfo.ExitDelay));
 			}
 
 			self.World.AddFrameEndTask(w =>
@@ -83,23 +82,13 @@ namespace OpenRA.Mods.Common.Traits
 				var newUnit = self.World.CreateActor(producee.Name, td);
 
 				var move = newUnit.TraitOrDefault<IMove>();
-				if (move != null)
+				if (exitinfo != null && move != null)
 				{
-					if (exitinfo.MoveIntoWorld)
-					{
-						if (exitinfo.ExitDelay > 0)
-							newUnit.QueueActivity(new Wait(exitinfo.ExitDelay, false));
-
-						newUnit.QueueActivity(move.MoveIntoWorld(newUnit, exit));
-						if (rp.Value != null)
-							rp.Value.QueueRallyOrder(self, newUnit);
-						else
-							newUnit.QueueActivity(new AttackMoveActivity(
-								newUnit, move.MoveTo(exitLocation, 1)));
-					}
+					if (rp.Value != null)
+						rp.Value.QueueRallyOrder(self, newUnit);
+					else
+						newUnit.QueueActivity(new AttackMoveActivity(newUnit, move.MoveTo(exitLocation, targetLineColor: Color.OrangeRed)));
 				}
-
-				newUnit.SetTargetLine(target, rp.Value != null ? Color.Red : Color.Green, false);
 
 				if (!self.IsDead)
 					foreach (var t in self.TraitsImplementing<INotifyProduction>())
@@ -129,8 +118,9 @@ namespace OpenRA.Mods.Common.Traits
 			// Pick a spawn/exit point pair
 			var exit = SelectExit(self, producee, productionType);
 
-			if (exit != null || self.OccupiesSpace == null)
+			if (exit != null || self.OccupiesSpace == null || !producee.HasTraitInfo<IOccupySpaceInfo>())
 			{
+<<<<<<< HEAD
 				var exitInfo = exit == null ? null : exit.Info;
 				var buildable = producee.TraitInfoOrDefault<BuildableInfo>();
 				if (buildable != null)
@@ -138,6 +128,9 @@ namespace OpenRA.Mods.Common.Traits
 						DoProduction(self, producee, exitInfo, productionType, inits);
 				else
 					DoProduction(self, producee, exitInfo, productionType, inits);
+=======
+				DoProduction(self, producee, exit == null ? null : exit.Info, productionType, inits);
+>>>>>>> refs/heads/playtest-20190825
 
 				return true;
 			}

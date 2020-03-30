@@ -100,20 +100,9 @@
 	ReloadDelayMultiplier@RANK-ELITE:
 		RequiresCondition: rank-elite
 		Modifier: 75
-	InaccuracyMultiplier@RANK-1:
-		RequiresCondition: rank-veteran == 1
-		Modifier: 90
-	InaccuracyMultiplier@RANK-2:
-		RequiresCondition: rank-veteran == 2
-		Modifier: 80
-	InaccuracyMultiplier@RANK-3:
-		RequiresCondition: rank-veteran == 3
-		Modifier: 70
-	InaccuracyMultiplier@RANK-ELITE:
-		RequiresCondition: rank-elite
-		Modifier: 50
 	SelfHealing@ELITE:
-		Step: 200
+		Step: 0
+		PercentageStep: 5
 		Delay: 100
 		HealIfBelow: 100
 		DamageCooldown: 125
@@ -123,6 +112,7 @@
 		Sequence: rank-veteran-1
 		Palette: effect
 		ReferencePoint: Bottom, Right
+		ValidStances: Ally, Enemy, Neutral
 		RequiresCondition: rank-veteran == 1
 		ZOffset: 256
 	WithDecoration@RANK-2:
@@ -130,6 +120,7 @@
 		Sequence: rank-veteran-2
 		Palette: effect
 		ReferencePoint: Bottom, Right
+		ValidStances: Ally, Enemy, Neutral
 		RequiresCondition: rank-veteran == 2
 		ZOffset: 256
 	WithDecoration@RANK-3:
@@ -137,6 +128,7 @@
 		Sequence: rank-veteran-3
 		Palette: effect
 		ReferencePoint: Bottom, Right
+		ValidStances: Ally, Enemy, Neutral
 		RequiresCondition: rank-veteran == 3
 		ZOffset: 256
 	WithDecoration@RANK-ELITE:
@@ -144,6 +136,7 @@
 		Sequence: rank-elite
 		Palette: effect
 		ReferencePoint: Bottom, Right
+		ValidStances: Ally, Enemy, Neutral
 		RequiresCondition: rank-elite
 		ZOffset: 256
 
@@ -181,7 +174,7 @@
 		AttackAnythingCondition: stance-attackanything
 	AutoTargetPriority@DEFAULT:
 		RequiresCondition: !stance-attackanything
-		ValidTargets: Infantry, Vehicle, Water, Underwater, Defense
+		ValidTargets: Infantry, Vehicle, Water, Underwater, Defense, Mine
 		InvalidTargets: NoAutoTarget, WaterStructure
 	AutoTargetPriority@ATTACKANYTHING:
 		RequiresCondition: stance-attackanything
@@ -195,7 +188,7 @@
 	AutoTargetPriority@ATTACKANYTHING:
 		RequiresCondition: stance-attackanything || assault-move
 	AttackMove:
-		AssaultMoveScanCondition: assault-move
+		AssaultMoveCondition: assault-move
 
 ^AutoTargetAir:
 	AutoTarget:
@@ -208,11 +201,11 @@
 		AttackAnythingCondition: stance-attackanything
 	AutoTargetPriority@DEFAULT:
 		RequiresCondition: !stance-attackanything
-		ValidTargets: Infantry, Vehicle, Water, Underwater, Air, Defense
+		ValidTargets: Infantry, Vehicle, Water, Underwater, Air, Defense, Mine
 		InvalidTargets: NoAutoTarget, WaterStructure
 	AutoTargetPriority@ATTACKANYTHING:
 		RequiresCondition: stance-attackanything
-		ValidTargets: Infantry, Vehicle, Water, Underwater, Air, Structure, Defense
+		ValidTargets: Infantry, Vehicle, Water, Underwater, Air, Structure, Defense, Mine
 		InvalidTargets: NoAutoTarget
 
 ^AutoTargetAllAssaultMove:
@@ -222,7 +215,7 @@
 	AutoTargetPriority@ATTACKANYTHING:
 		RequiresCondition: stance-attackanything || assault-move
 	AttackMove:
-		AssaultMoveScanCondition: assault-move
+		AssaultMoveCondition: assault-move
 
 ^GlobalBounty:
 	GrantConditionOnPrerequisite@GLOBALBOUNTY:
@@ -231,18 +224,27 @@
 	GivesBounty:
 		RequiresCondition: global-bounty
 
+^FlatSelectionMode:
+	Selectable:
+		PriorityModifiers: Ctrl
+
+^LowPrioritySelectionMode:
+	Selectable:
+		PriorityModifiers: Ctrl, Alt
+
 ^Vehicle:
 	Inherits@1: ^ExistsInWorld
 	Inherits@2: ^IronCurtainable
 	Inherits@3: ^SpriteActor
 	Inherits@bounty: ^GlobalBounty
+	Inherits@SELECTION_MODE: ^FlatSelectionMode
 	Huntable:
 	OwnerLostAction:
 		Action: Kill
 	DrawLineToTarget:
 	UpdatesPlayerStatistics:
 	Mobile:
-		RequiresCondition: !being-captured
+		PauseOnCondition: being-captured
 		Locomotor: wheeled
 		TurnSpeed: 5
 	SelectionDecorations:
@@ -259,6 +261,7 @@
 		Condition: damaged
 		ValidDamageStates: Light, Medium, Heavy, Critical
 	Repairable:
+		RepairActors: fix
 	Chronoshiftable:
 	Passenger:
 		CargoType: Vehicle
@@ -318,6 +321,7 @@
 	Inherits@3: ^InfantryExperienceHospitalOverrides
 	Inherits@4: ^SpriteActor
 	Inherits@bounty: ^GlobalBounty
+	Inherits@SELECTION_MODE: ^FlatSelectionMode
 	Huntable:
 	OwnerLostAction:
 		Action: Kill
@@ -431,6 +435,9 @@
 	MapEditorData:
 		Categories: Infantry
 	EdibleByLeap:
+	DetectCloaked:
+		CloakTypes: Cloak
+		Range: 1c0
 
 ^Soldier:
 	Inherits: ^Infantry
@@ -445,8 +452,7 @@
 	WithInfantryBody:
 		IdleSequences: idle1,idle2
 		StandSequences: stand,stand2
-	DetectCloaked:
-		CloakTypes: Thief
+	AttackFrontal:
 
 ^CivInfantry:
 	Inherits: ^Infantry
@@ -486,6 +492,7 @@
 	Inherits@3: ^IronCurtainable
 	Inherits@4: ^SpriteActor
 	Inherits@bounty: ^GlobalBounty
+	Inherits@SELECTION_MODE: ^FlatSelectionMode
 	Huntable:
 	OwnerLostAction:
 		Action: Kill
@@ -513,6 +520,7 @@
 		Types: Ship
 	Chronoshiftable:
 	RepairableNear:
+		RepairActors: spen, syrd
 	GpsDot:
 		String: Ship
 	WithDamageOverlay:
@@ -537,6 +545,7 @@
 	Inherits@3: ^IronCurtainable
 	Inherits@4: ^SpriteActor
 	Inherits@bounty: ^GlobalBounty
+	Inherits@SELECTION_MODE: ^FlatSelectionMode
 	Huntable:
 	OwnerLostAction:
 		Action: Kill
@@ -604,7 +613,7 @@
 	Inherits: ^NeutralPlane
 	Inherits@2: ^GainsExperience
 	Repairable:
-		RepairBuildings: fix
+		RepairActors: fix
 
 ^Helicopter:
 	Inherits: ^Plane
@@ -616,7 +625,10 @@
 		WaitDistanceFromResupplyBase: 4c0
 		TakeOffOnResupply: true
 		VTOL: true
+		LandableTerrainTypes: Clear, Rough, Road, Ore, Beach, Gems
+		Crushes: crate, mine, infantry
 		InitialFacing: 224
+		CanSlide: True
 	GpsDot:
 		String: Helicopter
 	Hovers@CRUISING:
@@ -643,6 +655,8 @@
 		RequiresBaseProvider: True
 		BuildSounds: placbldg.aud, build5.aud
 		UndeploySounds: cashturn.aud
+	ActorPreviewPlaceBuildingPreview:
+		OverridePalette: placebuilding
 	RequiresBuildableArea:
 		AreaTypes: building
 	SoundOnDamageTransition:
@@ -687,6 +701,7 @@
 	CaptureManager:
 		BeingCapturedCondition: being-captured
 	Capturable:
+		RequiresCondition: !build-incomplete
 		Types: building
 	CapturableProgressBar:
 	CapturableProgressBlink:
@@ -746,6 +761,8 @@
 		BuildSounds: placbldg.aud
 		TerrainTypes: Clear,Road
 		UndeploySounds: cashturn.aud
+	FootprintPlaceBuildingPreview:
+		LineBuildSegmentPalette: placelinesegment
 	RequiresBuildableArea:
 		AreaTypes: building
 		Adjacent: 7
@@ -772,6 +789,10 @@
 	FrozenUnderFogUpdatedByGps:
 	Health:
 		HP: 10000
+	RadarColorFromTerrain:
+		Terrain: Wall
+	AppearsOnMapPreview:
+		Terrain: Wall
 	MapEditorData:
 		Categories: Wall
 
@@ -897,6 +918,8 @@
 	AppearsOnRadar:
 	RadarColorFromTerrain:
 		Terrain: Tree
+	AppearsOnMapPreview:
+		Terrain: Tree
 	Health:
 		HP: 50000
 	Armor:
@@ -934,6 +957,8 @@
 	AppearsOnRadar:
 	RadarColorFromTerrain:
 		Terrain: Tree
+	AppearsOnMapPreview:
+		Terrain: Tree
 	Building:
 		Footprint: x
 		Dimensions: 1,1
@@ -947,6 +972,16 @@
 		Categories: Tree
 	RequiresSpecificOwners:
 		ValidOwnerNames: Neutral
+
+^Box:
+	Inherits: ^Tree
+	RenderSprites:
+		Palette: player
+	Tooltip:
+		Name: Boxes
+	MapEditorData:
+		-ExcludeTilesets:
+		Categories: Decoration
 
 ^BasicHusk:
 	Inherits@1: ^SpriteActor
@@ -1020,6 +1055,7 @@
 	Aircraft:
 		CanHover: True
 		VTOL: true
+		CanSlide: True
 	FallsToEarth:
 		Explosion: UnitExplodeHeli
 	BodyOrientation:
@@ -1069,6 +1105,8 @@
 	AppearsOnRadar:
 	RadarColorFromTerrain:
 		Terrain: Tree
+	AppearsOnMapPreview:
+		Terrain: Tree
 	HiddenUnderShroud:
 	ScriptTriggers:
 	MapEditorData:
@@ -1095,7 +1133,7 @@
 		ShowOwnerRow: false
 	Crate:
 		Lifetime: 180
-		TerrainTypes: Clear, Rough, Road, Ore, Beach
+		TerrainTypes: Clear, Rough, Road, Ore, Beach, Water
 	RenderSprites:
 		Palette: effect
 		Image: scrate
@@ -1144,7 +1182,7 @@
 	Tooltip:
 		Name: Mine
 	Targetable:
-		TargetTypes: Ground, Defense
+		TargetTypes: Ground, Mine
 	Immobile:
 		OccupiesSpace: true
 	HitShape:

@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2018 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -10,30 +10,41 @@
 #endregion
 
 using System;
-using System.Drawing;
+using System.Collections.Generic;
 using System.Linq;
 using OpenRA.Activities;
 using OpenRA.Mods.Common.Traits;
+using OpenRA.Primitives;
 using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.Activities
 {
 	public class DeliverResources : Activity, IDockActivity
 	{
-		const int NextChooseTime = 100;
-
 		readonly Harvester harv;
+		readonly Actor targetActor;
+		readonly INotifyHarvesterAction[] notifyHarvesterActions;
 
-		int chosenTicks;
+		Actor proc;
 
-		public DeliverResources(Actor self)
+		public DeliverResources(Actor self, Actor targetActor = null)
 		{
 			harv = self.Trait<Harvester>();
-			IsInterruptible = false;
+			this.targetActor = targetActor;
+			notifyHarvesterActions = self.TraitsImplementing<INotifyHarvesterAction>().ToArray();
 		}
 
-		public override Activity Tick(Actor self)
+		protected override void OnFirstRun(Actor self)
 		{
+			if (targetActor != null && targetActor.IsInWorld)
+				harv.LinkProc(self, targetActor);
+		}
+
+		public override bool Tick(Actor self)
+		{
+			if (IsCanceling)
+				return true;
+
 			// If a refinery is explicitly specified, link it.
 			if (harv.OwnerLinkedProc != null && harv.OwnerLinkedProc.IsInWorld)
 			{
@@ -42,32 +53,23 @@ namespace OpenRA.Mods.Common.Activities
 			}
 			//// at this point, harv.OwnerLinkedProc == null.
 
-			// Is the refinery still alive? If not, link one.
+			// Find the nearest best refinery if not explicitly ordered to a specific refinery:
 			if (harv.LinkedProc == null || !harv.LinkedProc.IsInWorld)
-			{
-				// Maybe we lost the owner-linked refinery:
-				harv.LinkedProc = null;
-				if (self.World.WorldTick - chosenTicks > NextChooseTime)
-				{
-					harv.ChooseNewProc(self, null);
-					chosenTicks = self.World.WorldTick;
-				}
-			}
+				harv.ChooseNewProc(self, null);
 
-			// No refineries exist. Check again after delay defined in Harvester.
+			// No refineries exist; check again after delay defined in Harvester.
 			if (harv.LinkedProc == null)
 			{
-				Queue(ActivityUtils.SequenceActivities(new Wait(harv.Info.SearchForDeliveryBuildingDelay), new DeliverResources(self)));
-				return NextActivity;
+				QueueChild(new Wait(harv.Info.SearchForDeliveryBuildingDelay));
+				return false;
 			}
 
-			var proc = harv.LinkedProc;
+			proc = harv.LinkedProc;
 			var dm = proc.Trait<DockManager>();
 
-			self.SetTargetLine(Target.FromActor(proc), Color.Green, false);
 			if (self.Location != dm.DockLocations.FirstOrDefault())
 			{
-				foreach (var n in self.TraitsImplementing<INotifyHarvesterAction>())
+				foreach (var n in notifyHarvesterActions)
 					n.MovingToRefinery(self, proc, this);
 			}
 
@@ -80,7 +82,15 @@ namespace OpenRA.Mods.Common.Activities
 				Queue(new CallFunc(() => harv.ContinueHarvesting(self)));
 			}
 
-			return NextActivity;
+			return true;
+		}
+
+		public override void Cancel(Actor self, bool keepQueue = false)
+		{
+			foreach (var n in notifyHarvesterActions)
+				n.MovementCancelled(self);
+
+			base.Cancel(self, keepQueue);
 		}
 
 		Activity IDockActivity.ApproachDockActivities(Actor host, Actor client, Dock dock)
@@ -125,6 +135,14 @@ namespace OpenRA.Mods.Common.Activities
 		{
 			// go to somewhere else
 			return new CallFunc(() => harv.ContinueHarvesting(client));
+		}
+
+		public override IEnumerable<TargetLineNode> TargetLineNodes(Actor self)
+		{
+			if (proc != null)
+				yield return new TargetLineNode(Target.FromActor(proc), Color.Green);
+			else
+				yield return new TargetLineNode(Target.FromActor(harv.LinkedProc), Color.Green);
 		}
 	}
 }

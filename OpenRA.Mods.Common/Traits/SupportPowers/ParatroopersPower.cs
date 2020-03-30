@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2018 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -53,6 +53,15 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Amount of time (in ticks) to keep the camera alive while the passengers drop.")]
 		public readonly int CameraRemoveDelay = 85;
 
+		[Desc("Enables the player directional targeting")]
+		public readonly bool UseDirectionalTarget = false;
+
+		[Desc("Animation used to render the direction arrows.")]
+		public readonly string DirectionArrowAnimation = null;
+
+		[Desc("Palette for direction cursor animation.")]
+		public readonly string DirectionArrowPalette = "chrome";
+
 		[Desc("Weapon range offset to apply during the beacon clock calculation.")]
 		public readonly WDist BeaconDistanceOffset = WDist.FromCells(4);
 
@@ -69,11 +78,25 @@ namespace OpenRA.Mods.Common.Traits
 			this.info = info;
 		}
 
+		public override void SelectTarget(Actor self, string order, SupportPowerManager manager)
+		{
+			if (info.UseDirectionalTarget)
+			{
+				Game.Sound.PlayToPlayer(SoundType.UI, manager.Self.Owner, Info.SelectTargetSound);
+				Game.Sound.PlayNotification(self.World.Map.Rules, self.Owner, "Speech",
+					Info.SelectTargetSpeechNotification, self.Owner.Faction.InternalName);
+
+				self.World.OrderGenerator = new SelectDirectionalTarget(self.World, order, manager, Info.Cursor, info.DirectionArrowAnimation, info.DirectionArrowPalette);
+			}
+			else
+				base.SelectTarget(self, order, manager);
+		}
+
 		public override void Activate(Actor self, Order order, SupportPowerManager manager)
 		{
 			base.Activate(self, order, manager);
 
-			SendParatroopers(self, self.World.Map.CenterOfCell(order.TargetLocation));
+			SendParatroopers(self, order.Target.CenterPosition, !info.UseDirectionalTarget || order.ExtraData == uint.MaxValue, (int)order.ExtraData);
 		}
 
 		public Actor[] SendParatroopers(Actor self, WPos target, bool randomize = true, int dropFacing = 0)
@@ -148,10 +171,13 @@ namespace OpenRA.Mods.Common.Traits
 				}
 			};
 
+			// Create the units immediately so they can be returned
 			foreach (var p in info.DropItems.First(di => di.Key == GetLevel()).Value)
 			{
-				var unit = self.World.CreateActor(false, p.ToLowerInvariant(),
-					new TypeDictionary { new OwnerInit(self.Owner) });
+				var unit = self.World.CreateActor(false, p.ToLowerInvariant(), new TypeDictionary
+				{
+					new OwnerInit(self.Owner)
+				});
 
 				units.Add(unit);
 			}
@@ -190,11 +216,11 @@ namespace OpenRA.Mods.Common.Traits
 					drop.OnRemovedFromWorld += onRemovedFromWorld;
 
 					var cargo = a.Trait<Cargo>();
-					var passengers = units.Skip(added).Take(passengersPerPlane);
-					added += passengersPerPlane;
-
-					foreach (var p in passengers)
-						cargo.Load(a, p);
+					foreach (var unit in units.Skip(added).Take(passengersPerPlane))
+					{
+						cargo.Load(a, unit);
+						added++;
+					}
 
 					a.QueueActivity(new Fly(a, Target.FromPos(target + spawnOffset)));
 					a.QueueActivity(new Fly(a, Target.FromPos(finishEdge + spawnOffset)));
@@ -202,6 +228,10 @@ namespace OpenRA.Mods.Common.Traits
 					aircraftInRange.Add(a, false);
 					distanceTestActor = a;
 				}
+
+				// Dispose any unused units
+				for (var i = added; i < units.Count; i++)
+					units[i].Dispose();
 
 				if (Info.DisplayBeacon)
 				{
@@ -215,6 +245,7 @@ namespace OpenRA.Mods.Common.Traits
 						Info.BeaconImage,
 						Info.BeaconPosters.First(bp => bp.Key == GetLevel()).Value,
 						Info.BeaconPosterPalette,
+						Info.BeaconSequence,
 						Info.ArrowSequence,
 						Info.CircleSequence,
 						Info.ClockSequence,

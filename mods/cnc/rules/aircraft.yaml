@@ -12,10 +12,8 @@ TRAN:
 		Queue: Aircraft.GDI, Aircraft.Nod
 		Description: Fast Infantry Transport Helicopter.\n  Unarmed
 	Aircraft:
-		LandWhenIdle: true
 		TurnSpeed: 5
 		Speed: 150
-		LandableTerrainTypes: Clear,Rough,Road,Ore,Beach,Tiberium,BlueTiberium
 		AltitudeVelocity: 0c100
 	Health:
 		HP: 9000
@@ -44,6 +42,7 @@ TRAN:
 		Types: Infantry
 		MaxWeight: 10
 		PipCount: 10
+		AfterUnloadDelay: 40
 	SpawnActorOnDeath:
 		Actor: TRAN.Husk
 	SelectionDecorations:
@@ -90,6 +89,9 @@ HELI:
 		ScanRadius: 4
 	AttackAircraft:
 		FacingTolerance: 20
+		OpportunityFire: false
+		PersistentTargeting: false
+		AttackType: Hover
 	AmmoPool:
 		Ammo: 10
 		PipCount: 5
@@ -149,6 +151,9 @@ ORCA:
 		ScanRadius: 5
 	AttackAircraft:
 		FacingTolerance: 20
+		OpportunityFire: false
+		PersistentTargeting: false
+		AttackType: Hover
 	AmmoPool:
 		Ammo: 6
 		PipCount: 6

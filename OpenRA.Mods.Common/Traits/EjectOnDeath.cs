@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2018 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -82,32 +82,45 @@ namespace OpenRA.Mods.Common.Traits
 				}
 			}
 
-			if (Info.AllowUnsuitableCell || IsSuitableCell(self, pilot))
+			var pilotPositionable = pilot.TraitOrDefault<IPositionable>();
+			var pilotCell = self.Location;
+			var pilotSubCell = pilotPositionable.GetAvailableSubCell(pilotCell);
+			if (pilotSubCell == SubCell.Invalid)
 			{
-				if (inAir)
+				if (!Info.AllowUnsuitableCell)
 				{
-					self.World.AddFrameEndTask(w =>
-					{
-						w.Add(pilot);
-						pilot.QueueActivity(new Parachute(pilot, cp));
-					});
-					Game.Sound.Play(SoundType.World, Info.ChuteSound, cp);
+					pilot.Dispose();
+					return;
 				}
-				else
+
+				pilotSubCell = SubCell.Any;
+			}
+
+			if (inAir)
+			{
+				self.World.AddFrameEndTask(w =>
 				{
-					self.World.AddFrameEndTask(w => w.Add(pilot));
+					pilotPositionable.SetPosition(pilot, pilotCell, pilotSubCell);
+					var dropPosition = pilot.CenterPosition + new WVec(0, 0, self.CenterPosition.Z - pilot.CenterPosition.Z);
+					pilotPositionable.SetVisualPosition(pilot, dropPosition);
+
+					w.Add(pilot);
+				});
+
+				Game.Sound.Play(SoundType.World, Info.ChuteSound, cp);
+			}
+			else
+			{
+				self.World.AddFrameEndTask(w =>
+				{
+					w.Add(pilot);
+					pilotPositionable.SetPosition(pilot, pilotCell, pilotSubCell);
+
 					var pilotMobile = pilot.TraitOrDefault<Mobile>();
 					if (pilotMobile != null)
 						pilotMobile.Nudge(pilot, pilot, true);
-				}
+				});
 			}
-			else
-				pilot.Dispose();
-		}
-
-		static bool IsSuitableCell(Actor self, Actor actorToDrop)
-		{
-			return actorToDrop.Trait<IPositionable>().CanEnterCell(self.Location, self, true);
 		}
 	}
 }

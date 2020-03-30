@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2018 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -11,7 +11,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Drawing;
 using System.Linq;
 using Eluant;
 using Eluant.ObjectBinding;
@@ -223,15 +222,13 @@ namespace OpenRA
 			if (CurrentActivity == null)
 				CurrentActivity = nextActivity;
 			else
-				CurrentActivity.RootActivity.Queue(nextActivity);
+				CurrentActivity.Queue(nextActivity);
 		}
 
-		public bool CancelActivity()
+		public void CancelActivity()
 		{
 			if (CurrentActivity != null)
-				return CurrentActivity.RootActivity.Cancel(this);
-
-			return true;
+				CurrentActivity.Cancel(this);
 		}
 
 		public override int GetHashCode()
@@ -284,7 +281,7 @@ namespace OpenRA
 			// If CurrentActivity isn't null, run OnActorDisposeOuter in case some cleanups are needed.
 			// This should be done before the FrameEndTask to avoid dependency issues.
 			if (CurrentActivity != null)
-				CurrentActivity.RootActivity.OnActorDisposeOuter(this);
+				CurrentActivity.OnActorDisposeOuter(this);
 
 			// Allow traits/activities to prevent a race condition when they depend on disposing the actor (e.g. Transforms)
 			WillDispose = true;
@@ -342,7 +339,8 @@ namespace OpenRA
 			foreach (var t in TraitsImplementing<INotifyOwnerChanged>())
 				t.OnOwnerChanged(this, oldOwner, newOwner);
 
-			World.Selection.OnOwnerChanged(this, oldOwner, newOwner);
+			foreach (var t in World.WorldActor.TraitsImplementing<INotifyOwnerChanged>())
+				t.OnOwnerChanged(this, oldOwner, newOwner);
 
 			if (wasInWorld)
 				World.Add(this);
@@ -385,7 +383,7 @@ namespace OpenRA
 		public BitSet<TargetableType> GetAllTargetTypes()
 		{
 			// PERF: Avoid LINQ.
-			var targetTypes = new BitSet<TargetableType>();
+			var targetTypes = default(BitSet<TargetableType>);
 			foreach (var targetable in Targetables)
 				targetTypes = targetTypes.Union(targetable.TargetTypes);
 			return targetTypes;
@@ -394,7 +392,7 @@ namespace OpenRA
 		public BitSet<TargetableType> GetEnabledTargetTypes()
 		{
 			// PERF: Avoid LINQ.
-			var targetTypes = new BitSet<TargetableType>();
+			var targetTypes = default(BitSet<TargetableType>);
 			foreach (var targetable in Targetables)
 				if (targetable.IsTraitEnabled())
 					targetTypes = targetTypes.Union(targetable.TargetTypes);
@@ -420,7 +418,7 @@ namespace OpenRA
 			if (enabledTargetablePositionTraits.Any())
 				return enabledTargetablePositionTraits.SelectMany(tp => tp.TargetablePositions(this));
 
-			return new[] { this.CenterPosition };
+			return new[] { CenterPosition };
 		}
 
 		#region Scripting interface

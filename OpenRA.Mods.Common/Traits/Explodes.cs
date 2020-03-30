@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2018 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -23,10 +23,13 @@ namespace OpenRA.Mods.Common.Traits
 	[Desc("This actor explodes when killed.")]
 	public class ExplodesInfo : ConditionalTraitInfo, Requires<IHealthInfo>
 	{
-		[WeaponReference, FieldLoader.Require, Desc("Default weapon to use for explosion if ammo/payload is loaded.")]
+		[WeaponReference]
+		[FieldLoader.Require]
+		[Desc("Default weapon to use for explosion if ammo/payload is loaded.")]
 		public readonly string Weapon = null;
 
-		[WeaponReference, Desc("Fallback weapon to use for explosion if empty (no ammo/payload).")]
+		[WeaponReference]
+		[Desc("Fallback weapon to use for explosion if empty (no ammo/payload).")]
 		public readonly string EmptyWeapon = "UnitExplode";
 
 		[Desc("Chance that the explosion will use Weapon instead of EmptyWeapon when exploding, provided the actor has ammo/payload.")]
@@ -77,7 +80,7 @@ namespace OpenRA.Mods.Common.Traits
 		}
 	}
 
-	public class Explodes : ConditionalTrait<ExplodesInfo>, INotifyKilled, INotifyDamage, INotifyCreated
+	public class Explodes : ConditionalTrait<ExplodesInfo>, INotifyKilled, INotifyDamage
 	{
 		readonly IHealth health;
 		BuildingInfo buildingInfo;
@@ -88,9 +91,10 @@ namespace OpenRA.Mods.Common.Traits
 			health = self.Trait<IHealth>();
 		}
 
-		void INotifyCreated.Created(Actor self)
+		protected override void Created(Actor self)
 		{
 			buildingInfo = self.Info.TraitInfoOrDefault<BuildingInfo>();
+			base.Created(self);
 		}
 
 		void INotifyKilled.Killed(Actor self, AttackInfo e)
@@ -110,7 +114,7 @@ namespace OpenRA.Mods.Common.Traits
 
 			var source = Info.DamageSource == DamageSource.Self ? self : e.Attacker;
 			if (weapon.Report != null && weapon.Report.Any())
-				Game.Sound.Play(SoundType.World, weapon.Report.Random(source.World.SharedRandom), self.CenterPosition);
+				Game.Sound.Play(SoundType.World, weapon.Report, self.World, self.CenterPosition);
 
 			if (Info.Type == ExplosionType.Footprint && buildingInfo != null)
 			{

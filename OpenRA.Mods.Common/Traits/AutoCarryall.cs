@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2018 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -10,6 +10,7 @@
 #endregion
 
 using System.Linq;
+using OpenRA.Activities;
 using OpenRA.Mods.Common.Activities;
 using OpenRA.Traits;
 
@@ -42,8 +43,7 @@ namespace OpenRA.Mods.Common.Traits
 
 			if (ReserveCarryable(self, carryable))
 			{
-				self.QueueActivity(false, new PickupUnit(self, carryable, 0));
-				self.QueueActivity(true, new DeliverUnit(self, destination));
+				self.QueueActivity(false, new FerryUnit(self, carryable));
 				return true;
 			}
 
@@ -96,10 +96,37 @@ namespace OpenRA.Mods.Common.Traits
 				if (IsBestAutoCarryallForCargo(self, p.Actor) && ReserveCarryable(self, p.Actor))
 				{
 					busy = true;
-					self.QueueActivity(false, new PickupUnit(self, p.Actor, 0));
-					self.QueueActivity(true, new DeliverUnit(self, p.Trait.Destination.Value));
+					self.QueueActivity(false, new FerryUnit(self, p.Actor));
 					break;
 				}
+			}
+		}
+
+		class FerryUnit : Activity
+		{
+			readonly Actor cargo;
+
+			public FerryUnit(Actor self, Actor cargo)
+			{
+				this.cargo = cargo;
+			}
+
+			protected override void OnFirstRun(Actor self)
+			{
+				QueueChild(new PickupUnit(self, cargo, 0));
+			}
+
+			public override bool Tick(Actor self)
+			{
+				if (cargo.IsDead)
+					return true;
+
+				var dropRange = self.Trait<Carryall>().Info.DropRange;
+				var destination = cargo.Trait<Carryable>().Destination;
+				if (destination != null)
+					self.QueueActivity(true, new DeliverUnit(self, Target.FromCell(self.World, destination.Value), dropRange));
+
+				return true;
 			}
 		}
 	}

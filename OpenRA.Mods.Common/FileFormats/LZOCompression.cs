@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2018 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -226,7 +226,9 @@ namespace OpenRA.Mods.Common.FileFormats
 						{
 							*(uint*)op = *(uint*)mPos;
 							op += 4; mPos += 4; t -= 4;
-						} while (t >= 4);
+						}
+						while (t >= 4);
+
 						if (t > 0)
 							do { *op++ = *mPos++; } while (--t > 0);
 					}
@@ -248,11 +250,12 @@ namespace OpenRA.Mods.Common.FileFormats
 					{
 						*op++ = *ip++;
 						if (t > 2)
-							*op++ = *ip++;
+							(*op++) = *ip++;
 					}
 
 					t = *ip++;
-				} while (true);
+				}
+				while (true);
 			}
 
 		eof_found:

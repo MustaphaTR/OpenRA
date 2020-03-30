@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2018 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -20,13 +20,15 @@ namespace OpenRA.Mods.Common.Warheads
 {
 	public class CreateEffectWarhead : Warhead
 	{
+		[SequenceReference("Image")]
 		[Desc("List of explosion sequences that can be used.")]
-		[SequenceReference("Image")] public readonly string[] Explosions = new string[0];
+		public readonly string[] Explosions = new string[0];
 
 		[Desc("Image containing explosion effect sequence.")]
 		public readonly string Image = "explosion";
 
-		[Desc("Palette to use for explosion effect."), PaletteReference("UsePlayerPalette")]
+		[PaletteReference("UsePlayerPalette")]
+		[Desc("Palette to use for explosion effect.")]
 		public readonly string ExplosionPalette = "effect";
 
 		[Desc("Remap explosion effect to player color, if art supports it.")]

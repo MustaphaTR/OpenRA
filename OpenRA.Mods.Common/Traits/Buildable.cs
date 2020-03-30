@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2018 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -40,11 +40,13 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Show a tooltip when hovered over my icon.")]
 		public readonly bool ShowTooltip = true;
 
+		[SequenceReference]
 		[Desc("Sequence of the actor that contains the icon.")]
-		[SequenceReference] public readonly string Icon = "icon";
+		public readonly string Icon = "icon";
 
+		[PaletteReference]
 		[Desc("Palette used for the production icon.")]
-		[PaletteReference] public readonly string IconPalette = "chrome";
+		public readonly string IconPalette = "chrome";
 
 		[Desc("Base build time in frames (-1 indicates to use the unit's Value).")]
 		public readonly int BuildDuration = -1;
@@ -55,11 +57,12 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Sort order for the production palette. Smaller numbers are presented earlier.")]
 		public readonly int BuildPaletteOrder = 9999;
 
-		// TODO: UI fluff; doesn't belong here
+		[Desc("Try to put the icon exactly at the `BuildPaletteOrder`th location.")]
 		public readonly bool ForceIconLocation = false;
 
+		[Translate]
 		[Desc("Text shown in the production tooltip.")]
-		[Translate] public readonly string Description = "";
+		public readonly string Description = "";
 
 		[Desc("Notification played when production is complete.",
 			"The filename of the audio is defined per faction in notifications.yaml.",

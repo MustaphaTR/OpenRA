@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2018 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -10,8 +10,8 @@
 #endregion
 
 using System;
-using System.Drawing;
 using System.Runtime.InteropServices;
+using OpenRA.Primitives;
 using SDL2;
 
 namespace OpenRA.Platforms.Default
@@ -30,6 +30,7 @@ namespace OpenRA.Platforms.Default
 		Size windowSize;
 		Size surfaceSize;
 		float windowScale;
+		int2? lockedMousePosition;
 
 		internal IntPtr Window
 		{
@@ -276,6 +277,23 @@ namespace OpenRA.Platforms.Default
 			}
 		}
 
+		public void SetRelativeMouseMode(bool mode)
+		{
+			if (mode)
+			{
+				int x, y;
+				SDL.SDL_GetMouseState(out x, out y);
+				lockedMousePosition = new int2(x, y);
+			}
+			else
+			{
+				if (lockedMousePosition.HasValue)
+					SDL.SDL_WarpMouseInWindow(window, lockedMousePosition.Value.X, lockedMousePosition.Value.Y);
+
+				lockedMousePosition = null;
+			}
+		}
+
 		internal void WindowSizeChanged()
 		{
 			// The ratio between pixels and points can change when moving between displays in OSX
@@ -331,7 +349,10 @@ namespace OpenRA.Platforms.Default
 		public void PumpInput(IInputHandler inputHandler)
 		{
 			VerifyThreadAffinity();
-			input.PumpInput(this, inputHandler);
+			input.PumpInput(this, inputHandler, lockedMousePosition);
+
+			if (lockedMousePosition.HasValue)
+				SDL.SDL_WarpMouseInWindow(window, lockedMousePosition.Value.X, lockedMousePosition.Value.Y);
 		}
 
 		public string GetClipboardText()

@@ -150,7 +150,7 @@
 	AutoTargetPriority@ATTACKANYTHING:
 		RequiresCondition: stance-attackanything || assault-move
 	AttackMove:
-		AssaultMoveScanCondition: assault-move
+		AssaultMoveCondition: assault-move
 
 ^AutoTargetAir:
 	AutoTarget:
@@ -177,7 +177,15 @@
 	AutoTargetPriority@ATTACKANYTHING:
 		RequiresCondition: stance-attackanything || assault-move
 	AttackMove:
-		AssaultMoveScanCondition: assault-move
+		AssaultMoveCondition: assault-move
+
+^FlatSelectionMode:
+	Selectable:
+		PriorityModifiers: Ctrl
+
+^LowPrioritySelectionMode:
+	Selectable:
+		PriorityModifiers: Ctrl, Alt
 
 ^2x1Shape:
 	HitShape:
@@ -317,6 +325,12 @@
 		BuildSounds: place2.aud
 		TerrainTypes: Clear, Rough, Road, DirtRoad, Green, Sand, Pavement
 		UndeploySounds: cashturn.aud
+	ActorPreviewPlaceBuildingPreview:
+		Palette: placefootprint
+		LineBuildSegmentPalette: placelinesegment
+		OverridePalette: placebuilding
+		FootprintUnderPreview: Valid, LineBuild, Invalid
+		FootprintOverPreview: None
 	RequiresBuildableArea:
 		AreaTypes: building
 		Adjacent: 4
@@ -353,6 +367,7 @@
 		AreaTypes: building
 	CaptureManager:
 	Capturable:
+		RequiresCondition: !build-incomplete
 		Types: building
 	RepairableBuilding:
 		RepairStep: 700
@@ -369,6 +384,8 @@
 		Factions: nod
 	MustBeDestroyed:
 		RequiredForShortGame: true
+	OwnerLostAction:
+		Action: Kill
 	CaptureNotification:
 	Demolishable:
 		Condition: being-demolished
@@ -466,6 +483,9 @@
 		BuildSounds: place2.aud
 		TerrainTypes: Clear, Rough, Road, DirtRoad, Green, Sand, Pavement
 		UndeploySounds: cashturn.aud
+	FootprintPlaceBuildingPreview:
+		Palette: placefootprint
+		LineBuildSegmentPalette: placelinesegment
 	RequiresBuildableArea:
 		AreaTypes: building
 		Adjacent: 7
@@ -497,6 +517,7 @@
 			TopLeft: -512, -512
 			BottomRight: 512, 512
 			VerticalTopOffset: 768
+	AppearsOnMapPreview:
 	MapEditorData:
 		Categories: Wall
 	Valued:
@@ -512,6 +533,10 @@
 	Building:
 		BuildSounds: place2.aud
 		UndeploySounds: cashturn.aud
+	SequencePlaceBuildingPreview:
+		Sequence: place
+		SequencePalette: placebuilding
+		Palette: placefootprint
 	KillsSelf:
 		RemoveInstead: true
 	RenderSprites:
@@ -521,11 +546,14 @@
 	Inherits@3: ^SpriteActor
 	Inherits@4: ^Cloakable
 	Inherits@CRATESTATS: ^CrateStatModifiers
+	Inherits@SELECTION_MODE: ^FlatSelectionMode
 	Huntable:
 	OwnerLostAction:
 		Action: Kill
 		DeathTypes: BulletDeath
 	DrawLineToTarget:
+		QueuedLineWidth: 2
+		QueuedMarkerWidth: 3
 	Health:
 		HP: 5000
 	Armor:
@@ -701,7 +729,7 @@
 		RequiresCondition: criticalspeed
 		Modifier: 50
 	Mobile:
-		RequiresCondition: !empdisable
+		PauseOnCondition: empdisable
 
 ^CivilianInfantry:
 	Inherits@1: ^Infantry
@@ -723,12 +751,15 @@
 	Inherits@4: ^Cloakable
 	Inherits@5: ^DamagedByVeins
 	Inherits@CRATESTATS: ^CrateStatModifiers
+	Inherits@SELECTION_MODE: ^FlatSelectionMode
 	Huntable:
 	OwnerLostAction:
 		Action: Kill
 	DrawLineToTarget:
+		QueuedLineWidth: 2
+		QueuedMarkerWidth: 3
 	Mobile:
-		RequiresCondition: !empdisable && !being-captured
+		PauseOnCondition: empdisable || being-captured || carried
 		Locomotor: wheeled
 		TurnSpeed: 5
 		Voice: Move
@@ -749,7 +780,7 @@
 		Condition: damaged
 		ValidDamageStates: Light, Medium, Heavy, Critical
 	Repairable:
-		RepairBuildings: gadept
+		RepairActors: gadept
 		Voice: Move
 	Passenger:
 		CargoType: Vehicle
@@ -791,6 +822,7 @@
 		Modifier: 60
 	Carryable:
 		RequiresCondition: !inside-tunnel
+		LockedCondition: carried
 	RevealOnFire:
 	EntersTunnels:
 		Voice: Move
@@ -824,10 +856,13 @@
 ^Aircraft:
 	Inherits@2: ^ExistsInWorld
 	Inherits@3: ^Cloakable
+	Inherits@SELECTION_MODE: ^FlatSelectionMode
 	Huntable:
 	OwnerLostAction:
 		Action: Kill
 	DrawLineToTarget:
+		QueuedLineWidth: 2
+		QueuedMarkerWidth: 3
 	AppearsOnRadar:
 		UseLocation: true
 	Targetable@GROUND:
@@ -841,13 +876,23 @@
 	SelectionDecorations:
 		Palette: pips
 	Repairable:
-		RepairBuildings: gadept
+		RepairActors: gadept
 		Voice: Move
 	Aircraft:
+		InitialFacing: 224
 		AirborneCondition: airborne
-		LandWhenIdle: false
+		CruisingCondition: cruising
+		CruiseAltitude: 4c704
+		AltitudeVelocity: 96
 		Voice: Move
 		IdealSeparation: 853
+		MaximumPitch: 120
+		LandableTerrainTypes: Clear, Road, Rail, DirtRoad, Rough, Tiberium, BlueTiberium, Veins
+		Crushes: crate, infantry
+		MoveIntoShroud: false
+		CanHover: true
+		CanSlide: true
+		VTOL: true
 	Voiced:
 		VoiceSet: Heli
 	HiddenUnderFog:
@@ -871,17 +916,10 @@
 		Categories: Aircraft
 	SpawnActorOnDeath:
 		RequiresCondition: airborne
-
-^Helicopter:
-	Inherits: ^Aircraft
-	Aircraft:
-		CruiseAltitude: 2048
-		CanHover: True
-		CruisingCondition: cruising
-		TakeOffOnResupply: true
-		VTOL: true
 	Hovers@CRUISING:
 		RequiresCondition: cruising
+		BobDistance: -64
+		InitialHeight: 64
 
 ^AircraftHusk:
 	RenderVoxels:
@@ -912,8 +950,11 @@
 	Inherits@1: ^ExistsInWorld
 	Inherits@2: ^SpriteActor
 	Inherits@3: ^HealsOnTiberium
+	Inherits@SELECTION_MODE: ^FlatSelectionMode
 	Huntable:
 	DrawLineToTarget:
+		QueuedLineWidth: 2
+		QueuedMarkerWidth: 3
 	Health:
 	Armor:
 		Type: Light
@@ -958,6 +999,8 @@
 	AppearsOnRadar:
 	RadarColorFromTerrain:
 		Terrain: Tiberium
+	AppearsOnMapPreview:
+		Terrain: Tiberium
 	FrozenUnderFog:
 	SeedsResource:
 		ResourceType: Tiberium
@@ -979,6 +1022,8 @@
 	AppearsOnRadar:
 	RadarColorFromTerrain:
 		Terrain: Tree
+	AppearsOnMapPreview:
+		Terrain: Tree
 	Tooltip:
 		Name: Tree
 	MapEditorData:
@@ -998,6 +1043,8 @@
 		Dimensions: 1, 1
 	AppearsOnRadar:
 	RadarColorFromTerrain:
+		Terrain: Rock
+	AppearsOnMapPreview:
 		Terrain: Rock
 	Tooltip:
 		Name: Rock
@@ -1057,16 +1104,19 @@
 	Inherits@1: ^EmpDisable
 	Inherits@2: ^ExistsInWorld
 	Inherits@3: ^Cloakable
+	Inherits@SELECTION_MODE: ^FlatSelectionMode
 	Huntable:
 	RenderVoxels:
 	RenderSprites:
 	WithVoxelBody:
 	DrawLineToTarget:
+		QueuedLineWidth: 2
+		QueuedMarkerWidth: 3
 	Mobile:
 		TurnSpeed: 5
 		Voice: Move
 		Speed: 113
-		RequiresCondition: !empdisable
+		PauseOnCondition: empdisable
 		Locomotor: train
 	Cargo:
 		Types: Infantry

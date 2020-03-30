@@ -1,3 +1,11 @@
+--[[
+   Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
+   This file is part of OpenRA, which is free software. It is made
+   available to you under the terms of the GNU General Public License
+   as published by the Free Software Foundation, either version 3 of
+   the License, or (at your option) any later version. For more
+   information, see COPYING.
+]]
 DifficultySetting = Map.LobbyOption("difficulty")
 timeTracker = 0
 amount = 1
@@ -57,7 +65,7 @@ StartAntAttack = function()
 	local max = MaxAnts[DifficultySetting] - math.ceil(timeTracker / DateTime.Minutes(6))
 	if timeTracker > DateTime.Minutes(3) and antType == "fireant" then
 		amount = Utils.RandomInteger(1, MaxFireAnts[DifficultySetting])
-	elseif timeTracker > 15 and antType == "fireant" then 
+	elseif timeTracker > 15 and antType == "fireant" then
 		antType = "scoutant"
 	else
 		amount = Utils.RandomInteger(1, max)
@@ -67,12 +75,12 @@ StartAntAttack = function()
 		Reinforcements.Reinforce(AntMan, { antType }, path, DateTime.Seconds(5), function(actor)
 			actor.AttackMove(CPos.New(65, 65))
 			Trigger.OnIdle(actor, function()
-				actor.Hunt() 
+				actor.Hunt()
 			end)
 		end)
 	end
 
-	-- Setup next wave 
+	-- Setup next wave
 	if SendAnts then
 		Trigger.AfterDelay(AttackInterval[DifficultySetting], function()
 			StartAntAttack()

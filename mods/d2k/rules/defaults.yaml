@@ -140,7 +140,7 @@
 	AutoTargetPriority@ATTACKANYTHING:
 		RequiresCondition: stance-attackanything || assault-move
 	AttackMove:
-		AssaultMoveScanCondition: assault-move
+		AssaultMoveCondition: assault-move
 
 ^AutoTargetAll:
 	AutoTarget:
@@ -161,11 +161,20 @@
 	AutoTargetPriority@ATTACKANYTHING:
 		RequiresCondition: stance-attackanything || assault-move
 	AttackMove:
-		AssaultMoveScanCondition: assault-move
+		AssaultMoveCondition: assault-move
+
+^FlatSelectionMode:
+	Selectable:
+		PriorityModifiers: Ctrl
+
+^LowPrioritySelectionMode:
+	Selectable:
+		PriorityModifiers: Ctrl, Alt
 
 ^Vehicle:
 	Inherits@1: ^ExistsInWorld
 	Inherits@2: ^SpriteActor
+	Inherits@SELECTION_MODE: ^FlatSelectionMode
 	Tooltip:
 		GenericName: Unit
 	Huntable:
@@ -174,7 +183,7 @@
 	Mobile:
 		TurnSpeed: 5
 		Locomotor: vehicle
-		RequiresCondition: !notmobile
+		PauseOnCondition: notmobile
 	SelectionDecorations:
 	WithSpriteControlGroupDecoration:
 	Selectable:
@@ -188,7 +197,7 @@
 	HiddenUnderFog:
 	ActorLostNotification:
 	Repairable:
-		RepairBuildings: repair_pad
+		RepairActors: repair_pad
 	Guard:
 		Voice: Guard
 	Guardable:
@@ -201,6 +210,7 @@
 	AutoCarryable:
 		CarriedCondition: notmobile
 		ReservedCondition: carryall-reserved
+		LockedCondition: notmobile
 	WithDecoration@CARRYALL:
 		Image: pips
 		Sequence: pickup-indicator
@@ -269,6 +279,7 @@
 	Inherits@1: ^ExistsInWorld
 	Inherits@2: ^GainsExperience
 	Inherits@3: ^SpriteActor
+	Inherits@SELECTION_MODE: ^FlatSelectionMode
 	Tooltip:
 		GenericName: Unit
 	Huntable:
@@ -335,6 +346,7 @@
 			Radius: 96
 	MapEditorData:
 		Categories: Infantry
+	AttackFrontal:
 
 ^Plane:
 	Inherits@1: ^ExistsInWorld
@@ -384,6 +396,8 @@
 		Footprint: x
 		TerrainTypes: Rock, Concrete
 		BuildSounds: BUILD1.WAV
+	D2kActorPreviewPlaceBuildingPreview:
+		OverridePalette: placebuilding
 	RequiresBuildableArea:
 		AreaTypes: building
 		Adjacent: 3
@@ -391,6 +405,7 @@
 		AreaTypes: building
 	CaptureManager:
 	Capturable:
+		RequiresCondition: !build-incomplete
 		Types: building
 	SoundOnDamageTransition:
 		DamagedSounds: EXPLSML1.WAV

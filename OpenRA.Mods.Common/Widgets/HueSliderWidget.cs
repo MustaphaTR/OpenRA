@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2018 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -9,9 +9,8 @@
  */
 #endregion
 
-using System.Drawing;
-using System.Drawing.Imaging;
 using OpenRA.Graphics;
+using OpenRA.Primitives;
 using OpenRA.Widgets;
 
 namespace OpenRA.Mods.Common.Widgets
@@ -21,7 +20,8 @@ namespace OpenRA.Mods.Common.Widgets
 		Sprite hueSprite;
 
 		public HueSliderWidget() { }
-		public HueSliderWidget(HueSliderWidget other) : base(other) { }
+		public HueSliderWidget(HueSliderWidget other)
+			: base(other) { }
 
 		public override void Initialize(WidgetArgs args)
 		{
@@ -32,7 +32,7 @@ namespace OpenRA.Mods.Common.Widgets
 
 			var hueData = new uint[1, 256];
 			for (var x = 0; x < 256; x++)
-				hueData[0, x] = (uint)HSLColor.FromHSV(x / 255f, 1, 1).RGB.ToArgb();
+				hueData[0, x] = (uint)Color.FromAhsv(x / 255f, 1, 1).ToArgb();
 
 			hueSheet.GetTexture().SetData(hueData);
 		}

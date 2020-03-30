@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2018 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -13,13 +13,14 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using OpenRA.Graphics;
+using OpenRA.Primitives;
 using OpenRA.Widgets;
 
 namespace OpenRA.Mods.Common.Widgets.Logic
 {
 	public class SettingsLogic : ChromeLogic
 	{
-		enum PanelType { Display, Audio, Input, Advanced }
+		enum PanelType { Display, Audio, Input, Hotkeys, Advanced }
 
 		static readonly string OriginalSoundDevice;
 		static readonly WindowMode OriginalGraphicsMode;
@@ -37,6 +38,12 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 
 		SoundDevice soundDevice;
 		PanelType settingsPanel = PanelType.Display;
+
+		ButtonWidget selectedHotkeyButton;
+		HotkeyEntryWidget hotkeyEntryWidget;
+		HotkeyDefinition duplicateHotkeyDefinition, selectedHotkeyDefinition;
+		bool isHotkeyValid;
+		bool isHotkeyDefault;
 
 		static SettingsLogic()
 		{
@@ -61,6 +68,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			RegisterSettingsPanel(PanelType.Display, InitDisplayPanel, ResetDisplayPanel, "DISPLAY_PANEL", "DISPLAY_TAB");
 			RegisterSettingsPanel(PanelType.Audio, InitAudioPanel, ResetAudioPanel, "AUDIO_PANEL", "AUDIO_TAB");
 			RegisterSettingsPanel(PanelType.Input, InitInputPanel, ResetInputPanel, "INPUT_PANEL", "INPUT_TAB");
+			RegisterSettingsPanel(PanelType.Hotkeys, InitHotkeysPanel, ResetHotkeysPanel, "HOTKEYS_PANEL", "HOTKEYS_TAB");
 			RegisterSettingsPanel(PanelType.Advanced, InitAdvancedPanel, ResetAdvancedPanel, "ADVANCED_PANEL", "ADVANCED_TAB");
 
 			panelContainer.Get<ButtonWidget>("BACK_BUTTON").OnClick = () =>
@@ -70,11 +78,11 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				current.Save();
 
 				Action closeAndExit = () => { Ui.CloseWindow(); onExit(); };
-				if (OriginalSoundDevice != current.Sound.Device ||
-					OriginalGraphicsMode != current.Graphics.Mode ||
-					OriginalGraphicsWindowedSize != current.Graphics.WindowedSize ||
-					OriginalGraphicsFullscreenSize != current.Graphics.FullscreenSize ||
-					OriginalServerDiscoverNatDevices != current.Server.DiscoverNatDevices)
+				if (current.Sound.Device != OriginalSoundDevice ||
+				    current.Graphics.Mode != OriginalGraphicsMode ||
+				    current.Graphics.WindowedSize != OriginalGraphicsWindowedSize ||
+					current.Graphics.FullscreenSize != OriginalGraphicsFullscreenSize ||
+					current.Server.DiscoverNatDevices != OriginalServerDiscoverNatDevices)
 				{
 					Action restart = () =>
 					{
@@ -123,7 +131,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			ss.OnChange += x => field.SetValue(group, x);
 		}
 
-		static void BindHotkeyPref(HotkeyDefinition hd, HotkeyManager manager, Widget template, Widget parent)
+		void BindHotkeyPref(HotkeyDefinition hd, Widget template, Widget parent)
 		{
 			var key = template.Clone() as Widget;
 			key.Id = hd.Name;
@@ -131,9 +139,37 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 
 			key.Get<LabelWidget>("FUNCTION").GetText = () => hd.Description + ":";
 
-			var textBox = key.Get<HotkeyEntryWidget>("HOTKEY");
-			textBox.Key = manager[hd.Name].GetValue();
-			textBox.OnLoseFocus = () => manager.Set(hd.Name, textBox.Key);
+			var remapButton = key.Get<ButtonWidget>("HOTKEY");
+			WidgetUtils.TruncateButtonToTooltip(remapButton, modData.Hotkeys[hd.Name].GetValue().DisplayString());
+
+			remapButton.IsHighlighted = () => selectedHotkeyDefinition == hd;
+
+			var hotkeyValidColor = ChromeMetrics.Get<Color>("HotkeyColor");
+			var hotkeyInvalidColor = ChromeMetrics.Get<Color>("HotkeyColorInvalid");
+
+			remapButton.GetColor = () =>
+			{
+				return modData.Hotkeys.GetFirstDuplicate(hd.Name, modData.Hotkeys[hd.Name].GetValue(), hd) != null ?
+					hotkeyInvalidColor :
+					hotkeyValidColor;
+			};
+
+			if (selectedHotkeyDefinition == hd)
+			{
+				selectedHotkeyButton = remapButton;
+				hotkeyEntryWidget.Key = modData.Hotkeys[hd.Name].GetValue();
+				ValidateHotkey();
+			}
+
+			remapButton.OnClick = () =>
+			{
+				selectedHotkeyDefinition = hd;
+				selectedHotkeyButton = remapButton;
+				hotkeyEntryWidget.Key = modData.Hotkeys[hd.Name].GetValue();
+				ValidateHotkey();
+				hotkeyEntryWidget.TakeKeyboardFocus();
+			};
+
 			parent.AddChild(key);
 		}
 
@@ -159,7 +195,6 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			BindCheckboxPref(panel, "PIXELDOUBLE_CHECKBOX", ds, "PixelDouble");
 			BindCheckboxPref(panel, "CURSORDOUBLE_CHECKBOX", ds, "CursorDouble");
 			BindCheckboxPref(panel, "FRAME_LIMIT_CHECKBOX", ds, "CapFramerate");
-			BindCheckboxPref(panel, "DISPLAY_TARGET_LINES_CHECKBOX", gs, "DrawTargetLine");
 			BindCheckboxPref(panel, "PLAYER_STANCE_COLORS_CHECKBOX", gs, "UsePlayerStanceColors");
 
 			var languageDropDownButton = panel.Get<DropDownButtonWidget>("LANGUAGE_DROPDOWNBUTTON");
@@ -173,8 +208,13 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 
 			var statusBarsDropDown = panel.Get<DropDownButtonWidget>("STATUS_BAR_DROPDOWN");
 			statusBarsDropDown.OnMouseDown = _ => ShowStatusBarsDropdown(statusBarsDropDown, gs);
-			statusBarsDropDown.GetText = () => gs.StatusBars.ToString() == "Standard" ?
-				"Standard" : gs.StatusBars.ToString() == "DamageShow" ? "Show On Damage" : "Always Show";
+			statusBarsDropDown.GetText = () => gs.StatusBars == StatusBarsType.Standard ?
+				"Standard" : gs.StatusBars == StatusBarsType.DamageShow ? "Show On Damage" : "Always Show";
+
+			var targetLinesDropDown = panel.Get<DropDownButtonWidget>("TARGET_LINES_DROPDOWN");
+			targetLinesDropDown.OnMouseDown = _ => ShowTargetLinesDropdown(targetLinesDropDown, gs);
+			targetLinesDropDown.GetText = () => gs.TargetLines == TargetLinesType.Automatic ?
+				"Automatic" : gs.TargetLines == TargetLinesType.Manual ? "Manual" : "Disabled";
 
 			// Update zoom immediately
 			var pixelDoubleCheckbox = panel.Get<CheckboxWidget>("PIXELDOUBLE_CHECKBOX");
@@ -266,7 +306,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			var colorDropdown = panel.Get<DropDownButtonWidget>("PLAYERCOLOR");
 			colorDropdown.IsDisabled = () => worldRenderer.World.Type != WorldType.Shellmap;
 			colorDropdown.OnMouseDown = _ => ColorPickerLogic.ShowColorDropDown(colorDropdown, colorPreview, worldRenderer.World);
-			colorDropdown.Get<ColorBlockWidget>("COLORBLOCK").GetColor = () => ps.Color.RGB;
+			colorDropdown.Get<ColorBlockWidget>("COLORBLOCK").GetColor = () => ps.Color;
 
 			return () =>
 			{
@@ -408,6 +448,12 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			zoomModifierDropdown.OnMouseDown = _ => ShowZoomModifierDropdown(zoomModifierDropdown, gs);
 			zoomModifierDropdown.GetText = () => gs.ZoomModifier.ToString();
 
+			return () => { };
+		}
+
+		Action InitHotkeysPanel(Widget panel)
+		{
+			var hotkeyDialogRoot = panel.Get("HOTKEY_DIALOG_ROOT");
 			var hotkeyList = panel.Get<ScrollPanelWidget>("HOTKEY_LIST");
 			hotkeyList.Layout = new GridLayout(hotkeyList);
 			var hotkeyHeader = hotkeyList.Get<ScrollItemWidget>("HEADER");
@@ -420,6 +466,8 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			MiniYaml hotkeyGroups;
 			if (logicArgs.TryGetValue("HotkeyGroups", out hotkeyGroups))
 			{
+				InitHotkeyRemapDialog(panel);
+
 				foreach (var hg in hotkeyGroups.Nodes)
 				{
 					var templateNode = hg.Value.Nodes.FirstOrDefault(n => n.Key == "Template");
@@ -434,14 +482,28 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 					var types = FieldLoader.GetValue<string[]>("Types", typesNode.Value.Value);
 					var added = new HashSet<HotkeyDefinition>();
 					var template = templates.Get(templateNode.Value.Value);
+
 					foreach (var t in types)
+					{
 						foreach (var hd in modData.Hotkeys.Definitions.Where(k => k.Types.Contains(t)))
+						{
 							if (added.Add(hd))
-								BindHotkeyPref(hd, modData.Hotkeys, template, hotkeyList);
+							{
+								if (selectedHotkeyDefinition == null)
+									selectedHotkeyDefinition = hd;
+
+								BindHotkeyPref(hd, template, hotkeyList);
+							}
+						}
+					}
 				}
 			}
 
-			return () => { };
+			return () =>
+			{
+				hotkeyEntryWidget.Key = modData.Hotkeys[selectedHotkeyDefinition.Name].GetValue();
+				hotkeyEntryWidget.ForceYieldKeyboardFocus();
+			};
 		}
 
 		Action ResetInputPanel(Widget panel)
@@ -461,16 +523,22 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				gs.AllowZoom = dgs.AllowZoom;
 				gs.ZoomModifier = dgs.ZoomModifier;
 
-				foreach (var hd in modData.Hotkeys.Definitions)
-				{
-					modData.Hotkeys.Set(hd.Name, hd.Default);
-					panel.Get(hd.Name).Get<HotkeyEntryWidget>("HOTKEY").Key = hd.Default;
-				}
-
 				panel.Get<SliderWidget>("SCROLLSPEED_SLIDER").Value = gs.ViewportEdgeScrollStep;
 				panel.Get<SliderWidget>("UI_SCROLLSPEED_SLIDER").Value = gs.UIScrollSpeed;
 
 				MakeMouseFocusSettingsLive();
+			};
+		}
+
+		Action ResetHotkeysPanel(Widget panel)
+		{
+			return () =>
+			{
+				foreach (var hd in modData.Hotkeys.Definitions)
+				{
+					modData.Hotkeys.Set(hd.Name, hd.Default);
+					WidgetUtils.TruncateButtonToTooltip(panel.Get(hd.Name).Get<ButtonWidget>("HOTKEY"), hd.Default.DisplayString());
+				}
 			};
 		}
 
@@ -497,7 +565,6 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			BindCheckboxPref(panel, "REPLAY_COMMANDS_CHECKBOX", ds, "EnableDebugCommandsInReplays");
 			BindCheckboxPref(panel, "CHECKUNSYNCED_CHECKBOX", ds, "SyncCheckUnsyncedCode");
 			BindCheckboxPref(panel, "CHECKBOTSYNC_CHECKBOX", ds, "SyncCheckBotModuleCode");
-			BindCheckboxPref(panel, "STRICTACTIVITY_CHECKBOX", ds, "StrictActivityChecking");
 
 			panel.Get("DEBUG_OPTIONS").IsVisible = () => ds.DisplayDeveloperSettings;
 			panel.Get("DEBUG_HIDDEN_LABEL").IsVisible = () => !ds.DisplayDeveloperSettings;
@@ -527,7 +594,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			};
 		}
 
-		static bool ShowMouseScrollDropdown(DropDownButtonWidget dropdown, GameSettings s, bool rightMouse)
+		static void ShowMouseScrollDropdown(DropDownButtonWidget dropdown, GameSettings s, bool rightMouse)
 		{
 			var options = new Dictionary<string, MouseScrollType>()
 			{
@@ -547,10 +614,9 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			};
 
 			dropdown.ShowDropDown("LABEL_DROPDOWN_TEMPLATE", 500, options.Keys, setupItem);
-			return true;
 		}
 
-		static bool ShowZoomModifierDropdown(DropDownButtonWidget dropdown, GameSettings s)
+		static void ShowZoomModifierDropdown(DropDownButtonWidget dropdown, GameSettings s)
 		{
 			var options = new Dictionary<string, Modifiers>()
 			{
@@ -571,10 +637,9 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			};
 
 			dropdown.ShowDropDown("LABEL_DROPDOWN_TEMPLATE", 500, options.Keys, setupItem);
-			return true;
 		}
 
-		bool ShowAudioDeviceDropdown(DropDownButtonWidget dropdown, SoundDevice[] devices)
+		void ShowAudioDeviceDropdown(DropDownButtonWidget dropdown, SoundDevice[] devices)
 		{
 			var i = 0;
 			var options = devices.ToDictionary(d => (i++).ToString(), d => d);
@@ -593,10 +658,9 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			};
 
 			dropdown.ShowDropDown("LABEL_DROPDOWN_TEMPLATE", 500, options.Keys, setupItem);
-			return true;
 		}
 
-		static bool ShowWindowModeDropdown(DropDownButtonWidget dropdown, GraphicSettings s)
+		static void ShowWindowModeDropdown(DropDownButtonWidget dropdown, GraphicSettings s)
 		{
 			var options = new Dictionary<string, WindowMode>()
 			{
@@ -616,10 +680,9 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			};
 
 			dropdown.ShowDropDown("LABEL_DROPDOWN_TEMPLATE", 500, options.Keys, setupItem);
-			return true;
 		}
 
-		static bool ShowLanguageDropdown(DropDownButtonWidget dropdown, IEnumerable<string> languages)
+		static void ShowLanguageDropdown(DropDownButtonWidget dropdown, IEnumerable<string> languages)
 		{
 			Func<string, ScrollItemWidget, ScrollItemWidget> setupItem = (o, itemTemplate) =>
 			{
@@ -632,10 +695,9 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			};
 
 			dropdown.ShowDropDown("LABEL_DROPDOWN_TEMPLATE", 500, languages, setupItem);
-			return true;
 		}
 
-		static bool ShowStatusBarsDropdown(DropDownButtonWidget dropdown, GameSettings s)
+		static void ShowStatusBarsDropdown(DropDownButtonWidget dropdown, GameSettings s)
 		{
 			var options = new Dictionary<string, StatusBarsType>()
 			{
@@ -655,7 +717,28 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			};
 
 			dropdown.ShowDropDown("LABEL_DROPDOWN_TEMPLATE", 500, options.Keys, setupItem);
-			return true;
+		}
+
+		static void ShowTargetLinesDropdown(DropDownButtonWidget dropdown, GameSettings s)
+		{
+			var options = new Dictionary<string, TargetLinesType>()
+			{
+				{ "Automatic", TargetLinesType.Automatic },
+				{ "Manual", TargetLinesType.Manual },
+				{ "Disabled", TargetLinesType.Disabled },
+			};
+
+			Func<string, ScrollItemWidget, ScrollItemWidget> setupItem = (o, itemTemplate) =>
+			{
+				var item = ScrollItemWidget.Setup(itemTemplate,
+					() => s.TargetLines == options[o],
+					() => s.TargetLines = options[o]);
+
+				item.Get<LabelWidget>("LABEL").GetText = () => o;
+				return item;
+			};
+
+			dropdown.ShowDropDown("LABEL_DROPDOWN_TEMPLATE", 500, options.Keys, setupItem);
 		}
 
 		void MakeMouseFocusSettingsLive()
@@ -666,6 +749,69 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				Game.Renderer.GrabWindowMouseFocus();
 			else
 				Game.Renderer.ReleaseWindowMouseFocus();
+		}
+
+		void InitHotkeyRemapDialog(Widget panel)
+		{
+			var label = new CachedTransform<HotkeyDefinition, string>(hd => hd.Description + ":");
+			panel.Get<LabelWidget>("HOTKEY_LABEL").GetText = () => label.Update(selectedHotkeyDefinition);
+
+			var duplicateNotice = panel.Get<LabelWidget>("DUPLICATE_NOTICE");
+			duplicateNotice.TextColor = ChromeMetrics.Get<Color>("NoticeErrorColor");
+			duplicateNotice.IsVisible = () => !isHotkeyValid;
+			var duplicateNoticeText = new CachedTransform<HotkeyDefinition, string>(hd => hd != null ? duplicateNotice.Text.F(hd.Description) : duplicateNotice.Text);
+			duplicateNotice.GetText = () => duplicateNoticeText.Update(duplicateHotkeyDefinition);
+
+			var defaultNotice = panel.Get<LabelWidget>("DEFAULT_NOTICE");
+			defaultNotice.TextColor = ChromeMetrics.Get<Color>("NoticeInfoColor");
+			defaultNotice.IsVisible = () => isHotkeyValid && isHotkeyDefault;
+
+			var originalNotice = panel.Get<LabelWidget>("ORIGINAL_NOTICE");
+			originalNotice.TextColor = ChromeMetrics.Get<Color>("NoticeInfoColor");
+			originalNotice.IsVisible = () => isHotkeyValid && !isHotkeyDefault;
+			var originalNoticeText = new CachedTransform<HotkeyDefinition, string>(hd => originalNotice.Text.F(hd.Default.DisplayString()));
+			originalNotice.GetText = () => originalNoticeText.Update(selectedHotkeyDefinition);
+
+			var resetButton = panel.Get<ButtonWidget>("RESET_HOTKEY_BUTTON");
+			resetButton.IsDisabled = () => isHotkeyDefault;
+			resetButton.OnClick = ResetHotkey;
+
+			var clearButton = panel.Get<ButtonWidget>("CLEAR_HOTKEY_BUTTON");
+			clearButton.IsDisabled = () => !hotkeyEntryWidget.Key.IsValid();
+			clearButton.OnClick = ClearHotkey;
+
+			hotkeyEntryWidget = panel.Get<HotkeyEntryWidget>("HOTKEY_ENTRY");
+			hotkeyEntryWidget.IsValid = () => isHotkeyValid;
+			hotkeyEntryWidget.OnLoseFocus = ValidateHotkey;
+		}
+
+		void ValidateHotkey()
+		{
+			duplicateHotkeyDefinition = modData.Hotkeys.GetFirstDuplicate(selectedHotkeyDefinition.Name, hotkeyEntryWidget.Key, selectedHotkeyDefinition);
+			isHotkeyValid = duplicateHotkeyDefinition == null;
+			isHotkeyDefault = hotkeyEntryWidget.Key == selectedHotkeyDefinition.Default || (!hotkeyEntryWidget.Key.IsValid() && !selectedHotkeyDefinition.Default.IsValid());
+
+			if (isHotkeyValid)
+				SaveHotkey();
+		}
+
+		void SaveHotkey()
+		{
+			WidgetUtils.TruncateButtonToTooltip(selectedHotkeyButton, hotkeyEntryWidget.Key.DisplayString());
+			modData.Hotkeys.Set(selectedHotkeyDefinition.Name, hotkeyEntryWidget.Key);
+			Game.Settings.Save();
+		}
+
+		void ResetHotkey()
+		{
+			hotkeyEntryWidget.Key = selectedHotkeyDefinition.Default;
+			hotkeyEntryWidget.YieldKeyboardFocus();
+		}
+
+		void ClearHotkey()
+		{
+			hotkeyEntryWidget.Key = Hotkey.Invalid;
+			hotkeyEntryWidget.YieldKeyboardFocus();
 		}
 	}
 }

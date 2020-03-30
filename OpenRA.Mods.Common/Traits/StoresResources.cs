@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2018 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -17,7 +17,7 @@ using OpenRA.Traits;
 namespace OpenRA.Mods.Common.Traits
 {
 	[Desc("Adds capacity to a player's harvested resource limit.")]
-	class StoresResourcesInfo : ITraitInfo
+	public class StoresResourcesInfo : ITraitInfo
 	{
 		[FieldLoader.Require]
 		public readonly int Capacity = 0;
@@ -31,12 +31,13 @@ namespace OpenRA.Mods.Common.Traits
 		public object Create(ActorInitializer init) { return new StoresResources(init.Self, this); }
 	}
 
-	class StoresResources : IPips, INotifyOwnerChanged, INotifyCapture, IStoreResources, ISync, INotifyKilled
+	public class StoresResources : IPips, INotifyOwnerChanged, INotifyCapture, IStoreResources, ISync, INotifyKilled
 	{
 		readonly StoresResourcesInfo info;
 		PlayerResources player;
 
-		[Sync] public int Stored { get { return player.ResourceCapacity == 0 ? 0 : (int)((long)info.Capacity * player.Resources / player.ResourceCapacity); } }
+		[Sync]
+		public int Stored { get { return player.ResourceCapacity == 0 ? 0 : (int)((long)info.Capacity * player.Resources / player.ResourceCapacity); } }
 
 		public StoresResources(Actor self, StoresResourcesInfo info)
 		{

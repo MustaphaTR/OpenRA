@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2018 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -15,6 +15,7 @@ using System.Drawing;
 using System.Linq;
 using OpenRA.Activities;
 using OpenRA.Mods.Common.Traits;
+using OpenRA.Primitives;
 using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.Activities
@@ -25,14 +26,13 @@ namespace OpenRA.Mods.Common.Activities
 		readonly RepairableInfo repairableInfo;
 		readonly Rearmable rearmable;
 		readonly bool alwaysLand;
-		readonly bool abortOnResupply;
 		Actor dest;
+		int facing = -1;
 
-		public ReturnToBase(Actor self, bool abortOnResupply, Actor dest = null, bool alwaysLand = true)
+		public ReturnToBase(Actor self, Actor dest = null, bool alwaysLand = false)
 		{
 			this.dest = dest;
 			this.alwaysLand = alwaysLand;
-			this.abortOnResupply = abortOnResupply;
 			aircraft = self.Trait<Aircraft>();
 			repairableInfo = self.Info.TraitInfoOrDefault<RepairableInfo>();
 			rearmable = self.TraitOrDefault<Rearmable>();
@@ -42,7 +42,9 @@ namespace OpenRA.Mods.Common.Activities
 		{
 			var rearmActors = self.Info.TraitInfo<RearmableInfo>().RearmActors;
 			return self.World.ActorsHavingTrait<DockManager>()
-				.Where(a => a.Owner == self.Owner && rearmActors.Contains(a.Info.Name));
+				.Where(a => !a.IsDead
+					&& a.Owner == self.Owner
+					&& rearmActors.Contains(a.Info.Name));
 		}
 
 		void CalculateLandingPath(Actor self, Dock dock, out WPos w1, out WPos w2, out WPos w3)
@@ -94,7 +96,7 @@ namespace OpenRA.Mods.Common.Activities
 			if (alwaysLand)
 				return true;
 
-			if (repairableInfo != null && repairableInfo.RepairBuildings.Contains(dest.Info.Name) && self.GetDamageState() != DamageState.Undamaged)
+			if (repairableInfo != null && repairableInfo.RepairActors.Contains(dest.Info.Name) && self.GetDamageState() != DamageState.Undamaged)
 				return true;
 
 			return rearmable != null && rearmable.Info.RearmActors.Contains(dest.Info.Name)
@@ -179,8 +181,17 @@ namespace OpenRA.Mods.Common.Activities
 			// if (!abortOnResupply)
 			//	landingProcedures.Add(NextActivity);
 			*/
-
+			
 			return ActivityUtils.SequenceActivities(landingProcedures.ToArray());
+		}
+
+		public override IEnumerable<TargetLineNode> TargetLineNodes(Actor self)
+		{
+			if (ChildActivity == null)
+				yield return new TargetLineNode(Target.FromActor(dest), Color.Green);
+			else
+				foreach (var n in ChildActivity.TargetLineNodes(self))
+					yield return n;
 		}
 
 		Activity IDockActivity.ApproachDockActivities(Actor host, Actor client, Dock dock)
