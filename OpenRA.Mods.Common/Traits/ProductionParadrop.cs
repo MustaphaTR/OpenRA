@@ -141,7 +141,7 @@ namespace OpenRA.Mods.Common.Traits
 					if (rp.Value != null)
 						rp.Value.QueueRallyOrder(self, newUnit);
 					else
-						newUnit.QueueActivity(new AttackMoveActivity(newUnit, move.MoveTo(exitLocation, targetLineColor: Color.OrangeRed)));
+						newUnit.QueueActivity(new AttackMoveActivity(newUnit, () => move.MoveTo(exitLocation, 1, targetLineColor: Color.OrangeRed)));
 				}
 
 				if (!self.IsDead)

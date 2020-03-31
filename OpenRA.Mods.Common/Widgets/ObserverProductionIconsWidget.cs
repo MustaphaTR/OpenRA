@@ -223,34 +223,17 @@ namespace OpenRA.Mods.Common.Widgets
 				return;
 			}
 
-<<<<<<< HEAD
-			TooltipIcon = null;
-		}
-
-		void InitIcons(Rectangle renderBounds)
-		{
-			var iconWidthWithSpacing = IconWidth * 2 + IconSpacing;
-			var numOfIcons = this.Bounds.Width + 8 / iconWidthWithSpacing;
-			iconRects = new Rectangle[numOfIcons];
-			icons = new ProductionIcon[numOfIcons];
-=======
 			if (TooltipIcon != null && productionIconsBounds[lastIconIdx].Contains(Viewport.LastMousePos))
 				return;
->>>>>>> refs/heads/playtest-20190825
 
 			for (var i = 0; i < productionIconsBounds.Count; i++)
 			{
-<<<<<<< HEAD
-				iconRects[i] = new Rectangle(renderBounds.X + i * iconWidthWithSpacing, renderBounds.Y + 3, IconWidth * 2, IconHeight * 2);
-				icons[i] = new ProductionIcon();
-=======
 				if (!productionIconsBounds[i].Contains(Viewport.LastMousePos))
 					continue;
 
 				lastIconIdx = i;
 				TooltipIcon = productionIcons[i];
 				return;
->>>>>>> refs/heads/playtest-20190825
 			}
 
 			TooltipIcon = null;

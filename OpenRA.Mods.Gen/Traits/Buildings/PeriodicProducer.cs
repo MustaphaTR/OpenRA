@@ -8,7 +8,6 @@
  */
 #endregion
 
-using System.Drawing;
 using System.Linq;
 using OpenRA.Mods.Common;
 using OpenRA.Mods.Common.Traits;
@@ -20,7 +19,8 @@ namespace OpenRA.Mods.AS.Traits
 	[Desc("Produces an actor without using the standard production queue.")]
 	public class PeriodicProducerInfo : PausableConditionalTraitInfo
 	{
-		[ActorReference, FieldLoader.Require]
+		[ActorReference]
+		[FieldLoader.Require]
 		[Desc("Actors to produce.")]
 		public readonly string[] Actors = null;
 
@@ -50,7 +50,8 @@ namespace OpenRA.Mods.AS.Traits
 		readonly string faction;
 		readonly PeriodicProducerInfo info;
 
-		[Sync] int ticks;
+		[Sync]
+		int ticks;
 
 		public PeriodicProducer(ActorInitializer init, PeriodicProducerInfo info)
 			: base(info)

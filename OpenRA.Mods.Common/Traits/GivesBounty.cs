@@ -91,15 +91,5 @@ namespace OpenRA.Mods.Common.Traits
 		{
 			passengerBounties.Remove(passenger);
 		}
-
-		void INotifyPassengerEntered.OnPassengerEntered(Actor self, Actor passenger)
-		{
-			passengerBounties.Add(passenger, passenger.TraitsImplementing<GivesBounty>().ToArray());
-		}
-
-		void INotifyPassengerExited.OnPassengerExited(Actor self, Actor passenger)
-		{
-			passengerBounties.Remove(passenger);
-		}
 	}
 }

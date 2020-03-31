@@ -20,7 +20,8 @@ namespace OpenRA.Mods.Yupgi_alert.Warheads
 	[Desc("This warhead can attach a DelayedWeapon to the target. Requires an appropriate type of DelayedWeaponAttachable trait to function properly.")]
 	public class AttachDelayedWeaponWarhead : WarheadAS, IRulesetLoaded<WeaponInfo>
 	{
-		[WeaponReference, FieldLoader.Require]
+		[WeaponReference]
+		[FieldLoader.Require]
 		public readonly string Weapon = "";
 
 		[FieldLoader.Require]

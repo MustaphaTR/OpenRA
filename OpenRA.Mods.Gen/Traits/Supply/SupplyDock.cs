@@ -1,6 +1,6 @@
 ﻿#region Copyright & License Information
 /*
- * Copyright 2007-2018 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -8,10 +8,10 @@
  * information, see COPYING.
  */
 #endregion
- 
+
 using System.Collections.Generic;
-using OpenRA.Traits;
 using OpenRA.Mods.Common.Traits;
+using OpenRA.Traits;
 
 namespace OpenRA.Mods.Yupgi_alert.Traits
 {
@@ -25,13 +25,13 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 		[FieldLoader.Require]
 		[Desc("Where can the supply collectors can collect the supplies from.")]
 		public readonly CVec[] CollectionOffsets = new CVec[] { };
-		
+
 		[Desc("Where can the aircraft supply collectors can collect the supplies from.")]
 		public readonly CVec[] AircraftCollectionOffsets = new CVec[] { };
 
 		[Desc("Collector faces this way before taking the supplies; if -1, faces towards the center of dock.")]
 		public readonly int Facing = -1;
-		
+
 		[Desc("Conditions to grant when dock has more than specified amount of supplies.",
 			"A dictionary of [integer]: [condition].")]
 		public readonly Dictionary<int, string> FullnessConditions = new Dictionary<int, string>();
@@ -84,7 +84,7 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 				}
 			}
 		}
-	
+
 		public bool IsTooltipVisible(Player forPlayer) { return true; }
 
 		public string TooltipText

@@ -32,7 +32,7 @@ namespace OpenRA.Mods.Common.Scripting
 		[Desc("Command the actor to get fixed at the target repairer actor.")]
 		public void RepairAt(Actor host)
 		{
-			Self.QueueActivity(new Repair(Self, host, new WDist(512)));
+			Self.QueueActivity(new Resupply(Self, host, new WDist(512)));
 		}
 	}
 }

@@ -37,7 +37,7 @@ namespace OpenRA.Mods.Yupgi_alert.Activities
 			}
 		}
 
-		public override Activity Tick(Actor self)
+		public override bool Tick(Actor self)
 		{
 			if (self.World.Map.DistanceAboveTerrain(self.CenterPosition).Length <= 0)
 			{
@@ -48,7 +48,7 @@ namespace OpenRA.Mods.Yupgi_alert.Activities
 				}
 
 				self.Dispose();
-				return null;
+				return true;
 			}
 
 			if (info.Spins)
@@ -61,7 +61,7 @@ namespace OpenRA.Mods.Yupgi_alert.Activities
 			move -= new WVec(WDist.Zero, WDist.Zero, info.Velocity);
 			aircraft.SetPosition(self, aircraft.CenterPosition + move);
 
-			return this;
+			return false;
 		}
 	}
 }

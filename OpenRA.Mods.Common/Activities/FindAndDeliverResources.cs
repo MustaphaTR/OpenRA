@@ -11,6 +11,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using OpenRA.Activities;
 using OpenRA.Mods.Common.Pathfinder;
 using OpenRA.Mods.Common.Traits;
@@ -138,7 +139,7 @@ namespace OpenRA.Mods.Common.Activities
 				var lastproc = harv.LastLinkedProc ?? harv.LinkedProc;
 				if (lastproc != null && !lastproc.Disposed)
 				{
-					var deliveryLoc = lastproc.Location + lastproc.Trait<IAcceptResources>().DeliveryOffset;
+					var deliveryLoc = lastproc.Location + lastproc.TraitsImplementing<Dock>().First().Info.DockOffset;
 					if (self.Location == deliveryLoc && harv.IsEmpty)
 					{
 						var unblockCell = deliveryLoc + harv.Info.UnblockCell;
@@ -253,10 +254,10 @@ namespace OpenRA.Mods.Common.Activities
 		CPos? GetSearchFromProcLocation(Actor self)
 		{
 			if (harv.LastLinkedProc != null && !harv.LastLinkedProc.IsDead && harv.LastLinkedProc.IsInWorld)
-				return harv.LastLinkedProc.Location + harv.LastLinkedProc.Trait<IAcceptResources>().DeliveryOffset;
+				return harv.LastLinkedProc.Location + harv.LastLinkedProc.TraitsImplementing<Dock>().First().Info.DockOffset;
 
 			if (harv.LinkedProc != null && !harv.LinkedProc.IsDead && harv.LinkedProc.IsInWorld)
-				return harv.LinkedProc.Location + harv.LinkedProc.Trait<IAcceptResources>().DeliveryOffset;
+				return harv.LinkedProc.Location + harv.LinkedProc.TraitsImplementing<Dock>().First().Info.DockOffset;
 
 			return null;
 		}

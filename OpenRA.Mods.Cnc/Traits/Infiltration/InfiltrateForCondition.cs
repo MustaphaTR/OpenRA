@@ -43,11 +43,12 @@ namespace OpenRA.Mods.Cnc.Traits
 		ConditionManager conditionManager;
 		int token = ConditionManager.InvalidConditionToken;
 
-		[Sync] public int Ticks { get; private set; }
+		[Sync]
+		public int Ticks { get; private set; }
 		bool infiltrated = false;
 
 		public InfiltrateForCondition(InfiltrateForConditionInfo info)
-		{ 
+		{
 			this.info = info;
 		}
 

@@ -42,7 +42,7 @@ namespace OpenRA.Mods.Common.Orders
 		{
 			public readonly ActorInfo ActorInfo;
 			public readonly BuildingInfo BuildingInfo;
-			public readonly BuildableInfo buildableInfo;
+			public readonly BuildableInfo BuildableInfo;
 			public readonly PlugInfo PlugInfo;
 			public readonly LineBuildInfo LineBuildInfo;
 			public readonly IPlaceBuildingPreview Preview;
@@ -58,9 +58,9 @@ namespace OpenRA.Mods.Common.Orders
 				if (previewGeneratorInfo != null)
 				{
 					string faction;
-					buildableInfo = ActorInfo.TraitInfoOrDefault<BuildableInfo>();
-					if (buildableInfo != null && buildableInfo.ForceFaction != null)
-						faction = buildableInfo.ForceFaction;
+					BuildableInfo = ActorInfo.TraitInfoOrDefault<BuildableInfo>();
+					if (BuildableInfo != null && BuildableInfo.ForceFaction != null)
+						faction = BuildableInfo.ForceFaction;
 					else
 					{
 						var mostLikelyProducer = queue.MostLikelyProducer();
@@ -266,18 +266,18 @@ namespace OpenRA.Mods.Common.Orders
 					foreach (var t in BuildingUtils.GetLineBuildCells(world, topLeft, actorInfo, buildingInfo))
 					{
 						var lineBuildable = world.IsCellBuildable(t.First, actorInfo, buildingInfo);
-						var lineCloseEnough = buildingInfo.IsCloseEnoughToBase(world, world.LocalPlayer, actorInfo, queue.Acto, t.First);
+						var lineCloseEnough = buildingInfo.IsCloseEnoughToBase(world, world.LocalPlayer, actorInfo, queue.Actor, t.First);
 						footprint.Add(t.First, MakeCellType(lineBuildable && lineCloseEnough, true));
 					}
 				}
 
 				var buildable = world.IsCellBuildable(topLeft, actorInfo, buildingInfo);
-				var closeEnough = buildingInfo.IsCloseEnoughToBase(world, world.LocalPlayer, actorInfo, queue.Acto, topLeft);
+				var closeEnough = buildingInfo.IsCloseEnoughToBase(world, world.LocalPlayer, actorInfo, queue.Actor, topLeft);
 				footprint[topLeft] = MakeCellType(buildable && closeEnough);
 			}
 			else
 			{
-				var isCloseEnough = buildingInfo.IsCloseEnoughToBase(world, world.LocalPlayer, actorInfo, queue.Acto, topLeft);
+				var isCloseEnough = buildingInfo.IsCloseEnoughToBase(world, world.LocalPlayer, actorInfo, queue.Actor, topLeft);
 				foreach (var t in buildingInfo.Tiles(topLeft))
 					footprint.Add(t, MakeCellType(isCloseEnough && world.IsCellBuildable(t, actorInfo, buildingInfo) && (resourceLayer == null || resourceLayer.GetResource(t) == null)));
 			}

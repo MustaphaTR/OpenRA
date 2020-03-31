@@ -98,7 +98,8 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 		ExitInfo[] exits;
 		RallyPoint rallyPoint;
 
-		public BaseSpawnerMaster(ActorInitializer init, BaseSpawnerMasterInfo info) : base(info)
+		public BaseSpawnerMaster(ActorInitializer init, BaseSpawnerMasterInfo info)
+			: base(info)
 		{
 			self = init.Self;
 
@@ -141,7 +142,6 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 		/// Replenish destoyed slaves or create new ones from nothing.
 		/// Follows policy defined by Info.OneShotSpawn.
 		/// </summary>
-		/// <returns>true when a new slave actor is created.</returns>
 		public void Replenish(Actor self, BaseSpawnerSlaveEntry[] slaveEntries)
 		{
 			if (Info.SpawnAllAtOnce)
@@ -165,7 +165,6 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 		/// <summary>
 		/// Replenish one slave entry.
 		/// </summary>
-		/// <returns>true when a new slave actor is created.</returns>
 		public virtual void Replenish(Actor self, BaseSpawnerSlaveEntry entry)
 		{
 			if (entry.IsValid)
@@ -246,7 +245,7 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 				var location = self.World.Map.CellContaining(centerPosition + spawnOffset);
 
 				var mv = slave.Trait<IMove>();
-				slave.QueueActivity(mv.MoveIntoWorld(slave, location, Info.SubCell > 0 ? (SubCell)Info.SubCell : SubCell.Any));
+				slave.QueueActivity(mv.MoveIntoWorld(slave));
 
 				// Move to rally point if any.
 				if (rallyPoint != null)

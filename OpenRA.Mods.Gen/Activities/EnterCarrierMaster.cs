@@ -43,7 +43,7 @@ namespace OpenRA.Mods.Yupgi_alert.Activities
 				if (self.IsDead || master.IsDead)
 					return;
 
-                spawnerMaster.PickupSlave(master, self);
+				spawnerMaster.PickupSlave(master, self);
 				w.Remove(self);
 
 				// Insta repair.
@@ -53,11 +53,11 @@ namespace OpenRA.Mods.Yupgi_alert.Activities
 					self.InflictDamage(self, new Damage(-health.MaxHP));
 				}
 
-                // Insta re-arm. (Delayed launching is handled at spawner.)
-                var ammoPools = self.TraitsImplementing<AmmoPool>().ToArray();
+				// Insta re-arm. (Delayed launching is handled at spawner.)
+				var ammoPools = self.TraitsImplementing<AmmoPool>().ToArray();
 				if (ammoPools != null)
 					foreach (var pool in ammoPools)
-						while (pool.GiveAmmo(self, 1)); // fill 'er up.
+						while (pool.GiveAmmo(self, 1)) { } // fill 'er up.
 			});
 		}
 	}

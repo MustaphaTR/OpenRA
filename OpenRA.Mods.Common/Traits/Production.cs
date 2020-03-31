@@ -87,7 +87,7 @@ namespace OpenRA.Mods.Common.Traits
 					if (rp.Value != null)
 						rp.Value.QueueRallyOrder(self, newUnit);
 					else
-						newUnit.QueueActivity(new AttackMoveActivity(newUnit, move.MoveTo(exitLocation, targetLineColor: Color.OrangeRed)));
+						newUnit.QueueActivity(new AttackMoveActivity(newUnit, () => move.MoveTo(exitLocation, 1, targetLineColor: Color.OrangeRed)));
 				}
 
 				if (!self.IsDead)
@@ -120,7 +120,6 @@ namespace OpenRA.Mods.Common.Traits
 
 			if (exit != null || self.OccupiesSpace == null || !producee.HasTraitInfo<IOccupySpaceInfo>())
 			{
-<<<<<<< HEAD
 				var exitInfo = exit == null ? null : exit.Info;
 				var buildable = producee.TraitInfoOrDefault<BuildableInfo>();
 				if (buildable != null)
@@ -128,9 +127,6 @@ namespace OpenRA.Mods.Common.Traits
 						DoProduction(self, producee, exitInfo, productionType, inits);
 				else
 					DoProduction(self, producee, exitInfo, productionType, inits);
-=======
-				DoProduction(self, producee, exit == null ? null : exit.Info, productionType, inits);
->>>>>>> refs/heads/playtest-20190825
 
 				return true;
 			}

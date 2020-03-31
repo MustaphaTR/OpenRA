@@ -190,7 +190,7 @@ namespace OpenRA.Mods.Common.Traits
 
 	public class Aircraft : ITick, ISync, IFacing, IPositionable, IMove, IIssueOrder, IResolveOrder, IOrderVoice, IDeathActorInitModifier,
 		INotifyCreated, INotifyAddedToWorld, INotifyRemovedFromWorld, INotifyActorDisposing, INotifyBecomingIdle,
-		IActorPreviewInitModifier, IIssueDeployOrder
+		IActorPreviewInitModifier, IIssueDeployOrder, IObservesVariables
 	{
 		static readonly Pair<CPos, SubCell>[] NoCells = { };
 
@@ -273,6 +273,30 @@ namespace OpenRA.Mods.Common.Traits
 				pos += offset.PositionOffset;
 
 			return pos;
+		}
+
+		public virtual IEnumerable<VariableObserver> GetVariableObservers()
+		{
+			if (Info.TurnWhileDisabledCondition != null)
+				yield return new VariableObserver(TurnWhileDisabledConditionChanged, Info.TurnWhileDisabledCondition.Variables);
+
+			if (Info.RequireForceMoveCondition != null)
+				yield return new VariableObserver(RequireForceMoveConditionChanged, Info.RequireForceMoveCondition.Variables);
+		}
+
+		void TurnWhileDisabledConditionChanged(Actor self, IReadOnlyDictionary<string, int> conditions)
+		{
+			turnWhileDisabled = Info.TurnWhileDisabledCondition.Evaluate(conditions);
+		}
+
+		void RequireForceMoveConditionChanged(Actor self, IReadOnlyDictionary<string, int> conditions)
+		{
+			requireForceMove = Info.RequireForceMoveCondition.Evaluate(conditions);
+		}
+
+		void INotifyCreated.Created(Actor self)
+		{
+			Created(self);
 		}
 
 		protected virtual void Created(Actor self)
@@ -439,11 +463,11 @@ namespace OpenRA.Mods.Common.Traits
 			if (self.World.Map.DistanceAboveTerrain(CenterPosition) != LandAltitude)
 				return null; // Not on the resupplier.
 
-			if (rearmableInfo == null && repairableInfo == null)
+			if (rearmable == null && repairable == null)
 				return null;
 
 			return self.World.ActorMap.GetActorsAt(self.Location)
-				.FirstOrDefault(a => rearmableInfo.RearmActors.Contains(a.Info.Name) || repairableInfo.RepairBuildings.Contains(a.Info.Name));
+				.FirstOrDefault(a => rearmable.Info.RearmActors.Contains(a.Info.Name) || repairable.Info.RepairActors.Contains(a.Info.Name));
 		}
 
 		public void MakeReservation(Actor target)
@@ -643,12 +667,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		void INotifyBecomingIdle.OnBecomingIdle(Actor self)
 		{
-			// HACK: Work around AttackMove relying on INotifyIdle.TickIdle to continue its path
-			// AttackMoveActivity needs to be rewritten to use child activities instead!
-			if (attackMove != null && attackMove.TargetLocation.HasValue)
-				((INotifyIdle)attackMove).TickIdle(self);
-			else
-				OnBecomingIdle(self);
+			OnBecomingIdle(self);
 		}
 
 		protected virtual void OnBecomingIdle(Actor self)
@@ -1137,18 +1156,6 @@ namespace OpenRA.Mods.Common.Traits
 		{
 			if (!inits.Contains<DynamicFacingInit>() && !inits.Contains<FacingInit>())
 				inits.Add(new DynamicFacingInit(() => Facing));
-		}
-
-		public virtual IEnumerable<VariableObserver> GetVariableObservers()
-		{
-			if (Info.TurnWhileDisabledCondition != null)
-				yield return new VariableObserver(TurnWhileDisabledConditionChanged, Info.TurnWhileDisabledCondition.Variables);
-		}
-
-		void TurnWhileDisabledConditionChanged(Actor self, IReadOnlyDictionary<string, int> conditions)
-		{
-			if (Info.TurnWhileDisabledCondition != null)
-				turnWhileDisabled = Info.TurnWhileDisabledCondition.Evaluate(conditions);
 		}
 
 		public class AircraftMoveOrderTargeter : IOrderTargeter

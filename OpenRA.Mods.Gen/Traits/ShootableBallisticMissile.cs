@@ -9,7 +9,6 @@
  */
 #endregion
 
-using System.Drawing;
 using System.Collections.Generic;
 using System.Linq;
 using OpenRA.Activities;
@@ -24,7 +23,7 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 {
 	[Desc("This unit, when ordered to move, will fly in ballistic path then will detonate itself upon reaching target.")]
 	public class ShootableBallisticMissileInfo : ITraitInfo, IMoveInfo, IPositionableInfo, IFacingInfo
-    {
+	{
 		[Desc("Projectile speed in WDist / tick, two values indicate variable velocity.")]
 		public readonly int Speed = 17;
 
@@ -56,7 +55,7 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 
 		// set by spawned logic, not this.
 		public int GetInitialFacing() { return 0; }
-    }
+	}
 
 	public class ShootableBallisticMissile : ITick, ISync, IFacing, IMove, IPositionable,
 		INotifyCreated, INotifyAddedToWorld, INotifyRemovedFromWorld, INotifyActorDisposing, IOccupySpace
@@ -70,8 +69,11 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 		ConditionManager conditionManager;
 		IEnumerable<int> speedModifiers;
 
-		[Sync] public int Facing { get; set; }
-		[Sync] public WPos CenterPosition { get; private set; }
+		[Sync]
+		public int Facing { get; set; }
+
+		[Sync]
+		public WPos CenterPosition { get; private set; }
 		public CPos TopLeft { get { return self.World.Map.CellContaining(CenterPosition); } }
 
 		bool airborne;
@@ -130,10 +132,10 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 			return speed * dir / 1024;
 		}
 
-        #region Implement IPositionable
+		#region Implement IPositionable
 
-        public bool CanExistInCell(CPos cell) { return true; }
-        public bool IsLeavingCell(CPos location, SubCell subCell = SubCell.Any) { return false; } // TODO: Handle landing
+		public bool CanExistInCell(CPos cell) { return true; }
+		public bool IsLeavingCell(CPos location, SubCell subCell = SubCell.Any) { return false; } // TODO: Handle landing
 		public bool CanEnterCell(CPos cell, Actor ignoreActor = null, bool checkTransientActors = true) { return true; }
 		public SubCell GetValidSubCell(SubCell preferred) { return SubCell.Invalid; }
 		public SubCell GetAvailableSubCell(CPos a, SubCell preferredSubCell = SubCell.Any, Actor ignoreActor = null, bool checkTransientActors = true)
@@ -171,12 +173,12 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 
 		#region Implement IMove
 
-		public Activity MoveTo(CPos cell, int nearEnough)
+		public Activity MoveTo(CPos cell, int nearEnough, Color? targetLineColor = null)
 		{
 			return new ShootableBallisticMissileFly(self, Target.FromCell(self.World, cell));
 		}
 
-		public Activity MoveTo(CPos cell, Actor ignoredActor)
+		public Activity MoveTo(CPos cell, Actor ignoreActor, Color? targetLineColor = null)
 		{
 			return new ShootableBallisticMissileFly(self, Target.FromCell(self.World, cell));
 		}
@@ -199,11 +201,11 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 			return null;
 		}
 
-		public Activity MoveIntoWorld(Actor self, CPos cell, SubCell subCell = SubCell.Any)
+		public Activity MoveIntoWorld(Actor self, int delay = 0)
 		{
 			return null;
 		}
-		
+
 		public Activity MoveToTarget(Actor self, Target target,
 			WPos? initialTargetPosition = null, Color? targetLineColor = null)
 		{
@@ -220,28 +222,28 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 			return new ShootableBallisticMissileFly(self, Target.FromPos(toPos));
 		}
 
-        public int EstimatedMoveDuration(Actor self, WPos fromPos, WPos toPos)
-        {
-            var speed = MovementSpeed;
-            return speed > 0 ? (toPos - fromPos).Length / speed : 0;
-        }
+		public int EstimatedMoveDuration(Actor self, WPos fromPos, WPos toPos)
+		{
+			var speed = MovementSpeed;
+			return speed > 0 ? (toPos - fromPos).Length / speed : 0;
+		}
 
-        public CPos NearestMoveableCell(CPos cell) { return cell; }
+		public CPos NearestMoveableCell(CPos cell) { return cell; }
 
 		// Technically, ballstic movement always moves non-vertical moves = always false.
 		public bool IsMovingVertically { get { return false; } set { } }
 
 		// And ballistic missiles can't stop moving.
-		public bool IsMoving
+		public MovementType CurrentMovementTypes
 		{
 			get
 			{
-				return true;
+				return MovementType.Horizontal;
 			}
 
 			set
 			{
-				System.Diagnostics.Debug.Assert(false, "You can't set IsMoving property for shootable ballistic missiles.");
+				System.Diagnostics.Debug.Assert(false, "You can't set CurrentMovementTypes property for shootable ballistic missiles.");
 			}
 		}
 
@@ -284,7 +286,7 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 		{
 			if (order.OrderString == "Move")
 			{
-				var cell = self.World.Map.Clamp(order.TargetLocation);
+				var cell = self.World.Map.Clamp(self.World.Map.CellContaining(order.Target.CenterPosition));
 				var target = Target.FromCell(self.World, cell);
 				self.QueueActivity(order.Queued, new ShootableBallisticMissileFly(self, target));
 			}
@@ -326,7 +328,7 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 		{
 		}
 
-		Pair<CPos, SubCell> [] IOccupySpace.OccupiedCells ()
+		Pair<CPos, SubCell>[] IOccupySpace.OccupiedCells()
 		{
 			return NoCells;
 		}

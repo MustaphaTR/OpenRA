@@ -35,7 +35,9 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 	{
 		readonly ExperienceTricklerInfo info;
 		GainsExperience gainsExperience;
-		[Sync] public int Ticks { get; private set; }
+
+		[Sync]
+		public int Ticks { get; private set; }
 
 		public ExperienceTrickler(Actor self, ExperienceTricklerInfo info)
 			: base(info)

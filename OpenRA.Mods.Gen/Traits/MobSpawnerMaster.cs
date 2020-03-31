@@ -91,7 +91,8 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 		Aircraft aircraft;
 		Health health;
 
-		public MobSpawnerMaster(ActorInitializer init, MobSpawnerMasterInfo info) : base(init, info)
+		public MobSpawnerMaster(ActorInitializer init, MobSpawnerMasterInfo info)
+			: base(init, info)
 		{
 			Info = info;
 		}
@@ -352,7 +353,7 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 
 		void AssignSlaveActivity(Actor self)
 		{
-			if (self.CurrentActivity is Move || self.CurrentActivity is HeliFly)
+			if (self.CurrentActivity is Move || self.CurrentActivity is Fly)
 				MoveSlaves(self);
 			else if (self.CurrentActivity is AttackMoveActivity)
 				AttackMoveSlaves(self);

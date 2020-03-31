@@ -26,13 +26,13 @@ namespace OpenRA.Mods.Common.Traits
 
 	public class RevealsShroudToIntelligenceOwner : RevealsShroud, INotifyAddedToWorld, ITick
 	{
-		public readonly RevealsShroudToIntelligenceOwnerInfo info;
+		public readonly RevealsShroudToIntelligenceOwnerInfo RSTIOInfo;
 		public List<Player> IntelOwners = new List<Player>();
 
 		public RevealsShroudToIntelligenceOwner(Actor self, RevealsShroudToIntelligenceOwnerInfo info)
 			: base(self, info)
 		{
-			this.info = info;
+			RSTIOInfo = info;
 		}
 
 		public override void AddCellsToPlayerShroud(Actor self, Player p, PPos[] uv)
@@ -87,7 +87,7 @@ namespace OpenRA.Mods.Common.Traits
 
 			foreach (var p in self.World.Players)
 			{
-				var hasIntel = self.World.ActorsWithTrait<GivesIntelligence>().Where(t => t.Actor.Owner == p && t.Trait.Info.Types.Overlaps(info.Types) && !t.Trait.IsTraitDisabled).Any();
+				var hasIntel = self.World.ActorsWithTrait<GivesIntelligence>().Where(t => t.Actor.Owner == p && t.Trait.Info.Types.Overlaps(RSTIOInfo.Types) && !t.Trait.IsTraitDisabled).Any();
 
 				if (hasIntel)
 				{

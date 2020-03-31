@@ -31,7 +31,7 @@ namespace OpenRA.Mods.Common.Activities
 			dc.Release();
 		}
 
-		public override Activity Tick(Actor self)
+		public override bool Tick(Actor self)
 		{
 			// No need for tick. This is a virtual activity just to fit IDockActivity.
 			throw new NotImplementedException();
@@ -55,7 +55,7 @@ namespace OpenRA.Mods.Common.Activities
 
 		Activity IDockActivity.DockActivities(Actor host, Actor client, Dock dock)
 		{
-			return repairable.AfterReachActivities(client, host, dock);
+			return new Resupply(host, client, new WDist(512));
 		}
 	}
 }

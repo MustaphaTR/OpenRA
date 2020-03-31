@@ -10,7 +10,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Drawing;
 using System.Linq;
 using OpenRA.Mods.Common.Traits;
 using OpenRA.Primitives;
@@ -52,7 +51,8 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 
 		private ConditionManager manager;
 
-		public DelayedWeaponAttachable(Actor self, DelayedWeaponAttachableInfo info) : base(info)
+		public DelayedWeaponAttachable(Actor self, DelayedWeaponAttachableInfo info)
+			: base(info)
 		{
 			this.self = self;
 			Container = new HashSet<DelayedWeaponTrigger>();

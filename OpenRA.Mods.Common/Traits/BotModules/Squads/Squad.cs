@@ -149,7 +149,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 			if (Type == SquadType.Air)
 			{
 				// decide flee or retaliate.
-				if (AirStateBase.NearToPosSafely(this, this.CenterPosition))
+				if (AirStateBase.NearToPosSafely(this, CenterPosition))
 				{
 					TargetActor = e.Attacker;
 					FuzzyStateMachine.ChangeState(this, new AirAttackState(), true);

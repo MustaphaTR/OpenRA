@@ -214,8 +214,10 @@ namespace OpenRA.Mods.Cnc.Traits
 								TurretOffsets.Add(t.Offset);
 						}
 					else
+					{
 						TurretOffsets.Clear();
 						TurretOffsets.Add(WVec.Zero);
+					}
 				}
 			}
 			else

@@ -13,8 +13,8 @@
 
 /* Works without base engine modification */
 
-using System.Drawing;
 using OpenRA.Graphics;
+using OpenRA.Primitives;
 
 namespace OpenRA.Mods.Yupgi_alert.Graphics
 {

@@ -29,7 +29,7 @@ namespace OpenRA.Mods.Common.Activities
 		protected readonly WVec DragOffset;
 		protected readonly int DragLength;
 		protected readonly WPos EndDrag;
-		protected WPos startDrag;
+		protected readonly WPos StartDrag;
 
 		protected DockingState dockingState;
 
@@ -65,7 +65,7 @@ namespace OpenRA.Mods.Common.Activities
 					{
 						if (IsDragRequired)
 							QueueChild(new Drag(self, StartDrag, EndDrag, DragLength));
-						
+
 						return false;
 					}
 					else

@@ -11,8 +11,8 @@
 
 using System.Collections.Generic;
 using OpenRA.Mods.Common.Traits;
-using OpenRA.Traits;
 using OpenRA.Primitives;
+using OpenRA.Traits;
 
 namespace OpenRA.Mods.Yupgi_alert.Traits
 {
@@ -41,8 +41,10 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 
 	public class LaysMinefield : PausableConditionalTrait<LaysMinefieldInfo>, INotifyKilled, INotifyOwnerChanged, INotifyActorDisposing, ITick, ISync
 	{
-		[Sync] int ticks;
 		List<Actor> mines = new List<Actor>();
+
+		[Sync]
+		int ticks;
 
 		public LaysMinefield(LaysMinefieldInfo info)
 			: base(info)
@@ -65,7 +67,7 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 		public void SpawnMines(Actor self)
 		{
 			foreach (var offset in Info.Locations)
-			{ 
+			{
 				var cell = self.Location + offset;
 				{
 					foreach (var actor in Info.Mines)
@@ -109,7 +111,7 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 			if (Info.RemoveOnDisable)
 				RemoveMines();
 		}
-		
+
 		void INotifyKilled.Killed(Actor self, AttackInfo e)
 		{
 			RemoveMines();

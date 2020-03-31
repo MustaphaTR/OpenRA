@@ -12,9 +12,9 @@ using OpenRA.Traits;
 
 namespace OpenRA.Mods.Yupgi_alert.Activities
 {
-    public class FindGoods : Activity
-    {
-        readonly SupplyCollector collector;
+	public class FindGoods : Activity
+	{
+		readonly SupplyCollector collector;
 		readonly SupplyCollectorInfo collectorInfo;
 		readonly IMove move;
 		readonly Mobile mobile;
@@ -23,28 +23,29 @@ namespace OpenRA.Mods.Yupgi_alert.Activities
 		{
 			collector = self.Trait<SupplyCollector>();
 			collectorInfo = self.Info.TraitInfo<SupplyCollectorInfo>();
-            move = self.Trait<IMove>();
+			move = self.Trait<IMove>();
 			mobile = self.TraitOrDefault<Mobile>();
 		}
 
-        public override Activity Tick(Actor self)
-        {
-            if (IsCanceled || NextActivity != null)
-                return NextActivity;
+		public override bool Tick(Actor self)
+		{
+			if (IsCanceling)
+				return true;
 
-            if (collector.collectionBuilding == null || !collector.collectionBuilding.IsInWorld || !collectorInfo.CollectionStances.HasStance(self.Owner.Stances[collector.collectionBuilding.Owner]) || collector.collectionBuilding.Trait<SupplyDock>().IsEmpty)
-            {
-				collector.collectionBuilding = collector.ClosestTradeBuilding(self);
-            }
+			if (collector.CollectionBuilding == null || !collector.CollectionBuilding.IsInWorld || !collectorInfo.CollectionStances.HasStance(self.Owner.Stances[collector.CollectionBuilding.Owner]) || collector.CollectionBuilding.Trait<SupplyDock>().IsEmpty)
+			{
+				collector.CollectionBuilding = collector.ClosestTradeBuilding(self);
+			}
 
-            if (collector.collectionBuilding == null || !collector.collectionBuilding.IsInWorld)
-            {
-                return ActivityUtils.SequenceActivities(new Wait(collectorInfo.SearchForCollectionBuildingDelay), this);
-            }
+			if (collector.CollectionBuilding == null || !collector.CollectionBuilding.IsInWorld)
+			{
+				QueueChild(new Wait(collectorInfo.SearchForCollectionBuildingDelay));
+				return false;
+			}
 
-			var dock = collector.collectionBuilding;
-			var center = collector.deliveryBuilding;
-			self.SetTargetLine(Target.FromActor(dock), Color.Green, false);
+			var dock = collector.CollectionBuilding;
+			var center = collector.DeliveryBuilding;
+			self.ShowTargetLines();
 
 			CPos cell;
 			var dockTrait = dock.Trait<SupplyDock>();
@@ -58,21 +59,24 @@ namespace OpenRA.Mods.Yupgi_alert.Activities
 
 			if (!offsets.Select(c => dock.Location + c).Where(c => centerTrait == null || !deliveryOffsets.Select(d => center.Location + d).Contains(c)).Contains(self.Location))
 			{
-                return ActivityUtils.SequenceActivities(move.MoveTo(cell, 2), this);
-            }
+				QueueChild(move.MoveTo(cell, 2));
+				return false;
+			}
 
 			if (self.TraitOrDefault<IFacing>() != null)
 			{
 				if (dockTrait.Info.Facing >= 0 && self.Trait<IFacing>().Facing != dockTrait.Info.Facing)
 				{
-					return ActivityUtils.SequenceActivities(new Turn(self, dockTrait.Info.Facing), this);
+					QueueChild(new Turn(self, dockTrait.Info.Facing));
+					return false;
 				}
 				else if (dockTrait.Info.Facing == -1)
 				{
 					var facing = (dock.CenterPosition - self.CenterPosition).Yaw.Facing;
 					if (self.Trait<IFacing>().Facing != facing)
 					{
-						return ActivityUtils.SequenceActivities(new Turn(self, facing), this);
+						QueueChild(new Turn(self, facing));
+						return false;
 					}
 				}
 			}
@@ -80,7 +84,8 @@ namespace OpenRA.Mods.Yupgi_alert.Activities
 			if (!collector.Waiting)
 			{
 				collector.Waiting = true;
-				return ActivityUtils.SequenceActivities(new Wait(collectorInfo.CollectionDelay), this);
+				QueueChild(new Wait(collectorInfo.CollectionDelay));
+				return false;
 			}
 
 			var wsb = self.TraitsImplementing<WithSpriteBody>().Where(t => !t.IsTraitDisabled).FirstOrDefault();
@@ -92,7 +97,8 @@ namespace OpenRA.Mods.Yupgi_alert.Activities
 					wsco.Visible = true;
 					wsco.Anim.PlayThen(wsco.Info.Sequence, () => wsco.Visible = false);
 					collector.DeliveryAnimPlayed = true;
-					return ActivityUtils.SequenceActivities(new Wait(wsco.Info.WaitDelay), this);
+					QueueChild(new Wait(wsco.Info.WaitDelay));
+					return false;
 				}
 			}
 
@@ -104,7 +110,8 @@ namespace OpenRA.Mods.Yupgi_alert.Activities
 			collector.CheckConditions(self);
 			dockTrait.CheckConditions(dock);
 
-			return new DeliverGoods(self);
-        }
-    }
+			Queue(new DeliverGoods(self));
+			return true;
+		}
+	}
 }

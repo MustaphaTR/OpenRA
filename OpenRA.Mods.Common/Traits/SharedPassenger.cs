@@ -9,32 +9,20 @@
  */
 #endregion
 
-using System;
 using System.Collections.Generic;
-using System.Drawing;
 using OpenRA.Mods.Common.Activities;
 using OpenRA.Mods.Common.Orders;
+using OpenRA.Support;
 using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.Traits
 {
 	[Desc("This actor can enter SharedCargo actors.")]
-	public class SharedPassengerInfo : ITraitInfo
+	public class SharedPassengerInfo : ITraitInfo, IObservesVariablesInfo
 	{
 		public readonly string CargoType = null;
 		public readonly PipType PipType = PipType.Green;
 		public readonly int Weight = 1;
-
-		[Desc("Use to set when to use alternate transports (Never, Force, Default, Always).",
-			"Force - use force move modifier (Alt) to enable.",
-			"Default - use force move modifier (Alt) to disable.")]
-		public readonly AlternateTransportsMode AlternateTransportsMode = AlternateTransportsMode.Force;
-
-		[Desc("Number of retries using alternate transports.")]
-		public readonly int MaxAlternateTransportAttempts = 1;
-
-		[Desc("Range from self for looking for an alternate transport (default: 5.5 cells).")]
-		public readonly WDist AlternateTransportScanRange = WDist.FromCells(11) / 2;
 
 		[GrantedConditionReference]
 		[Desc("The condition to grant to when this actor is loaded inside any transport.")]
@@ -47,15 +35,21 @@ namespace OpenRA.Mods.Common.Traits
 		[GrantedConditionReference]
 		public IEnumerable<string> LinterCargoConditions { get { return CargoConditions.Values; } }
 
-		[VoiceReference] public readonly string Voice = "Action";
+		[VoiceReference]
+		public readonly string Voice = "Action";
+
+		[ConsumedConditionReference]
+		[Desc("Boolean expression defining the condition under which the regular (non-force) enter cursor is disabled.")]
+		public readonly BooleanExpression RequireForceMoveCondition = null;
 
 		public object Create(ActorInitializer init) { return new SharedPassenger(this); }
 	}
 
-	public class SharedPassenger : INotifyCreated, IIssueOrder, IResolveOrder, IOrderVoice, INotifyRemovedFromWorld, INotifyEnteredSharedCargo, INotifyExitedSharedCargo
+	public class SharedPassenger : INotifyCreated, IIssueOrder, IResolveOrder, IOrderVoice, INotifyRemovedFromWorld, INotifyEnteredSharedCargo, INotifyExitedSharedCargo, IObservesVariables
 	{
 		public readonly SharedPassengerInfo Info;
 		public Actor Transport;
+		bool requireForceMove;
 
 		ConditionManager conditionManager;
 		int anyCargoToken = ConditionManager.InvalidConditionToken;
@@ -64,17 +58,17 @@ namespace OpenRA.Mods.Common.Traits
 		public SharedPassenger(SharedPassengerInfo info)
 		{
 			Info = info;
-			Func<Actor, bool> canTarget = IsCorrectCargoType;
-			Func<Actor, bool> useEnterCursor = CanEnter;
-			Orders = new EnterAlliedActorTargeter<SharedCargoInfo>[]
-			{
-				new EnterSharedTransportTargeter("EnterSharedTransport", 5, canTarget, useEnterCursor)
-			};
 		}
 
 		public SharedCargo ReservedCargo { get; private set; }
 
-		public IEnumerable<IOrderTargeter> Orders { get; private set; }
+		IEnumerable<IOrderTargeter> IIssueOrder.Orders
+		{
+			get
+			{
+				yield return new EnterAlliedActorTargeter<SharedCargoInfo>("EnterTransport", 5, IsCorrectCargoType, CanEnter);
+			}
+		}
 
 		void INotifyCreated.Created(Actor self)
 		{
@@ -87,6 +81,14 @@ namespace OpenRA.Mods.Common.Traits
 				return new Order(order.OrderID, self, target, queued);
 
 			return null;
+		}
+
+		bool IsCorrectCargoType(Actor target, TargetModifiers modifiers)
+		{
+			if (requireForceMove && !modifiers.HasModifier(TargetModifiers.ForceMove))
+				return false;
+
+			return IsCorrectCargoType(target);
 		}
 
 		bool IsCorrectCargoType(Actor target)
@@ -154,9 +156,9 @@ namespace OpenRA.Mods.Common.Traits
 
 			if (!order.Queued)
 				self.CancelActivity();
-		
-			self.SetTargetLine(order.Target, Color.Green);
-			self.QueueActivity(new EnterSharedTransport(self, order.Target));
+
+			self.QueueActivity(new RideSharedTransport(self, order.Target));
+			self.ShowTargetLines();
 		}
 
 		public bool Reserve(Actor self, SharedCargo cargo)
@@ -176,6 +178,17 @@ namespace OpenRA.Mods.Common.Traits
 				return;
 			ReservedCargo.UnreserveSpace(self);
 			ReservedCargo = null;
+		}
+
+		IEnumerable<VariableObserver> IObservesVariables.GetVariableObservers()
+		{
+			if (Info.RequireForceMoveCondition != null)
+				yield return new VariableObserver(RequireForceMoveConditionChanged, Info.RequireForceMoveCondition.Variables);
+		}
+
+		void RequireForceMoveConditionChanged(Actor self, IReadOnlyDictionary<string, int> conditions)
+		{
+			requireForceMove = Info.RequireForceMoveCondition.Evaluate(conditions);
 		}
 	}
 }

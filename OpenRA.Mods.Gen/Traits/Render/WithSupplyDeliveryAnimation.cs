@@ -16,8 +16,9 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 {
 	public class WithSupplyDeliveryAnimationInfo : TraitInfo<WithSupplyDeliveryAnimation>, Requires<WithSpriteBodyInfo>
 	{
+		[SequenceReference]
 		[Desc("Displayed when delivering the supplies to supply center.")]
-		[SequenceReference] public readonly string DeliverySequence = "deliver";
+		public readonly string DeliverySequence = "deliver";
 
 		[Desc("Wait this much extra on the delivery position for overlay to play.",
 		"I couldn't manage to code something automatic.")]

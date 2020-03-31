@@ -67,7 +67,7 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 				? body.LocalToWorld(info.LocalOffset.Rotate(body.QuantizeOrientation(self, self.Orientation)))
 				: info.LocalOffset;
 
-			attackBase.DoAttack(self, Target.FromPos(self.CenterPosition + localoffset), armaments);
+			attackBase.DoAttack(self, Target.FromPos(self.CenterPosition + localoffset));
 		}
 	}
 }

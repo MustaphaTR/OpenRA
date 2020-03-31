@@ -9,7 +9,7 @@
  */
 #endregion
 
-using System.Drawing;
+using OpenRA.Primitives;
 using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.Traits
@@ -36,7 +36,9 @@ namespace OpenRA.Mods.Common.Traits
 		readonly GrantConditionAfterDelayInfo info;
 		ConditionManager manager;
 		int token = ConditionManager.InvalidConditionToken;
-		[Sync] public int Ticks { get; private set; }
+
+		[Sync]
+		public int Ticks { get; private set; }
 
 		public GrantConditionAfterDelay(GrantConditionAfterDelayInfo info)
 			: base(info)

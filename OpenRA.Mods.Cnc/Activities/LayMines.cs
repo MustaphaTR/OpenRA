@@ -66,18 +66,17 @@ namespace OpenRA.Mods.Cnc.Activities
 
 			if ((minefield == null || minefield.Contains(self.Location)) && CanLayMine(self, self.Location))
 			{
-				if (rearmableInfo != null && ammoPools.Any(p => p.Info.Name == info.AmmoPoolName && !p.HasAmmo()))
+				if (rearmableInfo != null && ammoPools.Any(p => p.Info.Name == minelayer.Info.AmmoPoolName && !p.HasAmmo()))
 				{
 					// Rearm (and possibly repair) at rearm building, then back out here to refill the minefield some more
-					var rearmTarget = self.World.Actors.Where(a => self.Owner.Stances[a.Owner] == Stance.Ally
-						&& rearmableInfo.RearmActors.Contains(a.Info.Name))
+					rearmTarget = self.World.Actors.Where(a => self.Owner.Stances[a.Owner] == Stance.Ally && rearmableInfo.RearmActors.Contains(a.Info.Name))
 						.ClosestTo(self);
 
 					if (rearmTarget == null)
-						return new Wait(20);
+						return true;
 
 					rearmTarget.Trait<DockManager>().ReserveDock(rearmTarget, self, this);
-					return NextActivity;
+					return false;
 				}
 
 				LayMine(self);
@@ -151,9 +150,7 @@ namespace OpenRA.Mods.Cnc.Activities
 
 		Activity IDockActivity.DockActivities(Actor host, Actor client, Dock dock)
 		{
-			return ActivityUtils.SequenceActivities(
-				new Rearm(client, host, new WDist(512)),
-				new Repair(client, host, new WDist(512)));
+			return new Resupply(client, host, new WDist(512));
 		}
 
 		Activity IDockActivity.ActivitiesAfterDockDone(Actor host, Actor client, Dock dock)

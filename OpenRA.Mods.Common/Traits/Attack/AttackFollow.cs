@@ -169,19 +169,6 @@ namespace OpenRA.Mods.Common.Traits
 			}
 		}
 
-		public override void OnQueueAttackActivity(Actor self, Target target, bool queued, bool allowMove, bool forceAttack)
-		{
-			// If not queued we know that the attack activity will run next
-			// We can improve responsiveness for turreted actors by preempting
-			// the last order (usually a move) and set the target immediately
-			if (!queued)
-			{
-				requestedTarget = target;
-				requestedForceAttack = forceAttack;
-				requestedTargetLastTick = self.World.WorldTick;
-			}
-		}
-
 		public override void OnStopOrder(Actor self)
 		{
 			RequestedTarget = OpportunityTarget = Target.Invalid;
@@ -279,10 +266,10 @@ namespace OpenRA.Mods.Common.Traits
 				// Check that AttackFollow hasn't cancelled the target by modifying attack.Target
 				// Having both this and AttackFollow modify that field is a horrible hack.
 				if (hasTicked && attackFollows.All(a => a.RequestedTarget.Type == TargetType.Invalid))
-					return NextActivity;
+					return true;
 
 				if (attackFollows.All(a => a.IsTraitPaused))
-					return this;
+					return false;
 
 				bool targetIsHiddenActor = false;
 				foreach (var attack in attackFollows)
@@ -290,6 +277,7 @@ namespace OpenRA.Mods.Common.Traits
 					target = target.Recalculate(self.Owner, out targetIsHiddenActor);
 					attack.SetRequestedTarget(self, target, forceAttack);
 				}
+
 				hasTicked = true;
 
 				if (!targetIsHiddenActor && target.Type == TargetType.Actor)
@@ -360,7 +348,10 @@ namespace OpenRA.Mods.Common.Traits
 			protected override void OnLastRun(Actor self)
 			{
 				// Cancel the requested target, but keep firing on it while in range
-				attack.ClearRequestedTarget();
+				foreach (var attack in attackFollows)
+				{
+					attack.ClearRequestedTarget();
+				}
 			}
 
 			void IActivityNotifyStanceChanged.StanceChanged(Actor self, AutoTarget autoTarget, UnitStance oldStance, UnitStance newStance)
@@ -370,7 +361,10 @@ namespace OpenRA.Mods.Common.Traits
 					return;
 
 				if (!autoTarget.HasValidTargetPriority(self, lastVisibleOwner, lastVisibleTargetTypes))
-					attack.ClearRequestedTarget();
+					foreach (var attack in attackFollows)
+					{
+						attack.ClearRequestedTarget();
+					}
 			}
 
 			public override IEnumerable<TargetLineNode> TargetLineNodes(Actor self)

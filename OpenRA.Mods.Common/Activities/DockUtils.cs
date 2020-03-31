@@ -9,9 +9,9 @@
  */
 #endregion
 
-using System.Drawing;
 using OpenRA.Activities;
 using OpenRA.Mods.Common.Traits;
+using OpenRA.Primitives;
 using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.Activities
@@ -36,10 +36,9 @@ namespace OpenRA.Mods.Common.Activities
 				if (angle < 0)
 					angle = client.Info.TraitInfo<AircraftInfo>().InitialFacing;
 
-				return ActivityUtils.SequenceActivities(
-					new HeliFly(client, Target.FromPos(dock.CenterPosition)),
-					new Turn(client, angle),
-					new HeliLand(client, false));
+				client.QueueActivity(new Fly(client, Target.FromPos(dock.CenterPosition)));
+				client.QueueActivity(new Turn(client, angle));
+				return new Land(client);
 			}
 
 			if (goThroughHost)
@@ -59,17 +58,16 @@ namespace OpenRA.Mods.Common.Activities
 				{
 					// ResupplyAircraft handles this.
 					// Take off and move to RP.
-					return ActivityUtils.SequenceActivities(
-						new Fly(client, Target.FromCell(client.World, rp.Location)),
-						new FlyCircle(client));
+					client.QueueActivity(new Fly(client, Target.FromCell(client.World, rp.Location)));
+					return new FlyCircle(client);
 				}
 
 				// Don't make helis do attack move, it will waste ammo.
 				return client.Trait<IMove>().MoveTo(rp.Location, 2);
 			}
 
-			client.SetTargetLine(Target.FromCell(host.World, rp.Location), Color.Green);
-			return new AttackMoveActivity(client, client.Trait<IMove>().MoveTo(rp.Location, 2));
+			client.ShowTargetLines();
+			return new AttackMoveActivity(client, () => client.Trait<IMove>().MoveTo(rp.Location, 2, targetLineColor: Color.OrangeRed));
 		}
 	}
 }

@@ -49,6 +49,7 @@ namespace OpenRA.Mods.Common.Traits
 	public class RallyPoint : IIssueOrder, IResolveOrder, ISync, INotifyOwnerChanged, INotifyCreated
 	{
 		const string OrderID = "SetRallyPoint";
+		const uint ForceSet = 1;
 
 		[Sync]
 		public CPos Location;
@@ -58,8 +59,6 @@ namespace OpenRA.Mods.Common.Traits
 
 		// Keep track of rally pointed acceptor actors
 		bool dirty = true;
-
-		const uint ForceSet = 1;
 
 		Actor cachedResult = null;
 
@@ -156,7 +155,7 @@ namespace OpenRA.Mods.Common.Traits
 
 			if (rallyAcceptor == null)
 			{
-				unit.QueueActivity(new AttackMoveActivity(unit, unit.Trait<IMove>().MoveTo(Location, 1)));
+				unit.QueueActivity(new AttackMoveActivity(unit, () => unit.Trait<IMove>().MoveTo(Location, 1)));
 				return;
 			}
 
@@ -169,7 +168,7 @@ namespace OpenRA.Mods.Common.Traits
 			if (ar.IsAcceptableActor(unit, rallyAcceptor))
 				unit.QueueActivity(ar.RallyActivities(unit, rallyAcceptor));
 			else
-				unit.QueueActivity(new AttackMoveActivity(unit, unit.Trait<IMove>().MoveTo(Location, 1)));
+				unit.QueueActivity(new AttackMoveActivity(unit, () => unit.Trait<IMove>().MoveTo(Location, 1)));
 		}
 
 		public static bool IsForceSet(Order order)

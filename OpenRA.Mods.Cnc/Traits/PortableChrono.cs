@@ -20,7 +20,6 @@ using OpenRA.Traits;
 
 namespace OpenRA.Mods.Cnc.Traits
 {
-<<<<<<< HEAD
 	// OP Mod: made public for Chrono Miner
 	public class PortableChronoInfo : ITraitInfo, Requires<IMoveInfo>
 	{

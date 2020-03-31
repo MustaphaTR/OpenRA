@@ -11,19 +11,19 @@
  * information, see COPYING.
  */
 #endregion
- 
+
 using OpenRA.Mods.Common.Activities;
 using OpenRA.Mods.Common.Traits;
 using OpenRA.Traits;
 
 namespace OpenRA.Mods.Yupgi_alert.Traits
 {
-	public enum ActivityType { FlyAttack, Fly, HeliAttack, HeliFly, ReturnToBase, HeliReturnToBase }
+	public enum ActivityType { FlyAttack, Fly, ReturnToBase }
 
 	public class GrantConditionOnActivityInfo : ITraitInfo
 	{
 		[Desc("Activity to grant condition on",
-			"Currently valid activities are `Fly`, `HeliFly`, `FlyAttack`, `HeliAttack`, `ReturnToBase` and `HeliReturnToBase`.")]
+            "Currently valid activities are `Fly`, `FlyAttack` and `ReturnToBase`.")]
 		public readonly ActivityType Activity = ActivityType.FlyAttack;
 
 		[GrantedConditionReference]
@@ -77,19 +77,10 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 			if (self.CurrentActivity is Fly && info.Activity == ActivityType.Fly)
 				return true;
 
-			if (self.CurrentActivity is HeliFly && info.Activity == ActivityType.HeliFly)
-				return true;
-
 			if (self.CurrentActivity is FlyAttack && info.Activity == ActivityType.FlyAttack)
 				return true;
 
-			if (self.CurrentActivity is HeliAttack && info.Activity == ActivityType.HeliAttack)
-				return true;
-
 			if (self.CurrentActivity is ReturnToBase && info.Activity == ActivityType.ReturnToBase)
-				return true;
-
-			if (self.CurrentActivity is HeliReturnToBase && info.Activity == ActivityType.HeliReturnToBase)
 				return true;
 
 			return false;

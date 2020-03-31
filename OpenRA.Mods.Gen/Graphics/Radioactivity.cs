@@ -14,11 +14,11 @@
 #endregion
 
 using System.Collections.Generic;
-using System.Drawing;
 using System.Linq;
 using OpenRA.Effects;
 using OpenRA.Graphics;
 using OpenRA.Mods.Yupgi_alert.Traits;
+using OpenRA.Primitives;
 
 /*
 Works without base engine modification
@@ -88,7 +88,7 @@ namespace OpenRA.Mods.Yupgi_alert.Graphics
 			var pos = map.CenterOfCell(uv.ToCPos(map));
 			var screen = corners.Select(c => wr.Screen3DPxPosition(pos + c)).ToArray();
 
-			int level = this.Level.Clamp(0, layer.Info.MaxLevel); // Saturate the visualization to MaxLevel
+			int level = Level.Clamp(0, layer.Info.MaxLevel); // Saturate the visualization to MaxLevel
 			if (level == 0)
 				return; // don't visualize 0 cells. They show up before cells get removed.
 
@@ -157,8 +157,7 @@ namespace OpenRA.Mods.Yupgi_alert.Graphics
 		{
 			Ticks = updateDelay;
 
-			/// The code below may look odd but consider that each weapon may have a different max_level.
-
+			// The code below may look odd but consider that each weapon may have a different max_level.
 			var new_level = Level + level;
 			if (new_level > max_level)
 				new_level = max_level;

@@ -335,12 +335,12 @@ namespace OpenRA.Mods.Common.Traits
 				IsMovingInMyDirection(self, otherActor))
 				return false;
 
-			if (BlockerActors != null)
-				if (!BlockerActors.Contains(otherActor.Info.Name))
+			if (Info.BlockerActors != null)
+				if (!Info.BlockerActors.Contains(otherActor.Info.Name))
 					return false;
 
-			if (NonBlockerActors != null)
-				if (NonBlockerActors.Contains(otherActor.Info.Name))
+			if (Info.NonBlockerActors != null)
+				if (Info.NonBlockerActors.Contains(otherActor.Info.Name))
 					return false;
 
 			if (cellFlag.HasCellFlag(CellFlag.HasTemporaryBlocker))

@@ -12,6 +12,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using OpenRA.Mods.Common;
 using OpenRA.Mods.Common.Effects;
 using OpenRA.Mods.Common.Traits;
 using OpenRA.Traits;
@@ -43,11 +44,12 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 		public virtual object Create(ActorInitializer init) { return new SupplyCenter(init.Self, this); }
 	}
 
-	public class SupplyCenter : ITick, IResourceExchange, INotifyOwnerChanged
+	public class SupplyCenter : INotifyCreated, ITick, IResourceExchange, INotifyOwnerChanged
 	{
 		readonly Actor self;
 		public readonly SupplyCenterInfo Info;
 		PlayerResources playerResources;
+		RefineryResourceMultiplier[] resourceMultipliers;
 
 		int currentDisplayTick = 0;
 		int currentDisplayValue = 0;
@@ -59,11 +61,18 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 			playerResources = self.Owner.PlayerActor.Trait<PlayerResources>();
 			currentDisplayTick = info.TickRate;
 		}
-		
+
+		void INotifyCreated.Created(Actor self)
+		{
+			resourceMultipliers = self.TraitsImplementing<RefineryResourceMultiplier>().ToArray();
+		}
+
 		public bool CanGiveResource(int amount) { return !Info.UseStorage || Info.DiscardExcessResources || playerResources.CanGiveResources(amount); }
 
 		public void GiveResource(int amount, string collector)
 		{
+			amount = Util.ApplyPercentageModifiers(amount, resourceMultipliers.Select(m => m.GetModifier()));
+
 			if (Info.UseStorage)
 			{
 				if (Info.DiscardExcessResources)
@@ -74,13 +83,12 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 			else
 				playerResources.GiveCash(amount);
 
-			var purifiers = self.World.ActorsWithTrait<IResourcePurifier>().Where(x => x.Actor.Owner == self.Owner).Select(x => x.Trait);
-			foreach (var p in purifiers)
+			foreach (var notify in self.World.ActorsWithTrait<INotifyResourceAccepted>())
 			{
-				var cash = p.RefineAmount(amount, self.Info.Name, collector);
+				if (notify.Actor.Owner != self.Owner)
+					continue;
 
-				if (p.ShowTicksOnRefinery && Info.ShowTicks)
-					currentDisplayValue += cash;
+				notify.Trait.OnResourceAccepted(notify.Actor, self, amount);
 			}
 
 			if (Info.ShowTicks)
@@ -93,7 +101,7 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 			{
 				var temp = currentDisplayValue;
 				if (self.Owner.IsAlliedWith(self.World.RenderPlayer))
-					self.World.AddFrameEndTask(w => w.Add(new FloatingText(self.CenterPosition, self.Owner.Color.RGB, FloatingText.FormatCashTick(temp), 30)));
+					self.World.AddFrameEndTask(w => w.Add(new FloatingText(self.CenterPosition, self.Owner.Color, FloatingText.FormatCashTick(temp), 30)));
 				currentDisplayTick = Info.TickRate;
 				currentDisplayValue = 0;
 			}

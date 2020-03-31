@@ -12,38 +12,39 @@ using OpenRA.Traits;
 
 namespace OpenRA.Mods.Yupgi_alert.Activities
 {
-    class DeliverGoods : Activity
-    {
-        readonly SupplyCollector collector;
+	class DeliverGoods : Activity
+	{
+		readonly SupplyCollector collector;
 		readonly SupplyCollectorInfo collectorInfo;
-        readonly IMove move;
+		readonly IMove move;
 		readonly Mobile mobile;
 
 		public DeliverGoods(Actor self)
 		{
 			collector = self.Trait<SupplyCollector>();
 			collectorInfo = self.Info.TraitInfo<SupplyCollectorInfo>();
-            move = self.Trait<IMove>();
+			move = self.Trait<IMove>();
 			mobile = self.TraitOrDefault<Mobile>();
 		}
 
-        public override Activity Tick(Actor self)
-        {
-            if (IsCanceled || NextActivity != null)
-                return NextActivity;
+		public override bool Tick(Actor self)
+		{
+			if (IsCanceling)
+				return true;
 
-            if (collector.deliveryBuilding == null || !collector.deliveryBuilding.IsInWorld || !collectorInfo.DeliveryStances.HasStance(self.Owner.Stances[collector.deliveryBuilding.Owner]))
-            {
-				collector.deliveryBuilding = collector.ClosestDeliveryBuilding(self);
-            }
+			if (collector.DeliveryBuilding == null || !collector.DeliveryBuilding.IsInWorld || !collectorInfo.DeliveryStances.HasStance(self.Owner.Stances[collector.DeliveryBuilding.Owner]))
+			{
+				collector.DeliveryBuilding = collector.ClosestDeliveryBuilding(self);
+			}
 
-            if (collector.deliveryBuilding == null || !collector.deliveryBuilding.IsInWorld)
-            {
-                return ActivityUtils.SequenceActivities(new Wait(collectorInfo.SearchForDeliveryBuildingDelay), this);
-            }
+			if (collector.DeliveryBuilding == null || !collector.DeliveryBuilding.IsInWorld)
+			{
+				QueueChild(new Wait(collectorInfo.SearchForDeliveryBuildingDelay));
+				return false;
+			}
 
-			var center = collector.deliveryBuilding;
-			self.SetTargetLine(Target.FromActor(center), Color.Green, false);
+			var center = collector.DeliveryBuilding;
+			self.ShowTargetLines();
 
 			CPos cell;
 			var centerTrait = center.Trait<SupplyCenter>();
@@ -53,22 +54,25 @@ namespace OpenRA.Mods.Yupgi_alert.Activities
 				cell = self.ClosestCell(centerTrait.Info.DeliveryOffsets.Select(c => center.Location + c));
 
 			if (!centerTrait.Info.DeliveryOffsets.Select(c => center.Location + c).Contains(self.Location))
-            {
-                return ActivityUtils.SequenceActivities(move.MoveTo(cell, 2), this);
-            }
+			{
+				QueueChild(move.MoveTo(cell, 2));
+				return false;
+			}
 
 			if (self.Trait<IFacing>() != null)
 			{
 				if (centerTrait.Info.Facing >= 0 && self.Trait<IFacing>().Facing != centerTrait.Info.Facing)
 				{
-					return ActivityUtils.SequenceActivities(new Turn(self, centerTrait.Info.Facing), this);
+					QueueChild(new Turn(self, centerTrait.Info.Facing));
+					return false;
 				}
 				else if (centerTrait.Info.Facing == -1)
 				{
 					var facing = (center.CenterPosition - self.CenterPosition).Yaw.Facing;
 					if (self.Trait<IFacing>().Facing != facing)
 					{
-						return ActivityUtils.SequenceActivities(new Turn(self, facing), this);
+						QueueChild(new Turn(self, facing));
+						return false;
 					}
 				}
 			}
@@ -76,15 +80,19 @@ namespace OpenRA.Mods.Yupgi_alert.Activities
 			if (!collector.Waiting)
 			{
 				collector.Waiting = true;
-				return ActivityUtils.SequenceActivities(new Wait(collectorInfo.DeliveryDelay), this);
+				QueueChild(new Wait(collectorInfo.DeliveryDelay));
+				return false;
 			}
 
 			var amount = collector.Amount;
 			if (amount < 0)
-				return new FindGoods(self);
-			
+			{
+				Queue(new FindGoods(self));
+				return true;
+			}
+
 			if (centerTrait.CanGiveResource(amount))
-            {
+			{
 				var wsb = self.TraitsImplementing<WithSpriteBody>().Where(t => !t.IsTraitDisabled).FirstOrDefault();
 				var wsda = self.Info.TraitInfoOrDefault<WithSupplyDeliveryAnimationInfo>();
 				var rs = self.TraitOrDefault<RenderSprites>();
@@ -92,7 +100,8 @@ namespace OpenRA.Mods.Yupgi_alert.Activities
 				{
 					wsb.PlayCustomAnimation(self, wsda.DeliverySequence);
 					collector.DeliveryAnimPlayed = true;
-					return ActivityUtils.SequenceActivities(new Wait(wsda.WaitDelay), this);
+					QueueChild(new Wait(wsda.WaitDelay));
+					return false;
 				}
 
 				var wsdo = self.TraitOrDefault<WithSupplyDeliveryOverlay>();
@@ -103,7 +112,8 @@ namespace OpenRA.Mods.Yupgi_alert.Activities
 						wsdo.Visible = true;
 						wsdo.Anim.PlayThen(wsdo.Info.Sequence, () => wsdo.Visible = false);
 						collector.DeliveryAnimPlayed = true;
-						return ActivityUtils.SequenceActivities(new Wait(wsdo.Info.WaitDelay), this);
+						QueueChild(new Wait(wsda.WaitDelay));
+						return false;
 					}
 				}
 
@@ -115,9 +125,13 @@ namespace OpenRA.Mods.Yupgi_alert.Activities
 				collector.CheckConditions(self);
 			}
 			else
-				return ActivityUtils.SequenceActivities(new Wait(collectorInfo.DeliveryDelay), this);
+			{
+				QueueChild(new Wait(collectorInfo.DeliveryDelay));
+				return false;
+			}
 
-			return new FindGoods(self);
-        }
-    }
+			Queue(new FindGoods(self));
+			return true;
+		}
+	}
 }

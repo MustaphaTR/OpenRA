@@ -10,12 +10,12 @@
 
 using System;
 using System.Collections.Generic;
-using System.Drawing;
 using OpenRA.Activities;
 using OpenRA.Mods.Common.Activities;
 using OpenRA.Mods.Common.Orders;
 using OpenRA.Mods.Common.Traits;
 using OpenRA.Mods.Common.Traits.Render;
+using OpenRA.Primitives;
 using OpenRA.Traits;
 
 namespace OpenRA.Mods.Yupgi_alert.Traits
@@ -26,7 +26,8 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 		[Desc("The condition granted during deploying.")]
 		public readonly string DeployingCondition = null;
 
-		[GrantedConditionReference, FieldLoader.Require]
+		[FieldLoader.Require]
+		[GrantedConditionReference]
 		[Desc("The condition granted after deploying.")]
 		public readonly string DeployedCondition = null;
 
@@ -42,7 +43,8 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 		[Desc("Cursor to display when unable to (un)deploy the actor.")]
 		public readonly string DeployBlockedCursor = "deploy-blocked";
 
-		[SequenceReference, Desc("Animation to play for deploying.")]
+		[SequenceReference]
+		[Desc("Animation to play for deploying.")]
 		public readonly string DeployAnimation = null;
 
 		[Desc("Facing that the actor must face before deploying. Set to -1 to deploy regardless of facing.")]
@@ -56,7 +58,8 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 
 		public readonly bool StartsFullyCharged = false;
 
-		[VoiceReference] public readonly string Voice = "Action";
+		[VoiceReference]
+		public readonly string Voice = "Action";
 
 		public readonly bool ShowSelectionBar = true;
 		public readonly Color ChargingColor = Color.DarkRed;
@@ -77,8 +80,10 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 		int deployingToken = ConditionManager.InvalidConditionToken;
 
 		ConditionManager manager;
-		[Sync] int ticks;
 		TimedDeployState deployState;
+
+		[Sync]
+		int ticks;
 
 		public GrantTimedConditionOnDeploy(Actor self, GrantTimedConditionOnDeployInfo info)
 			: base(info)

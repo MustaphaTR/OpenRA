@@ -38,8 +38,12 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 		readonly CargoCashTricklerInfo info;
 		readonly Cargo cargo;
 		readonly Actor self;
-		[Sync] int amount;
-		[Sync] int ticks;
+
+		[Sync]
+		int amount;
+
+		[Sync]
+		int ticks;
 
 		public CargoCashTrickler(ActorInitializer init, CargoCashTricklerInfo info)
 		{
@@ -89,7 +93,7 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 				var pos = self.CenterPosition + offset;
 				self.World.AddFrameEndTask(
 					w => w.Add(
-						new FloatingText(pos, self.Owner.Color.RGB, FloatingText.FormatCashTick(amount), 30)));
+						new FloatingText(pos, self.Owner.Color, FloatingText.FormatCashTick(amount), 30)));
 			}
 		}
 	}

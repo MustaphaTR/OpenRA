@@ -11,13 +11,13 @@
 
 using System;
 using System.Collections.Generic;
-using System.Drawing;
 using System.Linq;
 using OpenRA.Graphics;
 using OpenRA.Mods.Common.Effects;
 using OpenRA.Mods.Common.Graphics;
+using OpenRA.Mods.Common.Orders;
 using OpenRA.Mods.Common.Traits;
-using OpenRA.Mods.Common.Traits.Render;
+using OpenRA.Primitives;
 using OpenRA.Traits;
 
 namespace OpenRA.Mods.Yupgi_alert.Traits
@@ -39,7 +39,8 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 		[Desc("Sound to instantly play at the targeted area.")]
 		public readonly string OnFireSound = null;
 
-		[SequenceReference, Desc("Sequence to play for granting actor when activated.",
+		[SequenceReference]
+		[Desc("Sequence to play for granting actor when activated.",
 			"This requires the actor to have the WithSpriteBody trait or one of its derivatives.")]
 		public readonly string Sequence = "active";
 
@@ -70,9 +71,9 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 
 			var ownResources = self.Owner.PlayerActor.Trait<PlayerResources>();
 
-			Game.Sound.Play(SoundType.World, info.OnFireSound, self.World.Map.CenterOfCell(order.TargetLocation));
+			Game.Sound.Play(SoundType.World, info.OnFireSound, order.Target.CenterPosition);
 
-			foreach (var a in UnitsInRange(order.TargetLocation))
+			foreach (var a in UnitsInRange(self.World.Map.CellContaining(order.Target.CenterPosition)))
 			{
 				var enemyResources = a.Owner.PlayerActor.Trait<PlayerResources>();
 
@@ -82,7 +83,7 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 				enemyResources.TakeCash(toTake);
 				ownResources.GiveCash(toGive);
 
-				self.World.AddFrameEndTask(w => w.Add(new FloatingText(a.CenterPosition, self.Owner.Color.RGB, FloatingText.FormatCashTick(toGive), 30)));
+				self.World.AddFrameEndTask(w => w.Add(new FloatingText(a.CenterPosition, self.Owner.Color, FloatingText.FormatCashTick(toGive), 30)));
 			}
 		}
 
@@ -103,7 +104,7 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 			});
 		}
 
-		class SelectHackTarget : IOrderGenerator
+		class SelectHackTarget : OrderGenerator
 		{
 			readonly CashHackPower power;
 			readonly SupportPowerManager manager;
@@ -120,21 +121,21 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 				this.power = power;
 			}
 
-			public IEnumerable<Order> Order(World world, CPos cell, int2 worldPixel, MouseInput mi)
+			protected override IEnumerable<Order> OrderInner(World world, CPos cell, int2 worldPixel, MouseInput mi)
 			{
 				world.CancelInputMode();
 				if (mi.Button == MouseButton.Left && power.UnitsInRange(cell).Any())
 					yield return new Order(order, manager.Self, Target.FromCell(world, cell), false) { SuppressVisualFeedback = true };
 			}
 
-			public void Tick(World world)
+			protected override void Tick(World world)
 			{
 				// Cancel the OG if we can't use the power
 				if (!manager.Powers.ContainsKey(order))
 					world.CancelInputMode();
 			}
 
-			public IEnumerable<IRenderable> RenderAboveShroud(WorldRenderer wr, World world)
+			protected override IEnumerable<IRenderable> RenderAboveShroud(WorldRenderer wr, World world)
 			{
 				var xy = wr.Viewport.ViewToWorld(Viewport.LastMousePos);
 				foreach (var unit in power.UnitsInRange(xy))
@@ -146,8 +147,8 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 				}
 			}
 
-			public IEnumerable<IRenderable> Render(WorldRenderer wr, World world) { yield break; }
-			public string GetCursor(World world, CPos cell, int2 worldPixel, MouseInput mi)
+			protected override IEnumerable<IRenderable> Render(WorldRenderer wr, World world) { yield break; }
+			protected override string GetCursor(World world, CPos cell, int2 worldPixel, MouseInput mi)
 			{
 				return power.UnitsInRange(cell).Any() ? "ability" : "move-blocked";
 			}

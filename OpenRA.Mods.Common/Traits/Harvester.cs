@@ -149,7 +149,7 @@ namespace OpenRA.Mods.Common.Traits
 			UpdateCondition(self);
 
 			if (Info.SearchOnCreation)
-				self.QueueActivity(new FindResources(self));
+				self.QueueActivity(new FindAndDeliverResources(self));
 		}
 
 		public void LinkProc(Actor self, Actor proc)
@@ -167,16 +167,6 @@ namespace OpenRA.Mods.Common.Traits
 		{
 			LastLinkedProc = null;
 			LinkProc(self, ClosestProc(self, ignore));
-		}
-
-		public void ContinueHarvesting(Actor self)
-		{
-			// Move out of the refinery dock and continue harvesting
-			var moveAway = UnblockRefinery(self);
-			if (moveAway != null)
-				self.QueueActivity(moveAway);
-
-			self.QueueActivity(new FindResources(self));
 		}
 
 		bool IsAcceptableProcType(Actor proc)

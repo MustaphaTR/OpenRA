@@ -11,7 +11,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Drawing;
 using System.Linq;
 using OpenRA.Activities;
 using OpenRA.Mods.Common.Traits;
@@ -27,7 +26,6 @@ namespace OpenRA.Mods.Common.Activities
 		readonly Rearmable rearmable;
 		readonly bool alwaysLand;
 		Actor dest;
-		int facing = -1;
 
 		public ReturnToBase(Actor self, Actor dest = null, bool alwaysLand = false)
 		{
@@ -111,10 +109,10 @@ namespace OpenRA.Mods.Common.Activities
 				dc.Release();
 		}
 
-		public override Activity Tick(Actor self)
+		public override bool Tick(Actor self)
 		{
-			if (IsCanceled || self.IsDead)
-				return NextActivity;
+			if (IsCanceling || self.IsDead)
+				return true;
 
 			// Check status and make dest correct.
 			// Priorities:
@@ -139,23 +137,21 @@ namespace OpenRA.Mods.Common.Activities
 				// Prevent an infinite loop in case we'd return to the activity that called ReturnToBase in the first place.
 				// Go idle instead.
 				Cancel(self);
-				return NextActivity;
+				return true;
 			}
 
 			// Player has an airfield but it is busy. Circle around.
 			if (!dest.Trait<DockManager>().HasFreeServiceDock(self))
 			{
-				Queue(ActivityUtils.SequenceActivities(
-					new Fly(self, Target.FromActor(dest), WDist.Zero, aircraft.Info.WaitDistanceFromResupplyBase, targetLineColor: Color.Green),
-					new FlyCircle(self, aircraft.Info.NumberOfTicksToVerifyAvailableAirport),
-					new ReturnToBase(self, abortOnResupply, null, alwaysLand)));
-				return NextActivity;
+				QueueChild(new Fly(self, Target.FromActor(dest), WDist.Zero, aircraft.Info.WaitDistanceFromResupplyBase, targetLineColor: Color.Green));
+				QueueChild(new FlyCircle(self, aircraft.Info.NumberOfTicksToVerifyAvailableAirport));
+				return false;
 			}
 
 			// Now we land. Unlike helis, regardless of ShouldLandAtBuilding, we should land.
 			// The difference is, do we just land or do we land and resupply.
 			dest.Trait<DockManager>().ReserveDock(dest, self, this);
-			return NextActivity;
+			return true;
 		}
 
 		public Activity LandingProcedure(Actor self, Dock dock)
@@ -181,8 +177,13 @@ namespace OpenRA.Mods.Common.Activities
 			// if (!abortOnResupply)
 			//	landingProcedures.Add(NextActivity);
 			*/
-			
-			return ActivityUtils.SequenceActivities(landingProcedures.ToArray());
+
+			foreach (var activity in landingProcedures)
+			{
+				QueueChild(activity);
+			}
+
+			return NextActivity;
 		}
 
 		public override IEnumerable<TargetLineNode> TargetLineNodes(Actor self)
@@ -202,8 +203,8 @@ namespace OpenRA.Mods.Common.Activities
 
 		Activity IDockActivity.DockActivities(Actor host, Actor client, Dock dock)
 		{
-			client.SetTargetLine(Target.FromPos(dock.CenterPosition), Color.Green, false);
-			return new ResupplyAircraft(client);
+			client.ShowTargetLines();
+			return new Resupply(client, dest, WDist.Zero, alwaysLand);
 		}
 
 		Activity IDockActivity.ActivitiesAfterDockDone(Actor host, Actor client, Dock dock)
@@ -211,18 +212,18 @@ namespace OpenRA.Mods.Common.Activities
 			// I'm ASSUMING rallypoint here.
 			var rp = host.Trait<RallyPoint>();
 
-			client.SetTargetLine(Target.FromCell(client.World, rp.Location), Color.Green, false);
+			client.ShowTargetLines();
 
 			// ResupplyAircraft handles this.
 			// Take off and move to RP.
-			return ActivityUtils.SequenceActivities(
-				new Fly(client, Target.FromCell(client.World, rp.Location)),
-				new FlyCircle(client));
+			QueueChild(new Fly(client, Target.FromCell(client.World, rp.Location)));
+			QueueChild(new FlyCircle(client));
+			return NextActivity;
 		}
 
 		Activity IDockActivity.ActivitiesOnDockFail(Actor client)
 		{
-			return new ReturnToBase(client, abortOnResupply);
+			return new ReturnToBase(client);
 		}
 	}
 }

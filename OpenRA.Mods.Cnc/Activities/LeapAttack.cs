@@ -140,7 +140,7 @@ namespace OpenRA.Mods.Cnc.Activities
 				return false;
 			}
 
-			inner = new Leap(self, target, mobile, targetMobile, info.Speed.Length, attack, edible);
+			QueueChild(new Leap(self, target, mobile, targetMobile, info.Speed.Length, attack, edible));
 
 			// Re-queue the child activities to kill the target if it didn't die in one go
 			return false;

@@ -287,10 +287,5 @@ namespace OpenRA.Mods.Common.Traits
 		{
 			get { return previews.FirstOrDefault(p => p.ID.ToLowerInvariant() == id); }
 		}
-
-		public EditorActorPreview this[string id]
-		{
-			get { return previews.FirstOrDefault(p => p.ID.ToLowerInvariant() == id); }
-		}
 	}
 }

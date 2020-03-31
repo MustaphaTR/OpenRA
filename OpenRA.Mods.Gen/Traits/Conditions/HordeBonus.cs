@@ -32,7 +32,8 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 		[Desc("Specifies the eligible GrantHordeBonus trait type.")]
 		public readonly string HordeType = "horde";
 
-		[GrantedConditionReference, FieldLoader.Require]
+		[FieldLoader.Require]
+		[GrantedConditionReference]
 		[Desc("The condition to grant.")]
 		public readonly string Condition = null;
 

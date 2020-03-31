@@ -34,11 +34,24 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Terrain types that this actor is allowed to eject actors onto. Leave empty for all terrain types.")]
 		public readonly HashSet<string> UnloadTerrainTypes = new HashSet<string>();
 
+		[VoiceReference]
 		[Desc("Voice to play when ordered to unload the passengers.")]
-		[VoiceReference] public readonly string UnloadVoice = "Action";
+		public readonly string UnloadVoice = "Action";
+
+		[Desc("Radius to search for a load/unload location if the ordered cell is blocked.")]
+		public readonly WDist LoadRange = WDist.FromCells(5);
 
 		[Desc("Which direction the passenger will face (relative to the transport) when unloading.")]
 		public readonly int PassengerFacing = 128;
+
+		[Desc("Delay (in ticks) before continuing after loading a passenger.")]
+		public readonly int AfterLoadDelay = 8;
+
+		[Desc("Delay (in ticks) before unloading the first passenger.")]
+		public readonly int BeforeUnloadDelay = 8;
+
+		[Desc("Delay (in ticks) before continuing after unloading a passenger.")]
+		public readonly int AfterUnloadDelay = 25;
 
 		[Desc("Cursor to display when able to unload the passengers.")]
 		public readonly string UnloadCursor = "deploy";
@@ -131,14 +144,13 @@ namespace OpenRA.Mods.Common.Traits
 		{
 			if (order.OrderString == "UnloadShared")
 			{
-				if (!CanUnload())
+				if (!order.Queued && !CanUnload())
 					return;
 
-				Unloading = true;
-				self.CancelActivity();
-				if (aircraft != null)
-					self.QueueActivity(new HeliLand(self, true));
-				self.QueueActivity(new UnloadSharedCargo(self, true));
+				if (!order.Queued)
+					self.CancelActivity();
+
+				self.QueueActivity(new UnloadSharedCargo(self, Info.LoadRange));
 			}
 		}
 
@@ -147,7 +159,7 @@ namespace OpenRA.Mods.Common.Traits
 			return Util.AdjacentCells(self.World, Target.FromActor(self)).Where(c => self.Location != c);
 		}
 
-		bool CanUnload()
+		public bool CanUnload()
 		{
 			if (checkTerrainType)
 			{

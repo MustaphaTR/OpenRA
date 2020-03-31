@@ -44,10 +44,11 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 		// TODO: add more activities for aircrafts
 		public bool IsMoving { get { return self.CurrentActivity is Move; } }
 
-		public MobSpawnerSlave(ActorInitializer init, MobSpawnerSlaveInfo info) : base(init, info)
+		public MobSpawnerSlave(ActorInitializer init, MobSpawnerSlaveInfo info)
+			: base(init, info)
 		{
 			// this.info = info;
-			this.self = init.Self;
+			self = init.Self;
 		}
 
 		public override void Created(Actor self)
@@ -104,7 +105,7 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 					// Must cancel before queueing as the master's attack move order is
 					// issued multiple times on multiple points along the attack move path.
 					self.CancelActivity();
-					self.QueueActivity(new AttackMoveActivity(self, mv.MoveTo(location, 1)));
+					self.QueueActivity(new AttackMoveActivity(self, () => mv.MoveTo(location, 1)));
 					break;
 				}
 		}

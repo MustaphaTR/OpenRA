@@ -54,7 +54,7 @@ namespace OpenRA.Mods.Common.Activities
 			pos.SetPosition(self, centerPosition + new WVec(0, 0, groundLevel - centerPosition.Z));
 
 			foreach (var np in self.TraitsImplementing<INotifyParachute>())
-				np.OnLanded(self);
+				np.OnLanded(self, null);
 		}
 	}
 }

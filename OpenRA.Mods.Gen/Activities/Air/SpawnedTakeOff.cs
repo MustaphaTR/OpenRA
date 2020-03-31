@@ -35,7 +35,7 @@ namespace OpenRA.Mods.Yupgi_alert.Activities
 			move = self.Trait<IMove>();
 		}
 
-		public override Activity Tick(Actor self)
+		public override bool Tick(Actor self)
 		{
 			aircraft.UnReserve();
 
@@ -44,9 +44,12 @@ namespace OpenRA.Mods.Yupgi_alert.Activities
 			var destination = self.World.Map.CellContaining(host.CenterPosition);
 
 			if (NextActivity == null)
-				return new AttackMoveActivity(self, move.MoveTo(destination, 1));
+			{
+				Queue(new AttackMoveActivity(self, () => move.MoveTo(destination, 1)));
+				return true;
+			}
 			else
-				return NextActivity;
+				return true;
 		}
 	}
 }

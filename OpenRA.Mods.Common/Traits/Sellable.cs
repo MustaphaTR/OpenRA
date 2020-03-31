@@ -29,7 +29,6 @@ namespace OpenRA.Mods.Common.Traits
 
 		[Desc("Whether to show the cash tick indicators rising from the actor.")]
 		public readonly bool ShowTicks = true;
-		public readonly bool ShowTooltipText = true;
 
 		[Desc("Whether to show the refund text on the tooltip, when actor is hovered over with sell order.")]
 		public readonly bool ShowTooltipText = true;
@@ -87,8 +86,8 @@ namespace OpenRA.Mods.Common.Traits
 			var makeAnimations = self.TraitsImplementing<WithMakeAnimation>();
 			if (!makeAnimations.Any())
 			{
-			// Let the sell happen even without WithMakeAnimation trait.
-			self.QueueActivity(false, new Sell(self, info.ShowTicks));
+				// Let the sell happen even without WithMakeAnimation trait.
+				self.QueueActivity(false, new Sell(self, info.ShowTicks));
 				return;
 			}
 

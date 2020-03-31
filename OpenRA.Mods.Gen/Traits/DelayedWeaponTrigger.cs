@@ -33,12 +33,12 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 
 		public DelayedWeaponTrigger(AttachDelayedWeaponWarhead warhead, Actor attachedBy)
 		{
-			this.TriggerTime = warhead.TriggerTime;
-			this.RemainingTime = TriggerTime;
-			this.DeathTypes = warhead.DeathTypes;
-			this.weaponInfo = warhead.WeaponInfo;
-			this.AttachedBy = attachedBy;
-			this.IsValid = true;
+			TriggerTime = warhead.TriggerTime;
+			RemainingTime = TriggerTime;
+			DeathTypes = warhead.DeathTypes;
+			weaponInfo = warhead.WeaponInfo;
+			AttachedBy = attachedBy;
+			IsValid = true;
 		}
 
 		public void Tick(Actor attachable)

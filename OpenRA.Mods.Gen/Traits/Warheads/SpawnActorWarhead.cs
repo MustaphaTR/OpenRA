@@ -70,7 +70,7 @@ namespace OpenRA.Mods.Yupgi_alert.Warheads
 						{
 							w.Add(unit);
 							if (Paradrop)
-								unit.QueueActivity(new Parachute(unit, pos));
+								unit.QueueActivity(new Parachute(unit));
 							else
 								unit.QueueActivity(new FallDown(unit, pos, FallRate));
 						});

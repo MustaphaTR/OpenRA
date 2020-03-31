@@ -238,7 +238,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		public bool CanLoad(Actor self, Actor a)
 		{
-			return (reserves.Contains(a) || HasSpace(GetWeight(a))) && !IsTraitPaused;;
+			return (reserves.Contains(a) || HasSpace(GetWeight(a))) && !IsTraitPaused;
 		}
 
 		internal bool ReserveSpace(Actor a)

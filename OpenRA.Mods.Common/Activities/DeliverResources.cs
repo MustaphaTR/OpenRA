@@ -45,14 +45,6 @@ namespace OpenRA.Mods.Common.Activities
 			if (IsCanceling)
 				return true;
 
-			// If a refinery is explicitly specified, link it.
-			if (harv.OwnerLinkedProc != null && harv.OwnerLinkedProc.IsInWorld)
-			{
-				harv.LinkProc(self, harv.OwnerLinkedProc);
-				harv.OwnerLinkedProc = null;
-			}
-			//// at this point, harv.OwnerLinkedProc == null.
-
 			// Find the nearest best refinery if not explicitly ordered to a specific refinery:
 			if (harv.LinkedProc == null || !harv.LinkedProc.IsInWorld)
 				harv.ChooseNewProc(self, null);
@@ -70,7 +62,7 @@ namespace OpenRA.Mods.Common.Activities
 			if (self.Location != dm.DockLocations.FirstOrDefault())
 			{
 				foreach (var n in notifyHarvesterActions)
-					n.MovingToRefinery(self, proc, this);
+					n.MovingToRefinery(self, proc);
 			}
 
 			if (!self.Info.TraitInfo<HarvesterInfo>().OreTeleporter)
@@ -79,7 +71,7 @@ namespace OpenRA.Mods.Common.Activities
 			{
 				var dock = proc.TraitsImplementing<Dock>().First();
 				Queue(DockActivities(proc, self, dock));
-				Queue(new CallFunc(() => harv.ContinueHarvesting(self)));
+				Queue(new FindAndDeliverResources(self));
 			}
 
 			return true;
@@ -101,7 +93,7 @@ namespace OpenRA.Mods.Common.Activities
 			var notify = client.TraitsImplementing<INotifyHarvesterAction>();
 			foreach (var n in notify)
 			{
-				var extra = n.MovingToRefinery(client, host, moveToDock);
+				var extra = n.MovingToRefinery(client, host);
 
 				// We have multiple MovingToRefinery actions to do!
 				// Don't know which one to perform.
@@ -128,13 +120,13 @@ namespace OpenRA.Mods.Common.Activities
 		Activity IDockActivity.ActivitiesAfterDockDone(Actor host, Actor client, Dock dock)
 		{
 			// Move to south of the ref to avoid cluttering up with other dock locations
-			return new CallFunc(() => harv.ContinueHarvesting(client));
+			return new FindAndDeliverResources(client);
 		}
 
 		Activity IDockActivity.ActivitiesOnDockFail(Actor client)
 		{
 			// go to somewhere else
-			return new CallFunc(() => harv.ContinueHarvesting(client));
+			return new FindAndDeliverResources(client);
 		}
 
 		public override IEnumerable<TargetLineNode> TargetLineNodes(Actor self)

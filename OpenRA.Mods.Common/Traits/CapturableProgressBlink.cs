@@ -72,8 +72,8 @@ namespace OpenRA.Mods.Common.Traits
 					if (captor.Owner == captorOwner)
 						self.World.Add(new FlashTarget(captor, captorOwner));
 
-				if (info.Sound != null)
-					Game.Sound.Play(SoundType.World, info.Sound, self.CenterPosition);
+				if (Info.Sound != null)
+					Game.Sound.Play(SoundType.World, Info.Sound, self.CenterPosition);
 			}
 
 			if (++tick >= Info.Interval)

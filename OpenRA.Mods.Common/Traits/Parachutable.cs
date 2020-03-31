@@ -88,7 +88,7 @@ namespace OpenRA.Mods.Common.Traits
 				parachutingToken = conditionManager.GrantCondition(self, info.ParachutingCondition);
 		}
 
-		void INotifyParachute.OnLanded(Actor self)
+		void INotifyParachute.OnLanded(Actor self, Actor ignore)
 		{
 			IsInAir = false;
 

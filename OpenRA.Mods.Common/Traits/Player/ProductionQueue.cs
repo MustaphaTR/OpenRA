@@ -215,7 +215,7 @@ namespace OpenRA.Mods.Common.Traits
 		public void CacheProducibles(Actor playerActor)
 		{
 			foreach (var a in self.World.Map.Rules.Actors.Values)
-			{ 
+			{
 				if (!self.Info.TraitInfos<ConditionPrerequisiteInfo>().Where(t => t.Queue.Contains(Info.Type) && t.Actor == a.Name).Any())
 					Producible.Remove(a);
 			}
@@ -539,24 +539,8 @@ namespace OpenRA.Mods.Common.Traits
 
 			var modifiers = unit.TraitInfos<IProductionCostModifierInfo>()
 				.Select(t => t.GetProductionCostModifier(techTree, Info.Type));
->>>>>>> refs/heads/playtest-20190825
 
 			return Util.ApplyPercentageModifiers(valued.Cost, modifiers);
-		}
-
-		public virtual int GetProductionCost(ActorInfo unit)
-		{
-			var valued = unit.TraitInfoOrDefault<ValuedInfo>();
-
-			if (valued == null)
-				return 0;
-
-			var techTree = self.Owner.PlayerActor.Trait<TechTree>();
-			var customCosts = unit.TraitInfos<CustomProductionCostInfo>().Where(t =>
-				(!t.Queue.Any() || t.Queue.Contains(Info.Type)) &&
-				(!t.Prerequisites.Any() || techTree.HasPrerequisites(t.Prerequisites)));
-
-			return customCosts.Any() ? customCosts.First().Cost : valued.Cost;
 		}
 
 		protected void PauseProduction(string itemName, bool paused)

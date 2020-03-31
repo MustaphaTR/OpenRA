@@ -453,54 +453,6 @@ namespace OpenRA.Mods.Common.Traits
 
 		public IEnumerable<IOrderTargeter> Orders { get { yield return new MoveOrderTargeter(self, this); } }
 
-		// Note: Returns a valid order even if the unit can't move to the target
-		public Order IssueOrder(Actor self, IOrderTargeter order, Target target, bool queued)
-		{
-			if (order is MoveOrderTargeter)
-				return new Order("Move", self, target, queued);
-
-			return null;
-		}
-
-		public void ResolveOrder(Actor self, Order order)
-		{
-			if (order.OrderString == "Move")
-			{
-				var loc = self.World.Map.Clamp(order.TargetLocation);
-
-				if (!Info.LocomotorInfo.MoveIntoShroud && !self.Owner.Shroud.IsExplored(loc))
-					return;
-
-				if (!order.Queued)
-					self.CancelActivity();
-
-				self.SetTargetLine(Target.FromCell(self.World, loc), Color.Green);
-				self.QueueActivity(order.Queued, new Move(self, loc, WDist.FromCells(8), null, true));
-			}
-
-			if (order.OrderString == "Stop")
-				self.CancelActivity();
-
-			if (order.OrderString == "Scatter")
-				Nudge(self, self, true);
-		}
-
-		public string VoicePhraseForOrder(Actor self, Order order)
-		{
-			if (!Info.LocomotorInfo.MoveIntoShroud && !self.Owner.Shroud.IsExplored(order.TargetLocation))
-				return null;
-
-			switch (order.OrderString)
-			{
-				case "Move":
-				case "Scatter":
-				case "Stop":
-					return Info.Voice;
-				default:
-					return null;
-			}
-		}
-
 		public bool IsLeavingCell(CPos location, SubCell subCell = SubCell.Any)
 		{
 			return ToCell != location && fromCell == location
@@ -883,6 +835,9 @@ namespace OpenRA.Mods.Common.Traits
 			foreach (var observer in base.GetVariableObservers())
 				yield return observer;
 
+			if (Info.TurnWhileDisabledCondition != null)
+				yield return new VariableObserver(TurnWhileDisabledConditionChanged, Info.TurnWhileDisabledCondition.Variables);
+
 			if (Info.RequireForceMoveCondition != null)
 				yield return new VariableObserver(RequireForceMoveConditionChanged, Info.RequireForceMoveCondition.Variables);
 		}
@@ -890,6 +845,11 @@ namespace OpenRA.Mods.Common.Traits
 		void RequireForceMoveConditionChanged(Actor self, IReadOnlyDictionary<string, int> conditions)
 		{
 			requireForceMove = Info.RequireForceMoveCondition.Evaluate(conditions);
+		}
+
+		void TurnWhileDisabledConditionChanged(Actor self, IReadOnlyDictionary<string, int> conditions)
+		{
+			TurnWhileDisabled = Info.TurnWhileDisabledCondition.Evaluate(conditions);
 		}
 
 		IEnumerable<IOrderTargeter> IIssueOrder.Orders
@@ -958,21 +918,6 @@ namespace OpenRA.Mods.Common.Traits
 				default:
 					return null;
 			}
-		}
-
-		public override IEnumerable<VariableObserver> GetVariableObservers()
-		{
-			if (Info.TurnWhileDisabledCondition != null)
-				yield return new VariableObserver(TurnWhileDisabledConditionChanged, Info.TurnWhileDisabledCondition.Variables);
-
-			foreach (var v in base.GetVariableObservers())
-				yield return v;
-		}
-
-		void TurnWhileDisabledConditionChanged(Actor self, IReadOnlyDictionary<string, int> conditions)
-		{
-			if (Info.TurnWhileDisabledCondition != null)
-				TurnWhileDisabled = Info.TurnWhileDisabledCondition.Evaluate(conditions);
 		}
 
 		class MoveOrderTargeter : IOrderTargeter

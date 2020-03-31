@@ -10,13 +10,13 @@
 
 using System;
 using System.Collections.Generic;
-using System.Drawing;
 using System.Linq;
 using OpenRA.Effects;
 using OpenRA.Graphics;
 using OpenRA.Mods.Common.Activities;
 using OpenRA.Mods.Common.Effects;
 using OpenRA.Mods.Common.Graphics;
+using OpenRA.Mods.Common.Orders;
 using OpenRA.Mods.Common.Traits;
 using OpenRA.Primitives;
 using OpenRA.Traits;
@@ -30,7 +30,7 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 		public readonly string ArmamentName = "superweapon";
 
 		[Desc("If `AllowMultiple` is `false`, how many instances of this support power are allowed to fire.",
-		      "Actual instances might end up less due to range/etc.")]
+			  "Actual instances might end up less due to range/etc.")]
 		public readonly int MaximumFiringInstances = 1;
 
 		[Desc("Amount of time before detonation to remove the beacon.")]
@@ -107,7 +107,7 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 			else
 				Game.Sound.Play(SoundType.World, FireArmamentPowerInfo.IncomingSound);
 
-			target = Target.FromCell(self.World, order.TargetLocation);
+			target = Target.FromCell(self.World, self.World.Map.CellContaining(order.Target.CenterPosition));
 
 			enabled = true;
 
@@ -117,8 +117,8 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 			if (FireArmamentPowerInfo.CameraActor != null)
 			{
 				var camera = self.World.CreateActor(false, FireArmamentPowerInfo.CameraActor, new TypeDictionary
-				                                    {
-					new LocationInit(order.TargetLocation),
+				{
+					new LocationInit(self.World.Map.CellContaining(order.Target.CenterPosition)),
 					new OwnerInit(self.Owner),
 				});
 
@@ -133,25 +133,26 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 			{
 				var beacon = new Beacon(
 					order.Player,
-					self.World.Map.CenterOfCell(order.TargetLocation),
+					self.World.Map.CenterOfCell(self.World.Map.CellContaining(order.Target.CenterPosition)),
 					FireArmamentPowerInfo.BeaconPaletteIsPlayerPalette,
 					FireArmamentPowerInfo.BeaconPalette,
 					FireArmamentPowerInfo.BeaconImage,
 					FireArmamentPowerInfo.BeaconPosters.First(bp => bp.Key == GetLevel()).Value,
 					FireArmamentPowerInfo.BeaconPosterPalette,
+					FireArmamentPowerInfo.BeaconSequence,
 					FireArmamentPowerInfo.ArrowSequence,
 					FireArmamentPowerInfo.CircleSequence,
 					FireArmamentPowerInfo.ClockSequence,
 					() => FractionComplete);
 
 				Action removeBeacon = () => self.World.AddFrameEndTask(w =>
-				                                                       {
+				{
 					w.Remove(beacon);
 					beacon = null;
 				});
 
 				self.World.AddFrameEndTask(w =>
-				                           {
+										   {
 					w.Add(beacon);
 					w.Add(new DelayedAction(estimatedTicks - FireArmamentPowerInfo.BeaconRemoveAdvance, removeBeacon));
 				});
@@ -177,9 +178,8 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 					return;
 			}
 
-			foreach (var a in activeArmaments) {
+			foreach (var a in activeArmaments)
 				a.CheckFire(self, facing, target);
-			}
 
 			ticks++;
 
@@ -195,7 +195,7 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 		float FractionComplete { get { return ticks * 1f / estimatedTicks; } }
 	}
 
-	public class SelectArmamentPowerTarget : IOrderGenerator
+	public class SelectArmamentPowerTarget : OrderGenerator
 	{
 		readonly Actor self;
 		readonly SupportPowerManager manager;
@@ -241,7 +241,7 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 			yield break;
 		}
 
-		IEnumerable<Order> IOrderGenerator.Order(World world, CPos xy, int2 worldpixel, MouseInput mi)
+		protected override IEnumerable<Order> OrderInner(World world, CPos xy, int2 worldpixel, MouseInput mi)
 		{
 			var pos = world.Map.CenterOfCell(xy);
 
@@ -261,16 +261,16 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 			}
 		}
 
-		public virtual void Tick(World world)
+		protected override void Tick(World world)
 		{
 			// Cancel the OG if we can't use the power
 			if (!manager.Powers.ContainsKey(order))
 				world.CancelInputMode();
 		}
 
-		public IEnumerable<IRenderable> Render(WorldRenderer wr, World world) { yield break; }
+		protected override IEnumerable<IRenderable> Render(WorldRenderer wr, World world) { yield break; }
 
-		public IEnumerable<IRenderable> RenderAboveShroud(WorldRenderer wr, World world)
+		protected override IEnumerable<IRenderable> RenderAboveShroud(WorldRenderer wr, World world)
 		{
 			foreach (var i in instances)
 			{
@@ -295,7 +295,7 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 			yield break;
 		}
 
-		string IOrderGenerator.GetCursor(World world, CPos cell, int2 worldPixel, MouseInput mi)
+		protected override string GetCursor(World world, CPos cell, int2 worldPixel, MouseInput mi)
 		{
 			return IsValidTargetCell(cell) ? power.FireArmamentPowerInfo.Cursor : "generic-blocked";
 		}
