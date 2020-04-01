@@ -112,7 +112,7 @@ namespace OpenRA.Mods.Yupgi_alert.Activities
 						wsdo.Visible = true;
 						wsdo.Anim.PlayThen(wsdo.Info.Sequence, () => wsdo.Visible = false);
 						collector.DeliveryAnimPlayed = true;
-						QueueChild(new Wait(wsda.WaitDelay));
+						QueueChild(new Wait(wsdo.Info.WaitDelay));
 						return false;
 					}
 				}
