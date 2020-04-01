@@ -240,12 +240,13 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 					return;
 
 				var spawnOffset = exit == null ? WVec.Zero : exit.SpawnOffset;
-				slave.Trait<IPositionable>().SetVisualPosition(slave, centerPosition + spawnOffset);
+				var pos = slave.Trait<IPositionable>();
+				pos.SetPosition(self, centerPosition + spawnOffset);
+				pos.SetVisualPosition(slave, centerPosition + spawnOffset);
 
 				var location = self.World.Map.CellContaining(centerPosition + spawnOffset);
 
 				var mv = slave.Trait<IMove>();
-				slave.QueueActivity(mv.MoveIntoWorld(slave));
 
 				// Move to rally point if any.
 				if (rallyPoint != null)
