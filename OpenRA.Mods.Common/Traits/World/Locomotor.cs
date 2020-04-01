@@ -84,10 +84,10 @@ namespace OpenRA.Mods.Common.Traits
 		public readonly bool MoveIntoShroud = true;
 
 		[Desc("If this value is not null, these actors can't block me.")]
-		public readonly string[] NonBlockerActors = null;
+		public readonly string[] NonBlockerActors = { };
 
 		[Desc("If this value is not null, only these actors can block me.")]
-		public readonly string[] BlockerActors = null;
+		public readonly string[] BlockerActors = { };
 
 		[Desc("e.g. crate, wall, infantry")]
 		public readonly BitSet<CrushClass> Crushes = default(BitSet<CrushClass>);
@@ -284,8 +284,8 @@ namespace OpenRA.Mods.Common.Traits
 			if (cellCache.Crushable.Overlaps(actor.Owner.PlayerMask))
 				return true;
 
-			// Cache doesn't account for ignored actors or temporary blockers - these must use the slow path.
-			if (ignoreActor == null && !cellFlag.HasCellFlag(CellFlag.HasTemporaryBlocker))
+			// Cache doesn't account for ignored actors, blocker actors or temporary blockers - these must use the slow path.
+			if (ignoreActor == null && !cellFlag.HasCellFlag(CellFlag.HasTemporaryBlocker) && !Info.BlockerActors.Any() && !Info.NonBlockerActors.Any())
 			{
 				// We are blocked by another actor in the cell.
 				if (cellCache.Blocking.Overlaps(actor.Owner.PlayerMask))
@@ -335,12 +335,10 @@ namespace OpenRA.Mods.Common.Traits
 				IsMovingInMyDirection(self, otherActor))
 				return false;
 
-			if (Info.BlockerActors != null)
-				if (!Info.BlockerActors.Contains(otherActor.Info.Name))
+			if (Info.BlockerActors.Any() && !Info.BlockerActors.Contains(otherActor.Info.Name))
 					return false;
 
-			if (Info.NonBlockerActors != null)
-				if (Info.NonBlockerActors.Contains(otherActor.Info.Name))
+			if (Info.NonBlockerActors.Any() && Info.NonBlockerActors.Contains(otherActor.Info.Name))
 					return false;
 
 			if (cellFlag.HasCellFlag(CellFlag.HasTemporaryBlocker))
