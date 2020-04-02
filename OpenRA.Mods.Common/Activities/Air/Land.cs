@@ -33,11 +33,18 @@ namespace OpenRA.Mods.Common.Activities
 		CPos landingCell;
 		bool landingInitiated;
 		bool finishedApproach;
+		bool landingOnAirfield;
 
 		public Land(Actor self, int facing = -1, Color? targetLineColor = null)
 			: this(self, Target.Invalid, new WDist(-1), WVec.Zero, facing, null)
 		{
 			assignTargetOnFirstRun = true;
+		}
+
+		public Land(Actor self, Target target, bool landingOnAirfield, int facing = -1, Color? targetLineColor = null)
+			: this(self, target, new WDist(-1), WVec.Zero, facing, targetLineColor: targetLineColor)
+		{
+			this.landingOnAirfield = landingOnAirfield;
 		}
 
 		public Land(Actor self, Target target, int facing = -1, Color? targetLineColor = null)
@@ -114,7 +121,7 @@ namespace OpenRA.Mods.Common.Activities
 				return true;
 
 			// Look for free landing cell
-			if (target.Type == TargetType.Terrain && !landingInitiated)
+			if (target.Type == TargetType.Terrain && !landingInitiated && !landingOnAirfield)
 			{
 				var newLocation = aircraft.FindLandingLocation(landingCell, landRange);
 
@@ -148,7 +155,7 @@ namespace OpenRA.Mods.Common.Activities
 				}
 			}
 
-			if (!aircraft.Info.VTOL && !finishedApproach)
+			if (!aircraft.Info.VTOL && !finishedApproach && !landingOnAirfield)
 			{
 				// Calculate approach trajectory
 				var altitude = aircraft.Info.CruiseAltitude.Length;
@@ -212,7 +219,7 @@ namespace OpenRA.Mods.Common.Activities
 			{
 				var blockingCells = clearCells.Append(landingCell);
 
-				if (!aircraft.CanLand(blockingCells, target.Actor))
+				if (!aircraft.CanLand(blockingCells, target.Actor) && !landingOnAirfield)
 				{
 					// Maintain holding pattern.
 					if (aircraft.Info.CanHover)

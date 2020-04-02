@@ -170,7 +170,7 @@ namespace OpenRA.Mods.Common.Activities
 			landingProcedures.Add(new Fly(self, Target.FromPos(w3), WDist.Zero, new WDist(turnRadius / 2)));
 
 			if (ShouldLandAtBuilding(self, dest))
-				landingProcedures.Add(new Land(self, Target.FromPos(dock.CenterPosition)));
+				landingProcedures.Add(new Land(self, Target.FromPos(dock.CenterPosition), true));
 
 			/*
 			// Causes bugs. Aircrafts should forget what they were doing.
