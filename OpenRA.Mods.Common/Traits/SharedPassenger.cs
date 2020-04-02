@@ -66,7 +66,7 @@ namespace OpenRA.Mods.Common.Traits
 		{
 			get
 			{
-				yield return new EnterAlliedActorTargeter<SharedCargoInfo>("EnterTransport", 5, IsCorrectCargoType, CanEnter);
+				yield return new EnterAlliedActorTargeter<SharedCargoInfo>("EnterSharedTransport", 5, IsCorrectCargoType, CanEnter);
 			}
 		}
 
