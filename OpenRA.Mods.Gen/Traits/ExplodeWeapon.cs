@@ -31,6 +31,12 @@ namespace OpenRA.Mods.AS.Traits
 
 		public readonly bool ResetReloadWhenEnabled = true;
 
+		[Desc("Which limited ammo pool (if present) should this weapon be assigned to.")]
+		public readonly string AmmoPoolName = "";
+
+		[Desc("Time (in frames) until the weapon fires for first time.")]
+		public readonly int InitialDelay = 0;
+
 		public WeaponInfo WeaponInfo { get; private set; }
 
 		[Desc("Explosion offset relative to actor's position.")]
@@ -50,7 +56,7 @@ namespace OpenRA.Mods.AS.Traits
 		}
 	}
 
-	class ExplodeWeapon : ConditionalTrait<ExplodeWeaponInfo>, ITick
+	class ExplodeWeapon : ConditionalTrait<ExplodeWeaponInfo>, ITick, INotifyCreated
 	{
 		readonly ExplodeWeaponInfo info;
 		readonly WeaponInfo weapon;
@@ -58,6 +64,7 @@ namespace OpenRA.Mods.AS.Traits
 
 		int fireDelay;
 		int burst;
+		AmmoPool ammoPool;
 
 		public ExplodeWeapon(Actor self, ExplodeWeaponInfo info)
 			: base(info)
@@ -66,7 +73,15 @@ namespace OpenRA.Mods.AS.Traits
 
 			weapon = info.WeaponInfo;
 			burst = weapon.Burst;
+			fireDelay = info.InitialDelay;
 			body = self.TraitOrDefault<BodyOrientation>();
+		}
+
+		protected override void Created(Actor self)
+		{
+			ammoPool = self.TraitsImplementing<AmmoPool>().FirstOrDefault(la => la.Info.Name == Info.AmmoPoolName);
+
+			base.Created(self);
 		}
 
 		void ITick.Tick(Actor self)
@@ -76,6 +91,9 @@ namespace OpenRA.Mods.AS.Traits
 
 			if (--fireDelay < 0)
 			{
+				if (ammoPool != null && !ammoPool.TakeAmmo(self, 1))
+					return;
+
 				var localoffset = body != null
 					? body.LocalToWorld(info.LocalOffset.Rotate(body.QuantizeOrientation(self, self.Orientation)))
 					: info.LocalOffset;
@@ -106,7 +124,7 @@ namespace OpenRA.Mods.AS.Traits
 			if (info.ResetReloadWhenEnabled)
 			{
 				burst = weapon.Burst;
-				fireDelay = 0;
+				fireDelay = info.InitialDelay;
 			}
 		}
 	}
