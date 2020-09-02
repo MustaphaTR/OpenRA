@@ -25,6 +25,9 @@ The plugin is maintained by
  * CastleJing
    > Bugfixes on mind controller logic
 
+ * Dnqbob
+   > Make a trait for AI to cut down/restore power.
+
  * darkscrypt (Devon/wolfbyte)
    > Major rewrite on garrison code
    > Smart deploy logic
