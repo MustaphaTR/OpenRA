@@ -27,6 +27,10 @@ namespace OpenRA.Mods.Common.Traits
 		readonly PowerManager playerPower;
 		readonly PlayerResources playerResources;
 
+		// need this to avoid crash in WaterCheck when there is no NavalProductionTypes
+		// TODO: remove it when related crash is fixed.
+		readonly bool shouldWaterCheck;
+
 		int waitTicks;
 		Actor[] playerBuildings;
 		int failCount;
@@ -51,6 +55,7 @@ namespace OpenRA.Mods.Common.Traits
 			failRetryTicks = baseBuilder.Info.StructureProductionResumeDelay;
 			minimumExcessPower = baseBuilder.Info.MinimumExcessPower;
 			this.resourceTypeIndices = resourceTypeIndices;
+			shouldWaterCheck = baseBuilder.Info.NavalProductionTypes.Any();
 		}
 
 		public void Tick(IBot bot)
@@ -70,7 +75,7 @@ namespace OpenRA.Mods.Common.Traits
 					failRetryTicks = baseBuilder.Info.StructureProductionResumeDelay;
 			}
 
-			if (waterState == WaterCheck.NotChecked)
+			if (shouldWaterCheck && waterState == WaterCheck.NotChecked)
 			{
 				if (AIUtils.IsAreaAvailable<BaseProvider>(world, player, world.Map, baseBuilder.Info.MaxBaseRadius, baseBuilder.Info.WaterTerrainTypes))
 					waterState = WaterCheck.EnoughWater;
@@ -81,7 +86,7 @@ namespace OpenRA.Mods.Common.Traits
 				}
 			}
 
-			if (waterState == WaterCheck.NotEnoughWater && --checkForBasesTicks <= 0)
+			if (shouldWaterCheck && waterState == WaterCheck.NotEnoughWater && --checkForBasesTicks <= 0)
 			{
 				var currentBases = world.ActorsHavingTrait<BaseProvider>().Count(a => a.Owner == player);
 
