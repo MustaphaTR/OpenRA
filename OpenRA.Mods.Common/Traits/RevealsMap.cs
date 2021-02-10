@@ -36,13 +36,7 @@ namespace OpenRA.Mods.Common.Traits
 				: Shroud.SourceType.PassiveVisibility;
 		}
 
-		protected void AddCellsToPlayerShroud(Actor self, Player p, PPos[] uv)
-		{
-			if (!Info.ValidRelationships.HasRelationship(self.Owner.RelationshipWith(p)))
-				return;
-
-			p.Shroud.AddSource(this, type, uv);
-		}
+		protected void AddCellsToPlayerShroud(Actor self, Player p, PPos[] uv) { p.Shroud.AddSource(this, type, uv); }
 
 		protected void RemoveCellsFromPlayerShroud(Actor self, Player p) { p.Shroud.RemoveSource(this); }
 
@@ -53,23 +47,30 @@ namespace OpenRA.Mods.Common.Traits
 
 		void INotifyActorDisposing.Disposing(Actor self)
 		{
-			RemoveCellsFromPlayerShroud(self, self.Owner);
+			foreach (var player in self.World.Players)
+				if (Info.ValidRelationships.HasRelationship(self.Owner.RelationshipWith(player)))
+					RemoveCellsFromPlayerShroud(self, player);
 		}
 
 		void INotifyKilled.Killed(Actor self, AttackInfo e)
 		{
-			RemoveCellsFromPlayerShroud(self, self.Owner);
+			foreach (var player in self.World.Players)
+				if (Info.ValidRelationships.HasRelationship(self.Owner.RelationshipWith(player)))
+					RemoveCellsFromPlayerShroud(self, player);
 		}
 
 		protected override void TraitEnabled(Actor self)
 		{
 			foreach (var player in self.World.Players)
-				AddCellsToPlayerShroud(self, player, ProjectedCells(self));
+				if (Info.ValidRelationships.HasRelationship(self.Owner.RelationshipWith(player)))
+					AddCellsToPlayerShroud(self, player, ProjectedCells(self));
 		}
 
 		protected override void TraitDisabled(Actor self)
 		{
-			RemoveCellsFromPlayerShroud(self, self.Owner);
+			foreach (var player in self.World.Players)
+				if (Info.ValidRelationships.HasRelationship(self.Owner.RelationshipWith(player)))
+					RemoveCellsFromPlayerShroud(self, player);
 		}
 	}
 }
