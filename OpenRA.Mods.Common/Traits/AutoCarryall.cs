@@ -114,7 +114,7 @@ namespace OpenRA.Mods.Common.Traits
 			protected override void OnFirstRun(Actor self)
 			{
 				if (!cargo.IsDead)
-					QueueChild(new PickupUnit(self, cargo, 0));
+					QueueChild(new PickupUnit(self, cargo, 0, self.Trait<Carryall>().Info.TargetLineColor));
 			}
 
 			public override bool Tick(Actor self)
@@ -122,10 +122,11 @@ namespace OpenRA.Mods.Common.Traits
 				if (cargo.IsDead)
 					return true;
 
-				var dropRange = self.Trait<Carryall>().Info.DropRange;
+				var carryall = self.Trait<Carryall>().Info;
+				var dropRange = carryall.DropRange;
 				var destination = cargo.Trait<Carryable>().Destination;
 				if (destination != null)
-					self.QueueActivity(true, new DeliverUnit(self, Target.FromCell(self.World, destination.Value), dropRange));
+					self.QueueActivity(true, new DeliverUnit(self, Target.FromCell(self.World, destination.Value), dropRange, carryall.TargetLineColor));
 
 				return true;
 			}
