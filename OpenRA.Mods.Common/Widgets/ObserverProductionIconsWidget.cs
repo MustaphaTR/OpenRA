@@ -142,10 +142,9 @@ namespace OpenRA.Mods.Common.Widgets
 				productionIcons.Add(new ProductionIcon { Actor = actor, ProductionQueue = current.Queue });
 				productionIconsBounds.Add(new Rectangle((int)iconTopLeft.X, (int)iconTopLeft.Y, (int)iconSize.X, (int)iconSize.Y));
 
-				var pio = queue.Actor.Owner.PlayerActor.TraitsImplementing<IProductionIconOverlay>()
-					.FirstOrDefault(p => p.IsOverlayActive(actor));
+				var pios = queue.Actor.Owner.PlayerActor.TraitsImplementing<IProductionIconOverlay>();
 
-				if (pio != null)
+				foreach (var pio in pios.Where(p => p.IsOverlayActive(actor)))
 					WidgetUtils.DrawSHPCentered(pio.Sprite, centerPosition + 0.5f * iconSize + pio.Offset(iconSize),
 						worldRenderer.Palette(pio.Palette), 0.5f);
 
