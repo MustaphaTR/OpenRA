@@ -50,11 +50,6 @@ namespace OpenRA.Mods.Common.Activities
 
 		public override Activity Tick(Actor self)
 		{
-			// Refuse to take off if it would land immediately again.
-			// Special case: Don't kill other deploy hotkey activities.
-			if (aircraft.ForceLanding)
-				return NextActivity;
-
 			if (IsCanceled)
 				return NextActivity;
 
