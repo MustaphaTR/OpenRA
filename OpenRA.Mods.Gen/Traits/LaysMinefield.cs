@@ -65,26 +65,25 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 		public void SpawnMines(Actor self)
 		{
 			foreach (var offset in Info.Locations)
-			{ 
+			{
 				var cell = self.Location + offset;
+				var actor = Info.Mines.Random(self.World.SharedRandom).ToLowerInvariant();
+				var ai = self.World.Map.Rules.Actors[actor];
+				var ip = ai.TraitInfoOrDefault<IPositionableInfo>();
+
+				if (ip != null && !ip.CanEnterCell(self.World, null, cell))
+					continue;
+
+				self.World.AddFrameEndTask(w =>
 				{
-					foreach (var actor in Info.Mines)
+					var mine = w.CreateActor(actor.ToLowerInvariant(), new TypeDictionary
 					{
-						var ai = self.World.Map.Rules.Actors[actor];
-						var ip = ai.TraitInfo<IPositionableInfo>();
+						new OwnerInit(self.Owner),
+						new LocationInit(cell)
+					});
 
-						if (!ip.CanEnterCell(self.World, null, cell))
-							continue;
-
-						var mine = self.World.CreateActor(actor.ToLowerInvariant(), new TypeDictionary
-						{
-							new OwnerInit(self.Owner),
-							new LocationInit(cell)
-						});
-
-						mines.Add(mine);
-					}
-				}
+					mines.Add(mine);
+				});
 			}
 		}
 
