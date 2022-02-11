@@ -134,7 +134,7 @@ namespace OpenRA.Mods.Common.Traits
 	public interface INotifyProduction { void UnitProduced(Actor self, Actor other, CPos exit); }
 	public interface INotifyOtherProduction { void UnitProducedByOther(Actor self, Actor producer, Actor produced, string productionType, TypeDictionary init); }
 	public interface INotifyDelivery { void IncomingDelivery(Actor self); void Delivered(Actor self); }
-	public interface INotifyDocking { void Docked(Actor self, Actor client); void Undocked(Actor self, Actor client); }
+	public interface INotifyDocking { void Docked(Actor self, Actor harvester); void Undocked(Actor self, Actor harvester); }
 	public interface INotifyParachute { void OnParachute(Actor self); void OnLanded(Actor self, Actor ignore); }
 
 	[RequireExplicitImplementation]
@@ -199,8 +199,8 @@ namespace OpenRA.Mods.Common.Traits
 
 	public interface INotifyHarvesterAction
 	{
-		Activity MovingToResources(Actor self, CPos targetCell, Activity next);
-		Activity MovingToRefinery(Actor self, Actor refineryActor, Activity next);
+		void MovingToResources(Actor self, CPos targetCell, Activity next);
+		void MovingToRefinery(Actor self, Actor refineryActor, Activity next);
 		void MovementCancelled(Actor self);
 		void Harvested(Actor self, ResourceType resource);
 		void Docked();
@@ -268,6 +268,16 @@ namespace OpenRA.Mods.Common.Traits
 	{
 		void Deploy(Actor self, HashSet<string> deployTypes);
 		void Undeploy(Actor self, HashSet<string> deployTypes);
+	}
+
+	public interface IAcceptResourcesInfo : ITraitInfo { }
+	public interface IAcceptResources
+	{
+		void OnDock(Actor harv, DeliverResources dockOrder);
+		void GiveResource(int amount);
+		bool CanGiveResource(int amount);
+		CVec DeliveryOffset { get; }
+		bool AllowDocking { get; }
 	}
 
 	public interface IResourceExchange

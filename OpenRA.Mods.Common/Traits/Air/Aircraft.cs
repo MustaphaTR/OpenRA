@@ -130,6 +130,7 @@ namespace OpenRA.Mods.Common.Traits
 		}
 
 		public IReadOnlyDictionary<CPos, SubCell> OccupiedCells(ActorInfo info, CPos location, SubCell subCell = SubCell.Any) { return new ReadOnlyDictionary<CPos, SubCell>(); }
+
 		bool IOccupySpaceInfo.SharesCell { get { return false; } }
 
 		// Used to determine if an aircraft can spawn landed
@@ -196,7 +197,6 @@ namespace OpenRA.Mods.Common.Traits
 		bool isMoving;
 		bool isMovingVertically;
 		WPos cachedPosition;
-		DockClient dockClient;
 
 		public Aircraft(ActorInitializer init, AircraftInfo info)
 		{
@@ -214,13 +214,17 @@ namespace OpenRA.Mods.Common.Traits
 
 		void INotifyCreated.Created(Actor self)
 		{
+			Created(self);
+		}
+
+		protected virtual void Created(Actor self)
+		{
 			repairableInfo = self.Info.TraitInfoOrDefault<RepairableInfo>();
 			rearmableInfo = self.Info.TraitInfoOrDefault<RearmableInfo>();
 			attackMove = self.TraitOrDefault<AttackMove>();
 			conditionManager = self.TraitOrDefault<ConditionManager>();
 			speedModifiers = self.TraitsImplementing<ISpeedModifier>().ToArray().Select(sm => sm.GetSpeedModifier());
 			cachedPosition = self.CenterPosition;
-			dockClient = self.TraitOrDefault<DockClient>(); // Not all are dockers.
 		}
 
 		void INotifyAddedToWorld.AddedToWorld(Actor self)
@@ -237,6 +241,20 @@ namespace OpenRA.Mods.Common.Traits
 				OnAirborneAltitudeReached();
 			if (altitude == Info.CruiseAltitude)
 				OnCruisingAltitudeReached();
+		}
+
+		void INotifyRemovedFromWorld.RemovedFromWorld(Actor self)
+		{
+			RemovedFromWorld(self);
+		}
+
+		protected virtual void RemovedFromWorld(Actor self)
+		{
+			UnReserve();
+			self.World.RemoveFromMaps(self, this);
+
+			OnCruisingAltitudeLeft();
+			OnAirborneAltitudeLeft();
 		}
 
 		void ITick.Tick(Actor self)
@@ -256,7 +274,7 @@ namespace OpenRA.Mods.Common.Traits
 
 				ReserveSpawnBuilding();
 
-				var host = GetSupplierActorBelow();
+				var host = GetActorBelow();
 				if (host == null)
 					return;
 
@@ -287,9 +305,9 @@ namespace OpenRA.Mods.Common.Traits
 			if (!Info.Repulsable)
 				return WVec.Zero;
 
-			if (dockClient != null && dockClient.CurrentDock != null)
+			if (reservation != null)
 			{
-				var distanceFromReservationActor = (dockClient.CurrentDock.CenterPosition - self.CenterPosition).HorizontalLength;
+				var distanceFromReservationActor = (ReservedActor.CenterPosition - self.CenterPosition).HorizontalLength;
 				if (distanceFromReservationActor < Info.WaitDistanceFromResupplyBase.Length)
 					return WVec.Zero;
 			}
@@ -357,24 +375,21 @@ namespace OpenRA.Mods.Common.Traits
 			return (d * 1024 * 8) / (int)distSq;
 		}
 
-		public Actor GetSupplierActorBelow()
+		public Actor GetActorBelow()
 		{
 			// Map.DistanceAboveTerrain(WPos pos) is called directly because Aircraft is an IPositionable trait
 			// and all calls occur in Tick methods.
 			if (self.World.Map.DistanceAboveTerrain(CenterPosition).Length != 0)
 				return null; // not on the ground.
 
-			if (rearmableInfo == null && repairableInfo == null)
-				return null;
-
 			return self.World.ActorMap.GetActorsAt(self.Location)
-				.FirstOrDefault(a => rearmableInfo.RearmActors.Contains(a.Info.Name) || repairableInfo.RepairBuildings.Contains(a.Info.Name));
+				.FirstOrDefault(a => a.Info.HasTraitInfo<ReservableInfo>());
 		}
 
 		protected void ReserveSpawnBuilding()
 		{
 			// HACK: Not spawning in the air, so try to associate with our spawner.
-			var spawner = GetSupplierActorBelow();
+			var spawner = GetActorBelow();
 			if (spawner == null)
 				return;
 
@@ -730,28 +745,57 @@ namespace OpenRA.Mods.Common.Traits
 			}
 			else if (order.OrderString == "Enter" || order.OrderString == "Repair")
 			{
-				// Let go first.
-				dockClient.Release();
-
-				if (Info.CanHover)
-				{
-					if (!order.Queued)
-						self.CancelActivity();
-
-					self.QueueActivity(new HeliReturnToBase(self, Info.AbortOnResupply));
-
+				// Enter and Repair orders are only valid for own/allied actors,
+				// which are guaranteed to never be frozen.
+				if (order.Target.Type != TargetType.Actor)
 					return;
-				}
 
-				// for planes, do...
 				if (!order.Queued)
-					self.CancelActivity();
-				self.QueueActivity(new ReturnToBase(self, Info.AbortOnResupply));
+					UnReserve();
+
+				var targetActor = order.Target.Actor;
+				if (Reservable.IsReserved(targetActor))
+				{
+					if (!Info.CanHover)
+						self.QueueActivity(new ReturnToBase(self, Info.AbortOnResupply));
+					else
+						self.QueueActivity(new HeliReturnToBase(self, Info.AbortOnResupply));
+				}
+				else
+				{
+					self.SetTargetLine(Target.FromActor(targetActor), Color.Green);
+
+					if (!Info.CanHover && !Info.VTOL)
+					{
+						self.QueueActivity(order.Queued, ActivityUtils.SequenceActivities(
+							new ReturnToBase(self, Info.AbortOnResupply, targetActor),
+							new ResupplyAircraft(self)));
+					}
+					else
+					{
+						MakeReservation(targetActor);
+
+						Action enter = () =>
+						{
+							var exit = targetActor.FirstExitOrDefault(null);
+							var offset = exit != null ? exit.Info.SpawnOffset : WVec.Zero;
+
+							self.QueueActivity(new HeliFly(self, Target.FromPos(targetActor.CenterPosition + offset)));
+							if (Info.TurnToDock)
+								self.QueueActivity(new Turn(self, Info.InitialFacing));
+
+							self.QueueActivity(new HeliLand(self, false));
+							self.QueueActivity(new ResupplyAircraft(self));
+						};
+
+						self.QueueActivity(order.Queued, new CallFunc(enter));
+					}
+				}
 			}
 			else if (order.OrderString == "Stop")
 			{
 				self.CancelActivity();
-				if (GetSupplierActorBelow() != null)
+				if (GetActorBelow() != null)
 				{
 					self.QueueActivity(new ResupplyAircraft(self));
 					return;
@@ -771,15 +815,6 @@ namespace OpenRA.Mods.Common.Traits
 		}
 
 		#endregion
-
-		void INotifyRemovedFromWorld.RemovedFromWorld(Actor self)
-		{
-			UnReserve();
-			self.World.RemoveFromMaps(self, this);
-
-			OnCruisingAltitudeLeft();
-			OnAirborneAltitudeLeft();
-		}
 
 		#region Airborne conditions
 

@@ -18,7 +18,7 @@ using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.Activities
 {
-	public class HeliReturnToBase : Activity, IDockActivity
+	public class HeliReturnToBase : Activity
 	{
 		readonly Aircraft aircraft;
 		readonly RepairableInfo repairableInfo;
@@ -37,93 +37,90 @@ namespace OpenRA.Mods.Common.Activities
 			this.dest = dest;
 		}
 
-		IEnumerable<Actor> GetHelipads(Actor self)
+		public Actor ChooseResupplier(Actor self, bool unreservedOnly)
 		{
-			return self.World.ActorsHavingTrait<DockManager>().Where(a =>
-				a.Owner == self.Owner &&
-				rearmable.Info.RearmActors.Contains(a.Info.Name) &&
-				!a.IsDead &&
-				!a.Disposed);
-		}
+			if (rearmable == null)
+				return null;
 
-		IEnumerable<Actor> GetDockableHelipads(Actor self)
-		{
-			foreach (var pad in GetHelipads(self))
-			{
-				var dockManager = pad.Trait<DockManager>();
-				if (dockManager.HasFreeServiceDock(self))
-					yield return pad;
-			}
-		}
-
-		protected override void OnFirstRun(Actor self)
-		{
-			// Release first, before trying to dock.
-			var dc = self.TraitOrDefault<DockClient>();
-			if (dc != null)
-				dc.Release();
+			return self.World.Actors.Where(a => a.Owner == self.Owner
+				&& rearmable.Info.RearmActors.Contains(a.Info.Name)
+				&& (!unreservedOnly || !Reservable.IsReserved(a)))
+				.ClosestTo(self);
 		}
 
 		public override Activity Tick(Actor self)
 		{
+			// Refuse to take off if it would land immediately again.
+			// Special case: Don't kill other deploy hotkey activities.
+			if (aircraft.ForceLanding)
+				return NextActivity;
+
 			if (IsCanceled)
 				return NextActivity;
 
-			// Check status and make dest correct.
-			// Priorities:
-			// 1. closest reloadable hpad
-			// 2. closest hpad
-			// 3. null
-			if (dest == null || dest.IsDead || dest.Disposed)
+			if (dest == null || dest.IsDead || Reservable.IsReserved(dest))
+				dest = ChooseResupplier(self, true);
+
+			var initialFacing = aircraft.Info.InitialFacing;
+
+			if (dest == null || dest.IsDead)
 			{
-				var hpads = GetHelipads(self);
-				var dockableHpads = hpads.Where(p => p.Trait<DockManager>().HasFreeServiceDock(self));
-				if (dockableHpads.Any())
-					dest = dockableHpads.ClosestTo(self);
-				else if (hpads.Any())
-					dest = hpads.ClosestTo(self);
+				var nearestResupplier = ChooseResupplier(self, false);
+
+				// If a heli was told to return and there's no (available) RearmBuilding, going to the probable next queued activity (HeliAttack)
+				// would be pointless (due to lack of ammo), and possibly even lead to an infinite loop due to HeliAttack.cs:L79.
+				if (nearestResupplier == null && aircraft.Info.LandWhenIdle)
+				{
+					if (aircraft.Info.TurnToLand)
+						return ActivityUtils.SequenceActivities(new Turn(self, initialFacing), new HeliLand(self, true));
+
+					return new HeliLand(self, true);
+				}
+				else if (nearestResupplier == null && !aircraft.Info.LandWhenIdle)
+					return null;
 				else
-					dest = null;
+				{
+					var distanceFromResupplier = (nearestResupplier.CenterPosition - self.CenterPosition).HorizontalLength;
+					var distanceLength = aircraft.Info.WaitDistanceFromResupplyBase.Length;
+
+					// If no pad is available, move near one and wait
+					if (distanceFromResupplier > distanceLength)
+					{
+						var randomPosition = WVec.FromPDF(self.World.SharedRandom, 2) * distanceLength / 1024;
+
+						var target = Target.FromPos(nearestResupplier.CenterPosition + randomPosition);
+
+						return ActivityUtils.SequenceActivities(
+							new HeliFly(self, target, WDist.Zero, aircraft.Info.WaitDistanceFromResupplyBase, targetLineColor: Color.Green),
+							this);
+					}
+
+					return this;
+				}
 			}
 
-			// Owner doesn't have any feasible helipad, in this case.
-			if (dest == null)
+			var landingProcedures = new List<Activity>();
+			var exit = dest.FirstExitOrDefault(null);
+			var offset = exit != null ? exit.Info.SpawnOffset : WVec.Zero;
+
+			landingProcedures.Add(new HeliFly(self, Target.FromPos(dest.CenterPosition + offset)));
+
+			if (ShouldLandAtBuilding(self, dest))
 			{
-				// Probably the owner is having a crisis lol.
-				// Doesn't matter if the unit just sits there or do what ever NextActivity is.
-				return ActivityUtils.SequenceActivities(
-					new Turn(self, aircraft.Info.InitialFacing),
-					new HeliLand(self, true),
-					NextActivity);
+				aircraft.MakeReservation(dest);
+
+				if (aircraft.Info.TurnToDock)
+					landingProcedures.Add(new Turn(self, initialFacing));
+
+				landingProcedures.Add(new HeliLand(self, false));
+				landingProcedures.Add(new ResupplyAircraft(self));
+				if (!abortOnResupply)
+					landingProcedures.Add(NextActivity);
 			}
+			else
+				landingProcedures.Add(NextActivity);
 
-			// Do we need to land and reload/repair?
-			if (!ShouldLandAtBuilding(self, dest))
-			{
-				// Move near the hpad then do next activity.
-				return ActivityUtils.SequenceActivities(
-					new HeliFly(self, Target.FromActor(dest), new WDist(2048), new WDist(4096)),
-					NextActivity);
-			}
-
-			// Can't dock :(
-			if (!dest.Trait<DockManager>().HasFreeServiceDock(self))
-			{
-				// If no pad is available, move near one and wait
-				var distanceLength = (dest.CenterPosition - self.CenterPosition).HorizontalLength;
-				var randomPosition = WVec.FromPDF(self.World.SharedRandom, 2) * distanceLength / 1024;
-				var target = Target.FromPos(dest.CenterPosition + randomPosition);
-
-				Queue(ActivityUtils.SequenceActivities(
-					new HeliFly(self, target, WDist.Zero, aircraft.Info.WaitDistanceFromResupplyBase),
-					new Wait(29),
-					new HeliReturnToBase(self, abortOnResupply, null, alwaysLand)));
-				return NextActivity;
-			}
-
-			// Do the docking.
-			dest.Trait<DockManager>().ReserveDock(dest, self, this);
-			return NextActivity;
+			return ActivityUtils.SequenceActivities(landingProcedures.ToArray());
 		}
 
 		bool ShouldLandAtBuilding(Actor self, Actor dest)
@@ -136,41 +133,6 @@ namespace OpenRA.Mods.Common.Activities
 
 			return rearmable != null && rearmable.Info.RearmActors.Contains(dest.Info.Name)
 					&& rearmable.RearmableAmmoPools.Any(p => !p.FullAmmo());
-		}
-
-		Activity IDockActivity.ApproachDockActivities(Actor host, Actor client, Dock dock)
-		{
-			return ActivityUtils.SequenceActivities(
-				new HeliFly(client, Target.FromPos(dock.CenterPosition)),
-				new Turn(client, dock.Info.DockAngle),
-				new HeliLand(client, false));
-		}
-
-		Activity IDockActivity.DockActivities(Actor host, Actor client, Dock dock)
-		{
-			client.SetTargetLine(Target.FromCell(client.World, dock.Location), Color.Green, false);
-
-			// Let's reload. The assumption here is that for aircrafts, there are no waiting docks.
-			return new ResupplyAircraft(client);
-		}
-
-		Activity IDockActivity.ActivitiesAfterDockDone(Actor host, Actor client, Dock dock)
-		{
-			var rp = host.Trait<RallyPoint>();
-
-			// Take off and move to RP.
-			// I know this depreciates AbortOnResupply activity but it is a bug to reuse NextActivity!
-			client.SetTargetLine(Target.FromCell(client.World, rp.Location), Color.Green, false);
-			return client.Trait<IMove>().MoveTo(rp.Location, 2);
-
-			// Old code:
-			// client.Info.TraitInfo<AircraftInfo>().AbortOnResupply ? null : client.CurrentActivity.NextActivity));
-		}
-
-		Activity IDockActivity.ActivitiesOnDockFail(Actor client)
-		{
-			// Stay idle
-			return null;
 		}
 	}
 }

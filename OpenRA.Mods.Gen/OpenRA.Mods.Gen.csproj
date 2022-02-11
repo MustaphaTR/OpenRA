@@ -92,7 +92,6 @@
     <Compile Include="Traits\AcceptCashRallyPointAcceptor.cs" />
     <Compile Include="Traits\MissileSpawnerMaster.cs" />
     <Compile Include="Traits\MissileSpawnerSlave.cs" />
-    <Compile Include="Traits\ChronoHarvester.cs" />
     <Compile Include="Traits\Buildings\PeriodicProducer.cs" />
     <Compile Include="Traits\Conditions\GrantConditionAfterDelay.cs" />
     <Compile Include="Traits\Conditions\GrantConditionOnActivity.cs" />

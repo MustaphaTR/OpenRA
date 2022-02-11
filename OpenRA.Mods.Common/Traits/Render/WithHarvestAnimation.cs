@@ -87,8 +87,8 @@ namespace OpenRA.Mods.Common.Traits.Render
 			IsModifying = false;
 		}
 
-		Activity INotifyHarvesterAction.MovingToResources(Actor self, CPos targetCell, Activity next) { return null; }
-		Activity INotifyHarvesterAction.MovingToRefinery(Actor self, Actor refineryActor, Activity next) { return null; }
+		void INotifyHarvesterAction.MovingToResources(Actor self, CPos targetCell, Activity next) { }
+		void INotifyHarvesterAction.MovingToRefinery(Actor self, Actor refineryActor, Activity next) { }
 		void INotifyHarvesterAction.MovementCancelled(Actor self) { }
 	}
 }

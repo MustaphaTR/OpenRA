@@ -9,10 +9,8 @@
  */
 #endregion
 
-using System;
 using System.Collections.Generic;
 using System.Drawing;
-using System.Linq;
 using OpenRA.Activities;
 using OpenRA.Mods.Common.Pathfinder;
 using OpenRA.Mods.Common.Traits;
@@ -56,8 +54,8 @@ namespace OpenRA.Mods.Common.Activities
 
 			if (harv.IsFull)
 			{
-				Queue(new DeliverResources(self));
-				return NextActivity;
+				// HACK: DeliverResources is ignored if there are queued activities, so discard NextActivity
+				return ActivityUtils.SequenceActivities(new DeliverResources(self));
 			}
 
 			var closestHarvestablePosition = ClosestHarvestablePos(self);
@@ -67,10 +65,7 @@ namespace OpenRA.Mods.Common.Activities
 			if (!closestHarvestablePosition.HasValue)
 			{
 				if (!harv.IsEmpty)
-				{
-					Queue(new DeliverResources(self));
-					return NextActivity;
-				}
+					return new DeliverResources(self);
 
 				harv.LastSearchFailed = true;
 
@@ -87,11 +82,7 @@ namespace OpenRA.Mods.Common.Activities
 				// Avoid creating an activity cycle
 				var next = NextInQueue;
 				NextInQueue = null;
-
-				if (next != null)
-					return ActivityUtils.SequenceActivities(next, new Wait(randFrames), this);
-				else
-					return ActivityUtils.SequenceActivities(new Wait(randFrames), this);
+				return ActivityUtils.SequenceActivities(next, new Wait(randFrames), this);
 			}
 			else
 			{
@@ -105,30 +96,11 @@ namespace OpenRA.Mods.Common.Activities
 				if (!harv.LastOrderLocation.HasValue)
 					harv.LastOrderLocation = closestHarvestablePosition;
 
-				self.SetTargetLine(Target.FromCell(self.World, closestHarvestablePosition.Value), Color.Red, false);
-
-				var move = mobile.MoveTo(closestHarvestablePosition.Value, 2);
-
-				Activity extraActivities = null;
 				foreach (var n in self.TraitsImplementing<INotifyHarvesterAction>())
-				{
-					var extra = n.MovingToResources(self, closestHarvestablePosition.Value, move);
-					if (extra != null)
-					{
-						if (extraActivities != null)
-							throw new InvalidOperationException("Actor {0} has conflicting activities to perform for INotifyHarvesterAction.".F(self.ToString()));
+					n.MovingToResources(self, closestHarvestablePosition.Value, this);
 
-						extraActivities = extra;
-					}
-				}
-
-				if (extraActivities != null)
-					Queue(extraActivities);
-				else
-					Queue(move);
-
-				Queue(new HarvestResource(self));
-				return NextActivity;
+				self.SetTargetLine(Target.FromCell(self.World, closestHarvestablePosition.Value), Color.Red, false);
+				return ActivityUtils.SequenceActivities(mobile.MoveTo(closestHarvestablePosition.Value, 1), new HarvestResource(self), this);
 			}
 		}
 
@@ -178,9 +150,9 @@ namespace OpenRA.Mods.Common.Activities
 			if (harv.LastOrderLocation.HasValue)
 				return harv.LastOrderLocation.Value;
 			else if (harv.LastLinkedProc != null)
-				return harv.LastLinkedProc.Location + harv.LastLinkedProc.TraitsImplementing<Dock>().First().Info.DockOffset;
+				return harv.LastLinkedProc.Location + harv.LastLinkedProc.Trait<IAcceptResources>().DeliveryOffset;
 			else if (harv.LinkedProc != null)
-				return harv.LinkedProc.Location + harv.LinkedProc.TraitsImplementing<Dock>().First().Info.DockOffset;
+				return harv.LinkedProc.Location + harv.LinkedProc.Trait<IAcceptResources>().DeliveryOffset;
 			return self.Location;
 		}
 	}

@@ -67,7 +67,6 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Activities\DockUtils.cs" />
     <Compile Include="Activities\Air\AllowYieldingReservation.cs" />
     <Compile Include="Activities\Air\FallToEarth.cs" />
     <Compile Include="Activities\Air\Fly.cs" />
@@ -112,7 +111,6 @@
     <Compile Include="Activities\Repair.cs" />
     <Compile Include="Activities\RepairBridge.cs" />
     <Compile Include="Activities\RepairBuilding.cs" />
-    <Compile Include="Activities\RepairDocking.cs" />
     <Compile Include="Activities\Sell.cs" />
     <Compile Include="Activities\SimpleTeleport.cs" />
     <Compile Include="Activities\SpriteHarvesterDockSequence.cs" />
@@ -277,7 +275,6 @@
     <Compile Include="Scripting\Properties\ParadropProperties.cs" />
     <Compile Include="Scripting\Properties\ParatroopersProperties.cs" />
     <Compile Include="Scripting\Properties\NukeProperties.cs" />
-    <Compile Include="Activities\ActivityInterfaces.cs" />
     <Compile Include="TraitsInterfaces.cs" />
     <Compile Include="Traits\AcceptsDeliveredCash.cs" />
     <Compile Include="Traits\AcceptsDeliveredExperience.cs" />
@@ -331,9 +328,6 @@
     <Compile Include="Traits\Rearmable.cs" />
     <Compile Include="Traits\Burns.cs" />
     <Compile Include="Traits\CarryableHarvester.cs" />
-    <Compile Include="Traits\DockClient.cs" />
-    <Compile Include="Traits\DockManager.cs" />
-    <Compile Include="Traits\Dock.cs" />
     <Compile Include="Traits\Player\SharedCargoManager.cs" />
     <Compile Include="Traits\Player\Taunts.cs" />
     <Compile Include="Traits\SharedCargo.cs" />

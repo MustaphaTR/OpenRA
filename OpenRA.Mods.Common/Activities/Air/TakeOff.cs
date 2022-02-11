@@ -38,7 +38,7 @@ namespace OpenRA.Mods.Common.Activities
 		{
 			aircraft.UnReserve();
 
-			var host = aircraft.GetSupplierActorBelow();
+			var host = aircraft.GetActorBelow();
 			var hasHost = host != null;
 			var rp = hasHost ? host.TraitOrDefault<RallyPoint>() : null;
 

@@ -59,8 +59,8 @@ namespace OpenRA.Mods.Common.Traits.Render
 			anim.PlayThen(info.Sequence, () => visible = false);
 		}
 
-		Activity INotifyHarvesterAction.MovingToResources(Actor self, CPos targetCell, Activity next) { return null; }
-		Activity INotifyHarvesterAction.MovingToRefinery(Actor self, Actor targetRefinery, Activity next) { return null; }
+		void INotifyHarvesterAction.MovingToResources(Actor self, CPos targetCell, Activity next) { }
+		void INotifyHarvesterAction.MovingToRefinery(Actor self, Actor targetRefinery, Activity next) { }
 		void INotifyHarvesterAction.MovementCancelled(Actor self) { }
 		void INotifyHarvesterAction.Docked() { }
 		void INotifyHarvesterAction.Undocked() { }
