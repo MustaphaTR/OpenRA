@@ -3,24 +3,24 @@ hard work of many contributors.
 
 The OpenRA developers are:
     * Chris Forbes (chrisf)
-    * Igor Popov (ihptru)
     * Lukas Franke (abcdefg30)
-    * Oliver Brakmann (obrakmann)
     * Paul Chote (pchote)
     * Reaperrr
-    * Tom Roostan (RoosterDragon)
 
 Previous developers included:
     * Alli Witheford (alzeih)
     * Caleb Anderson (RobotCaleb)
     * Curtis Shmyr (hamb)
     * Daniel Hernandez (Mancano)
+    * Igor Popov (ihptru)
     * Matthias Mailänder (Mailaender)
     * Megan Bowra-Dean (beedee)
     * Mike Bundy (kehaar)
+    * Oliver Brakmann (obrakmann)
     * Pavel Penev (penev92)
     * Robert Pepperell (ytinasni)
     * ScottNZ
+    * Tom Roostan (RoosterDragon)
 
 Also thanks to:
     * Adam Valy (Tschokky)
@@ -41,8 +41,9 @@ Also thanks to:
     * Brendan Gluth (Mechanical_Man)
     * Bryan Wilbur
     * Bugra Cuhadaroglu (BugraC)
-    * Christer Ulfsparre (Holloweye)
+    * Chris Cameron (Vesuvian)
     * Chris Grant (Unit158)
+    * Christer Ulfsparre (Holloweye)
     * clem
     * Cody Brittain (Generalcamo)
     * Constantin Helmig (CH4Code)
@@ -103,6 +104,7 @@ Also thanks to:
     * Matthijs Benschop (Nerdie)
     * Max621
     * Max Ugrumov (katzsmile)
+    * Mazar Farran (mazarf)
     * Michael Rätzel
     * Michael Silber (frühstück)
     * Michael Sztolcman (s1w_)
@@ -138,6 +140,8 @@ Also thanks to:
     * Teemu Nieminen (Temeez)
     * Tim Mylemans (gecko)
     * Tirili
+    * Tomas Einarsson (Mesacer)
+    * Tom van Leth (tovl)
     * Tristan Keating (Kilkakon)
     * Tristan Mühlbacher (MicroBit)
     * UnknownProgrammer
@@ -160,9 +164,6 @@ the Apache 2.0 license.
 
 Using GeoLite2 data created by MaxMind and
 distributed under the CC BY-SA 3.0 license.
-
-Using SharpFont created by Robert Rouhani and
-distributed under the MIT license.
 
 Using SDL2-CS and OpenAL-CS created by Ethan
 Lee and released under the zlib license.

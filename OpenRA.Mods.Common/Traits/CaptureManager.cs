@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2018 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -65,7 +65,7 @@ namespace OpenRA.Mods.Common.Traits
 		}
 	}
 
-	public class CaptureManager : INotifyCreated, INotifyCapture, ITick, IPreventsAutoTarget
+	public class CaptureManager : INotifyCreated, INotifyCapture, ITick, IDisableEnemyAutoTarget
 	{
 		readonly CaptureManagerInfo info;
 		ConditionManager conditionManager;
@@ -199,6 +199,10 @@ namespace OpenRA.Mods.Common.Traits
 		{
 			captures = null;
 
+			// Prevent a capture being restarted after it has been canceled during disposal
+			if (self.WillDispose)
+				return false;
+
 			if (target != currentTarget)
 			{
 				if (currentTarget != null)
@@ -225,6 +229,11 @@ namespace OpenRA.Mods.Common.Traits
 				.FirstOrDefault(c => targetManager.CanBeTargetedBy(target, self, c));
 
 			if (captures == null)
+				return false;
+
+			// HACK: Make sure the target is not moving and at its normal position with respect to the cell grid
+			var enterMobile = target.TraitOrDefault<Mobile>();
+			if (enterMobile != null && enterMobile.IsMovingBetweenCells)
 				return false;
 
 			if (info.ShowChatMessage && self.World.LocalPlayer == self.Owner)
@@ -299,7 +308,7 @@ namespace OpenRA.Mods.Common.Traits
 				w.Update(currentTarget, self, currentTarget, currentTargetDelay, currentTargetTotal);
 		}
 
-		bool IPreventsAutoTarget.PreventsAutoTarget(Actor self, Actor attacker)
+		bool IDisableEnemyAutoTarget.DisableEnemyAutoTarget(Actor self, Actor attacker)
 		{
 			return info.PreventsAutoTarget && currentCaptors.Any(c => attacker.AppearsFriendlyTo(c));
 		}

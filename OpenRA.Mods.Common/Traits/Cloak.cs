@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2018 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -11,7 +11,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Drawing;
 using System.Linq;
 using OpenRA.Activities;
 using OpenRA.Graphics;
@@ -54,7 +53,8 @@ namespace OpenRA.Mods.Common.Traits
 		public readonly string CloakSound = null;
 		public readonly string UncloakSound = null;
 
-		[PaletteReference("IsPlayerPalette")] public readonly string Palette = "cloak";
+		[PaletteReference("IsPlayerPalette")]
+		public readonly string Palette = "cloak";
 		public readonly bool IsPlayerPalette = false;
 
 		public readonly BitSet<CloakType> CloakTypes = new BitSet<CloakType>("Cloak");
@@ -72,7 +72,9 @@ namespace OpenRA.Mods.Common.Traits
 	public class Cloak : PausableConditionalTrait<CloakInfo>, IRenderModifier, INotifyDamage, INotifyUnload, INotifyDemolition, INotifyInfiltration,
 		INotifyAttack, ITick, IVisibilityModifier, IRadarColorModifier, INotifyCreated, INotifyHarvesterAction
 	{
-		[Sync] int remainingTime;
+		[Sync]
+		int remainingTime;
+
 		bool isDocking;
 		bool isCapturing = false;
 		ConditionManager conditionManager;
@@ -202,9 +204,9 @@ namespace OpenRA.Mods.Common.Traits
 			if ((Info.UncloakWhenAlone && !self.World.Actors.Where(a => a.Owner == self.Owner && a.IsInWorld && a.TraitsImplementing<IPositionable>().Any() && !a.TraitsImplementing<Cloak>().Where(t => !t.IsTraitDisabled).Any()).Any()))
 				return true;
 
-			return self.World.ActorsWithTrait<DetectCloaked>().Any(a => !a.Trait.IsTraitDisabled && a.Actor.Owner.IsAlliedWith(viewer)
+			return self.World.ActorsWithTrait<DetectCloaked>().Any(a => a.Actor.Owner.IsAlliedWith(viewer)
 				&& Info.CloakTypes.Overlaps(a.Trait.Info.CloakTypes)
-				&& (self.CenterPosition - a.Actor.CenterPosition).LengthSquared <= a.Trait.Info.Range.LengthSquared);
+				&& (self.CenterPosition - a.Actor.CenterPosition).LengthSquared <= a.Trait.Range.LengthSquared);
 		}
 
 		Color IRadarColorModifier.RadarColorOverride(Actor self, Color color)
@@ -215,8 +217,9 @@ namespace OpenRA.Mods.Common.Traits
 			return color;
 		}
 
-		void INotifyHarvesterAction.MovingToResources(Actor self, CPos targetCell, Activity next) { }
-		void INotifyHarvesterAction.MovingToRefinery(Actor self, Actor refineryActor, Activity next) { }
+		void INotifyHarvesterAction.MovingToResources(Actor self, CPos targetCell) { }
+
+		void INotifyHarvesterAction.MovingToRefinery(Actor self, Actor refineryActor) { }
 
 		void INotifyHarvesterAction.MovementCancelled(Actor self) { }
 

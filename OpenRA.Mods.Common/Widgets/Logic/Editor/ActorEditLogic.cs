@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2018 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -21,10 +21,12 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 	public class ActorEditLogic : ChromeLogic
 	{
 		// Error states define overlapping bits to simplify panel reflow logic
-		[Flags] enum ActorIDStatus { Normal = 0, Duplicate = 1, Empty = 3 }
+		[Flags]
+		enum ActorIDStatus { Normal = 0, Duplicate = 1, Empty = 3 }
 
 		readonly WorldRenderer worldRenderer;
 		readonly EditorActorLayer editorActorLayer;
+		readonly EditorActionManager editorActionManager;
 		readonly EditorViewportControllerWidget editor;
 		readonly BackgroundWidget actorEditPanel;
 		readonly LabelWidget typeLabel;
@@ -34,6 +36,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 		readonly Widget initContainer;
 		readonly Widget buttonContainer;
 
+		readonly Widget checkboxOptionTemplate;
 		readonly Widget sliderOptionTemplate;
 		readonly Widget dropdownOptionTemplate;
 
@@ -47,6 +50,8 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 		string initialActorID;
 
 		EditorActorPreview currentActorInner;
+		EditActorPreview editActorPreview;
+
 		EditorActorPreview CurrentActor
 		{
 			get
@@ -60,7 +65,10 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 					return;
 
 				if (currentActorInner != null)
+				{
+					Reset();
 					currentActorInner.Selected = false;
+				}
 
 				currentActorInner = value;
 				if (currentActorInner != null)
@@ -73,6 +81,8 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 		{
 			this.worldRenderer = worldRenderer;
 			editorActorLayer = world.WorldActor.Trait<EditorActorLayer>();
+			editorActionManager = world.WorldActor.Trait<EditorActionManager>();
+
 			editor = widget.Parent.Get<EditorViewportControllerWidget>("MAP_EDITOR");
 			actorEditPanel = editor.Get<BackgroundWidget>("ACTOR_EDIT_PANEL");
 
@@ -82,12 +92,14 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			initContainer = actorEditPanel.Get("ACTOR_INIT_CONTAINER");
 			buttonContainer = actorEditPanel.Get("BUTTON_CONTAINER");
 
+			checkboxOptionTemplate = initContainer.Get("CHECKBOX_OPTION_TEMPLATE");
 			sliderOptionTemplate = initContainer.Get("SLIDER_OPTION_TEMPLATE");
 			dropdownOptionTemplate = initContainer.Get("DROPDOWN_OPTION_TEMPLATE");
 			initContainer.RemoveChildren();
 
 			var deleteButton = actorEditPanel.Get<ButtonWidget>("DELETE_BUTTON");
-			var closeButton = actorEditPanel.Get<ButtonWidget>("CLOSE_BUTTON");
+			var cancelButton = actorEditPanel.Get<ButtonWidget>("CANCEL_BUTTON");
+			var okButton = actorEditPanel.Get<ButtonWidget>("OK_BUTTON");
 
 			actorIDErrorLabel = actorEditPanel.Get<LabelWidget>("ACTOR_ID_ERROR_LABEL");
 			actorIDErrorLabel.IsVisible = () => actorIDStatus != ActorIDStatus.Normal;
@@ -98,7 +110,9 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			if (logicArgs.TryGetValue("EditPanelPadding", out yaml))
 				editPanelPadding = FieldLoader.GetValue<int>("EditPanelPadding", yaml.Value);
 
-			closeButton.OnClick = Close;
+			okButton.IsDisabled = () => !IsValid() || !editActorPreview.IsDirty;
+			okButton.OnClick = Save;
+			cancelButton.OnClick = Cancel;
 			deleteButton.OnClick = Delete;
 			actorEditPanel.IsVisible = () => CurrentActor != null
 				&& editor.CurrentBrush == editor.DefaultBrush
@@ -112,15 +126,15 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 
 			actorIDField.OnTextEdited = () =>
 			{
-				if (string.IsNullOrWhiteSpace(actorIDField.Text))
+				var actorId = actorIDField.Text.Trim();
+				if (string.IsNullOrWhiteSpace(actorId))
 				{
 					nextActorIDStatus = ActorIDStatus.Empty;
 					return;
 				}
 
 				// Check for duplicate actor ID
-				var actorId = actorIDField.Text.ToLowerInvariant();
-				if (CurrentActor.ID.ToLowerInvariant() != actorId)
+				if (CurrentActor.ID.Equals(actorId, StringComparison.OrdinalIgnoreCase))
 				{
 					if (editorActorLayer[actorId] != null)
 					{
@@ -129,21 +143,27 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 					}
 				}
 
-				SetActorID(world, actorId);
+				SetActorID(actorId);
+				nextActorIDStatus = ActorIDStatus.Normal;
 			};
 
 			actorIDField.OnLoseFocus = () =>
 			{
 				// Reset invalid IDs back to their starting value
 				if (actorIDStatus != ActorIDStatus.Normal)
-					SetActorID(world, initialActorID);
+					SetActorID(initialActorID);
 			};
 		}
 
-		void SetActorID(World world, string actorId)
+		void SetActorID(string actorId)
 		{
-			CurrentActor.ID = actorId;
+			editActorPreview.SetActorID(actorId);
 			nextActorIDStatus = ActorIDStatus.Normal;
+		}
+
+		bool IsValid()
+		{
+			return nextActorIDStatus == ActorIDStatus.Normal;
 		}
 
 		public override void Tick()
@@ -182,6 +202,8 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 					lastScrollTime = 0; // Ensure visible
 					CurrentActor = actor;
 
+					editActorPreview = new EditActorPreview(CurrentActor);
+
 					initialActorID = actorIDField.Text = actor.ID;
 
 					var font = Game.Renderer.Fonts[typeLabel.Font];
@@ -202,22 +224,31 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 					var ownerDropdown = ownerContainer.Get<DropDownButtonWidget>("OPTION");
 					var selectedOwner = actor.Owner;
 
+					Action<EditorActorPreview, PlayerReference> updateOwner = (preview, reference) =>
+					{
+						preview.Owner = reference;
+						preview.ReplaceInit(new OwnerInit(reference.Name));
+					};
+
+					var ownerHandler = new EditorActorOptionActionHandle<PlayerReference>(updateOwner, actor.Owner);
+					editActorPreview.Add(ownerHandler);
+
 					Func<PlayerReference, ScrollItemWidget, ScrollItemWidget> setupItem = (option, template) =>
 					{
 						var item = ScrollItemWidget.Setup(template, () => selectedOwner == option, () =>
 						{
 							selectedOwner = option;
-							CurrentActor.Owner = selectedOwner;
-							CurrentActor.ReplaceInit(new OwnerInit(selectedOwner.Name));
+							updateOwner(CurrentActor, selectedOwner);
+							ownerHandler.OnChange(option);
 						});
 
 						item.Get<LabelWidget>("LABEL").GetText = () => option.Name;
-						item.GetColor = () => option.Color.RGB;
+						item.GetColor = () => option.Color;
 						return item;
 					};
 
 					ownerDropdown.GetText = () => selectedOwner.Name;
-					ownerDropdown.GetColor = () => selectedOwner.Color.RGB;
+					ownerDropdown.GetColor = () => selectedOwner.Color;
 					ownerDropdown.OnClick = () =>
 					{
 						var owners = editorActorLayer.Players.Players.Values.OrderBy(p => p.Name);
@@ -234,7 +265,30 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 
 					foreach (var o in options)
 					{
-						if (o is EditorActorSlider)
+						if (o is EditorActorCheckbox)
+						{
+							var co = (EditorActorCheckbox)o;
+							var checkboxContainer = checkboxOptionTemplate.Clone();
+							checkboxContainer.Bounds.Y = initContainer.Bounds.Height;
+							initContainer.Bounds.Height += checkboxContainer.Bounds.Height;
+
+							var checkbox = checkboxContainer.Get<CheckboxWidget>("OPTION");
+							checkbox.GetText = () => co.Name;
+
+							var editorActionHandle = new EditorActorOptionActionHandle<bool>(co.OnChange, co.GetValue(actor));
+							editActorPreview.Add(editorActionHandle);
+
+							checkbox.IsChecked = () => co.GetValue(actor);
+							checkbox.OnClick = () =>
+							{
+								var newValue = co.GetValue(actor) ^ true;
+								co.OnChange(actor, newValue);
+								editorActionHandle.OnChange(newValue);
+							};
+
+							initContainer.AddChild(checkboxContainer);
+						}
+						else if (o is EditorActorSlider)
 						{
 							var so = (EditorActorSlider)o;
 							var sliderContainer = sliderOptionTemplate.Clone();
@@ -247,8 +301,12 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 							slider.MaximumValue = so.MaxValue;
 							slider.Ticks = so.Ticks;
 
+							var editorActionHandle = new EditorActorOptionActionHandle<float>(so.OnChange, so.GetValue(actor));
+							editActorPreview.Add(editorActionHandle);
+
 							slider.GetValue = () => so.GetValue(actor);
 							slider.OnChange += value => so.OnChange(actor, value);
+							slider.OnChange += value => editorActionHandle.OnChange(value);
 
 							initContainer.AddChild(sliderContainer);
 						}
@@ -260,12 +318,19 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 							initContainer.Bounds.Height += dropdownContainer.Bounds.Height;
 							dropdownContainer.Get<LabelWidget>("LABEL").GetText = () => ddo.Name;
 
+							var editorActionHandle = new EditorActorOptionActionHandle<string>(ddo.OnChange, ddo.GetValue(actor));
+							editActorPreview.Add(editorActionHandle);
+
 							var dropdown = dropdownContainer.Get<DropDownButtonWidget>("OPTION");
 							Func<KeyValuePair<string, string>, ScrollItemWidget, ScrollItemWidget> dropdownSetup = (option, template) =>
 							{
 								var item = ScrollItemWidget.Setup(template,
 									() => ddo.GetValue(actor) == option.Key,
-									() => ddo.OnChange(actor, option.Key));
+									() =>
+									{
+										ddo.OnChange(actor, option.Key);
+										editorActionHandle.OnChange(option.Key);
+									});
 
 								item.Get<LabelWidget>("LABEL").GetText = () => option.Value;
 								return item;
@@ -297,9 +362,21 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 		void Delete()
 		{
 			if (CurrentActor != null)
-				editorActorLayer.Remove(CurrentActor);
+				editorActionManager.Add(new RemoveActorAction(editorActorLayer, CurrentActor));
 
 			Close();
+		}
+
+		void Cancel()
+		{
+			Reset();
+			Close();
+		}
+
+		void Reset()
+		{
+			if (editActorPreview != null)
+				editActorPreview.Reset();
 		}
 
 		void Close()
@@ -308,5 +385,157 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			editor.DefaultBrush.SelectedActor = null;
 			CurrentActor = null;
 		}
+
+		void Save()
+		{
+			editorActionManager.Add(new EditActorEditorAction(editorActorLayer, CurrentActor, editActorPreview.GetDirtyHandles()));
+			editActorPreview = null;
+			Close();
+		}
+	}
+
+	public class EditorActorOptionActionHandle<T> : IEditActorHandle
+	{
+		readonly Action<EditorActorPreview, T> change;
+		T value;
+		readonly T initialValue;
+
+		public EditorActorOptionActionHandle(Action<EditorActorPreview, T> change, T value)
+		{
+			this.change = change;
+			this.value = value;
+			initialValue = value;
+		}
+
+		public void OnChange(T value)
+		{
+			IsDirty = !EqualityComparer<T>.Default.Equals(initialValue, value);
+
+			this.value = value;
+		}
+
+		public void Do(EditorActorPreview actor)
+		{
+			change(actor, value);
+		}
+
+		public void Undo(EditorActorPreview actor)
+		{
+			change(actor, initialValue);
+		}
+
+		public bool IsDirty { get; private set; }
+	}
+
+	public interface IEditActorHandle
+	{
+		void Do(EditorActorPreview actor);
+		void Undo(EditorActorPreview actor);
+		bool IsDirty { get; }
+	}
+
+	class EditActorEditorAction : IEditorAction
+	{
+		public string Text { get; private set; }
+
+		readonly IEnumerable<IEditActorHandle> handles;
+		readonly EditorActorLayer editorActorLayer;
+		EditorActorPreview actor;
+		readonly string actorId;
+
+		public EditActorEditorAction(EditorActorLayer editorActorLayer, EditorActorPreview actor, IEnumerable<IEditActorHandle> handles)
+		{
+			this.editorActorLayer = editorActorLayer;
+			actorId = actor.ID;
+			this.actor = actor;
+			this.handles = handles;
+			Text = "Edited {0} ({1})".F(actor.Info.Name, actor.ID);
+		}
+
+		public void Execute()
+		{
+		}
+
+		public void Do()
+		{
+			actor = editorActorLayer[actorId.ToLowerInvariant()];
+			foreach (var editorActionHandle in handles)
+				editorActionHandle.Do(actor);
+		}
+
+		public void Undo()
+		{
+			foreach (var editorActionHandle in handles)
+				editorActionHandle.Undo(actor);
+		}
+	}
+
+	class EditActorPreview
+	{
+		readonly EditorActorPreview actor;
+		readonly SetActorIdAction setActorIdAction;
+		readonly List<IEditActorHandle> handles = new List<IEditActorHandle>();
+
+		public EditActorPreview(EditorActorPreview actor)
+		{
+			this.actor = actor;
+			setActorIdAction = new SetActorIdAction(actor.ID);
+			handles.Add(setActorIdAction);
+		}
+
+		public bool IsDirty
+		{
+			get { return handles.Any(h => h.IsDirty); }
+		}
+
+		public void SetActorID(string actorID)
+		{
+			setActorIdAction.Set(actorID);
+		}
+
+		public void Add(IEditActorHandle editActor)
+		{
+			handles.Add(editActor);
+		}
+
+		public IEnumerable<IEditActorHandle> GetDirtyHandles()
+		{
+			return handles.Where(h => h.IsDirty);
+		}
+
+		public void Reset()
+		{
+			foreach (var handle in handles.Where(h => h.IsDirty))
+				handle.Undo(actor);
+		}
+	}
+
+	public class SetActorIdAction : IEditActorHandle
+	{
+		readonly string initial;
+		string newID;
+
+		public void Set(string actorId)
+		{
+			IsDirty = initial != actorId;
+			newID = actorId;
+		}
+
+		public SetActorIdAction(string initial)
+		{
+			this.initial = initial;
+		}
+
+		public void Do(EditorActorPreview actor)
+		{
+			actor.ID = newID;
+		}
+
+		public void Undo(EditorActorPreview actor)
+		{
+			actor.ID = initial;
+		}
+
+		public bool IsDirty { get; private set; }
 	}
 }

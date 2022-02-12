@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2018 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -10,7 +10,7 @@
 #endregion
 
 using System.Collections.Generic;
-using System.Drawing;
+using OpenRA.Primitives;
 
 namespace OpenRA.Graphics
 {
@@ -64,8 +64,10 @@ namespace OpenRA.Graphics
 
 		public void RenderDebugGeometry(WorldRenderer wr)
 		{
-			var screenOffset = ScreenPosition(wr) + sprite.Offset;
-			Game.Renderer.WorldRgbaColorRenderer.DrawRect(screenOffset, screenOffset + sprite.Size, 1 / wr.Viewport.Zoom, Color.Red);
+			var pos = ScreenPosition(wr) + sprite.Offset;
+			var tl = wr.Viewport.WorldToViewPx(pos);
+			var br = wr.Viewport.WorldToViewPx(pos + sprite.Size);
+			Game.Renderer.RgbaColorRenderer.DrawRect(tl, br, 1, Color.Red);
 		}
 
 		public Rectangle ScreenBounds(WorldRenderer wr)

@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2018 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -10,7 +10,7 @@
 #endregion
 
 using System;
-using System.Drawing;
+using OpenRA.Primitives;
 
 namespace OpenRA.Graphics
 {
@@ -160,9 +160,9 @@ namespace OpenRA.Graphics
 			shader.SetVec("Scroll", scroll.X, scroll.Y, scroll.Y);
 			shader.SetVec("r1",
 				zoom * 2f / screen.Width,
-				-zoom * 2f / screen.Height,
+				zoom * 2f / screen.Height,
 				-depthScale * zoom / screen.Height);
-			shader.SetVec("r2", -1, 1, 1 - depthOffset);
+			shader.SetVec("r2", -1, -1, 1 - depthOffset);
 
 			// Texture index is sampled as a float, so convert to pixels then scale
 			shader.SetVec("DepthTextureScale", 128 * depthScale * zoom / screen.Height);

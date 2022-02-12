@@ -72,8 +72,6 @@ RMBO:
 		Prerequisites: ~disabled
 
 HARV:
-	Harvester:
-		SearchFromOrderRadius: 24
 	Buildable:
 		Prerequisites: ~disabled
 
@@ -169,7 +167,7 @@ MoneyCrate:
 	Inherits: ^Crate
 	GiveCashCrateAction:
 		Amount: 500
-		UseCashTick: yes
+		UseCashTick: true
 
 airstrike.proxy:
 	AirstrikePower:

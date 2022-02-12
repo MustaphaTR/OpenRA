@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2018 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -11,7 +11,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Drawing;
 using OpenRA.Graphics;
 using OpenRA.Mods.Common.Traits;
 using OpenRA.Primitives;
@@ -23,6 +22,7 @@ namespace OpenRA.Mods.Common.Graphics
 	{
 		void Tick();
 		IEnumerable<IRenderable> Render(WorldRenderer wr, WPos pos);
+		IEnumerable<IRenderable> RenderUI(WorldRenderer wr, int2 pos, float scale);
 		IEnumerable<Rectangle> ScreenBounds(WorldRenderer wr, WPos pos);
 	}
 

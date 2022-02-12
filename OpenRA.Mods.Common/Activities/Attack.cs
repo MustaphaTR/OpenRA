@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2018 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -10,16 +10,17 @@
 #endregion
 
 using System;
-using System.Drawing;
+using System.Collections.Generic;
 using System.Linq;
 using OpenRA.Activities;
 using OpenRA.Mods.Common.Traits;
+using OpenRA.Primitives;
 using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.Activities
 {
 	/* non-turreted attack */
-	public class Attack : Activity
+	public class Attack : Activity, IActivityNotifyStanceChanged
 	{
 		[Flags]
 		protected enum AttackStatus { UnableToAttack, NeedsToTurn, NeedsToMove, Attacking }
@@ -30,22 +31,24 @@ namespace OpenRA.Mods.Common.Activities
 		readonly IFacing facing;
 		readonly IPositionable positionable;
 		readonly bool forceAttack;
+		readonly Color? targetLineColor;
 
 		protected Target target;
 		Target lastVisibleTarget;
 		WDist lastVisibleMaximumRange;
+		BitSet<TargetableType> lastVisibleTargetTypes;
+		Player lastVisibleOwner;
 		bool useLastVisibleTarget;
 		bool wasMovingWithinRange;
 
 		WDist minRange;
 		WDist maxRange;
-		Activity turnActivity;
-		Activity moveActivity;
 		AttackStatus attackStatus = AttackStatus.UnableToAttack;
 
-		public Attack(Actor self, Target target, bool allowMovement, bool forceAttack)
+		public Attack(Actor self, Target target, bool allowMovement, bool forceAttack, Color? targetLineColor = null)
 		{
 			this.target = target;
+			this.targetLineColor = targetLineColor;
 			this.forceAttack = forceAttack;
 
 			attackTraits = self.TraitsImplementing<AttackFrontal>().ToArray();
@@ -63,6 +66,17 @@ namespace OpenRA.Mods.Common.Activities
 				lastVisibleTarget = Target.FromPos(target.CenterPosition);
 				lastVisibleMaximumRange = attackTraits.Where(x => !x.IsTraitDisabled)
 					.Min(x => x.GetMaximumRangeVersusTarget(target));
+
+				if (target.Type == TargetType.Actor)
+				{
+					lastVisibleOwner = target.Actor.Owner;
+					lastVisibleTargetTypes = target.Actor.GetEnabledTargetTypes();
+				}
+				else if (target.Type == TargetType.FrozenActor)
+				{
+					lastVisibleOwner = target.FrozenActor.Owner;
+					lastVisibleTargetTypes = target.FrozenActor.TargetTypes;
+				}
 			}
 		}
 
@@ -71,10 +85,10 @@ namespace OpenRA.Mods.Common.Activities
 			return target.Recalculate(self.Owner, out targetIsHiddenActor);
 		}
 
-		public override Activity Tick(Actor self)
+		public override bool Tick(Actor self)
 		{
-			if (IsCanceled)
-				return NextActivity;
+			if (IsCanceling)
+				return true;
 
 			bool targetIsHiddenActor;
 			target = RecalculateTarget(self, out targetIsHiddenActor);
@@ -83,23 +97,21 @@ namespace OpenRA.Mods.Common.Activities
 				lastVisibleTarget = Target.FromTargetPositions(target);
 				lastVisibleMaximumRange = attackTraits.Where(x => !x.IsTraitDisabled)
 					.Min(x => x.GetMaximumRangeVersusTarget(target));
+
+				lastVisibleOwner = target.Actor.Owner;
+				lastVisibleTargetTypes = target.Actor.GetEnabledTargetTypes();
 			}
 
-			var oldUseLastVisibleTarget = useLastVisibleTarget;
 			useLastVisibleTarget = targetIsHiddenActor || !target.IsValidFor(self);
 
 			// If we are ticking again after previously sequencing a MoveWithRange then that move must have completed
 			// Either we are in range and can see the target, or we've lost track of it and should give up
 			if (wasMovingWithinRange && targetIsHiddenActor)
-				return NextActivity;
-
-			// Update target lines if required
-			if (useLastVisibleTarget != oldUseLastVisibleTarget)
-				self.SetTargetLine(useLastVisibleTarget ? lastVisibleTarget : target, Color.Red, false);
+				return true;
 
 			// Target is hidden or dead, and we don't have a fallback position to move towards
 			if (useLastVisibleTarget && !lastVisibleTarget.IsValidFor(self))
-				return NextActivity;
+				return true;
 
 			wasMovingWithinRange = false;
 			var pos = self.CenterPosition;
@@ -110,16 +122,14 @@ namespace OpenRA.Mods.Common.Activities
 			{
 				// We've reached the assumed position but it is not there or we can't move any further - give up
 				if (checkTarget.IsInRange(pos, lastVisibleMaximumRange) || move == null || lastVisibleMaximumRange == WDist.Zero)
-					return NextActivity;
+					return true;
 
 				// Move towards the last known position
 				wasMovingWithinRange = true;
-				return ActivityUtils.SequenceActivities(
-					move.MoveWithinRange(target, WDist.Zero, lastVisibleMaximumRange, checkTarget.CenterPosition, Color.Red),
-					this);
+				QueueChild(move.MoveWithinRange(target, WDist.Zero, lastVisibleMaximumRange, checkTarget.CenterPosition, Color.Red));
+				return false;
 			}
 
-			turnActivity = moveActivity = null;
 			attackStatus = AttackStatus.UnableToAttack;
 
 			foreach (var attack in attackTraits.Where(x => !x.IsTraitDisabled))
@@ -128,30 +138,21 @@ namespace OpenRA.Mods.Common.Activities
 				attack.IsAiming = status == AttackStatus.Attacking || status == AttackStatus.NeedsToTurn;
 			}
 
-			if (attackStatus.HasFlag(AttackStatus.Attacking))
-				return this;
-
-			if (attackStatus.HasFlag(AttackStatus.NeedsToTurn))
-				return turnActivity;
-
 			if (attackStatus.HasFlag(AttackStatus.NeedsToMove))
-			{
 				wasMovingWithinRange = true;
-				return moveActivity;
-			}
 
-			return NextActivity;
+			if (attackStatus >= AttackStatus.NeedsToTurn)
+				return false;
+
+			return true;
 		}
 
 		protected virtual AttackStatus TickAttack(Actor self, AttackFrontal attack)
 		{
-			if (IsCanceled)
-				return AttackStatus.UnableToAttack;
-
 			if (!target.IsValidFor(self))
 				return AttackStatus.UnableToAttack;
 
-			if (attack.Info.AttackRequiresEnteringCell && !positionable.CanEnterCell(target.Actor.Location, null, false))
+			if (attack.Info.AttackRequiresEnteringCell && !positionable.CanEnterCell(target.Actor.Location, null, BlockedByActor.None))
 				return AttackStatus.UnableToAttack;
 
 			if (!attack.Info.TargetFrozenActors && !forceAttack && target.Type == TargetType.FrozenActor)
@@ -168,10 +169,7 @@ namespace OpenRA.Mods.Common.Activities
 				var sightRange = rs != null ? rs.Range : WDist.FromCells(2);
 
 				attackStatus |= AttackStatus.NeedsToMove;
-				moveActivity = ActivityUtils.SequenceActivities(
-					move.MoveWithinRange(target, sightRange, target.CenterPosition, Color.Red),
-					this);
-
+				QueueChild(move.MoveWithinRange(target, sightRange, target.CenterPosition, Color.Red));
 				return AttackStatus.NeedsToMove;
 			}
 
@@ -195,28 +193,46 @@ namespace OpenRA.Mods.Common.Activities
 					return AttackStatus.UnableToAttack;
 
 				attackStatus |= AttackStatus.NeedsToMove;
-
 				var checkTarget = useLastVisibleTarget ? lastVisibleTarget : target;
-				moveActivity = ActivityUtils.SequenceActivities(
-					move.MoveWithinRange(target, minRange, maxRange, checkTarget.CenterPosition, Color.Red),
-					this);
-
+				QueueChild(move.MoveWithinRange(target, minRange, maxRange, checkTarget.CenterPosition, Color.Red));
 				return AttackStatus.NeedsToMove;
 			}
 
-			var targetedPosition = attack.GetTargetPosition(pos, target);
-			var desiredFacing = (targetedPosition - pos).Yaw.Facing;
-			if (!Util.FacingWithinTolerance(facing.Facing, desiredFacing, ((AttackFrontalInfo)attack.Info).FacingTolerance))
+			if (!attack.TargetInFiringArc(self, target, attack.Info.FacingTolerance))
 			{
+				var desiredFacing = (attack.GetTargetPosition(pos, target) - pos).Yaw.Facing;
 				attackStatus |= AttackStatus.NeedsToTurn;
-				turnActivity = ActivityUtils.SequenceActivities(new Turn(self, desiredFacing), this);
+				QueueChild(new Turn(self, desiredFacing));
 				return AttackStatus.NeedsToTurn;
 			}
 
 			attackStatus |= AttackStatus.Attacking;
-			attack.DoAttack(self, target, armaments);
+			DoAttack(self, attack, armaments);
 
 			return AttackStatus.Attacking;
+		}
+
+		protected virtual void DoAttack(Actor self, AttackFrontal attack, IEnumerable<Armament> armaments)
+		{
+			if (!attack.IsTraitPaused)
+				foreach (var a in armaments)
+					a.CheckFire(self, facing, target);
+		}
+
+		void IActivityNotifyStanceChanged.StanceChanged(Actor self, AutoTarget autoTarget, UnitStance oldStance, UnitStance newStance)
+		{
+			// Cancel non-forced targets when switching to a more restrictive stance if they are no longer valid for auto-targeting
+			if (newStance > oldStance || forceAttack)
+				return;
+
+			if (!autoTarget.HasValidTargetPriority(self, lastVisibleOwner, lastVisibleTargetTypes))
+				target = Target.Invalid;
+		}
+
+		public override IEnumerable<TargetLineNode> TargetLineNodes(Actor self)
+		{
+			if (targetLineColor != null)
+				yield return new TargetLineNode(useLastVisibleTarget ? lastVisibleTarget : target, targetLineColor.Value);
 		}
 	}
 }

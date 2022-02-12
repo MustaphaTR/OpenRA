@@ -1,5 +1,5 @@
 --[[
-   Copyright 2007-2018 The OpenRA Developers (see AUTHORS)
+   Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
    This file is part of OpenRA, which is free software. It is made
    available to you under the terms of the GNU General Public License
    as published by the Free Software Foundation, either version 3 of
@@ -16,8 +16,8 @@ SovAttackStart2 = { StartRifle5, StartRifle6, StartGren }
 RunAway = { IntroTruck2, StartRifle3, StartRifle4 }
 GreeceRifles = { GreeceRifle1, GreeceRifle2, GreeceRifle3, GreeceRifle4, GreeceRifle5 }
 CombatTeam1 = { "mnly", "spy", "spy", "mcv" }
-CombatTeam2 = 
-{ 
+CombatTeam2 =
+{
 	easy = { "2tnk", "2tnk", "2tnk", "e3", "e3", "e3" },
 	normal = { "e3", "e3", "e3", "2tnk", "1tnk" },
 	hard = { "e3", "e3", "e3", "1tnk" }
@@ -40,30 +40,6 @@ SetupTriggers = function()
 
 	Trigger.OnAllKilled(ConvoyTrucks, function()
 		greece.MarkCompletedObjective(objDestroyAllTrucks)
-	end)
-
-	Trigger.OnEnteredFootprint({ TruckEscapeCenter.Location }, function(actor, triggerlose1)
-		if actor.Owner == ussr and actor.Type == "truk" then
-			Trigger.RemoveProximityTrigger(triggerlose1)
-			actor.Destroy()
-			greece.MarkFailedObjective(objDestroyAllTrucks)
-		end
-	end)
-
-	Trigger.OnEnteredFootprint({ EscapeNorth10.Location }, function(actor, triggerlose2)
-		if actor.Owner == ussr and actor.Type == "truk" then
-			Trigger.RemoveProximityTrigger(triggerlose2)
-			actor.Destroy()
-			greece.MarkFailedObjective(objDestroyAllTrucks)
-		end
-	end)
-
-	Trigger.OnEnteredFootprint({ EscapeSouth5.Location }, function(actor, triggerlose3)
-		if actor.Owner == ussr and actor.Type == "truk" then
-			Trigger.RemoveProximityTrigger(triggerlose3)
-			actor.Destroy()
-			greece.MarkFailedObjective(objDestroyAllTrucks)
-		end
 	end)
 end
 
@@ -123,26 +99,23 @@ SendPatrol = function(mammoth)
 	end
 end
 
-MoveTruckNorth = function(truck)
+MoveTruckEscapeRoute = function(truck, route)
 	if truck.IsDead then
 		return
 	else
 		Media.DisplayMessage("Convoy truck attempting to escape!")
 		Media.PlaySoundNotification(greece, "AlertBleep")
-		Utils.Do(TruckEscapeNorth, function(waypoint)
+		Utils.Do(route, function(waypoint)
 			truck.Move(waypoint.Location)
 		end)
-	end
-end
-
-MoveTruckSouth = function(truck)
-	if truck.IsDead then
-		return
-	else
-		Media.DisplayMessage("Convoy truck attempting to escape!")
-		Media.PlaySoundNotification(greece, "AlertBleep")
-		Utils.Do(TruckEscapeSouth, function(waypoint)
-			truck.Move(waypoint.Location)
+		
+		Trigger.OnIdle(truck, function()
+			if truck.Location == route[#route].Location then
+				truck.Destroy()
+				greece.MarkFailedObjective(objDestroyAllTrucks)
+			else
+				truck.Move(route[#route].Location)
+			end
 		end)
 	end
 end
@@ -154,13 +127,17 @@ Tick = function()
 	if ussr.HasNoRequiredUnits() and badguy.HasNoRequiredUnits() then
 		greece.MarkCompletedObjective(objKillAll)
 	end
+
+	if greece.HasNoRequiredUnits() then
+		ussr.MarkCompletedObjective(ussrObj)
+	end
 end
 
 WorldLoaded = function()
 	greece = Player.GetPlayer("Greece")
 	ussr = Player.GetPlayer("USSR")
 	badguy = Player.GetPlayer("BadGuy")
-	
+
 	Trigger.OnObjectiveAdded(greece, function(p, id)
 		Media.DisplayMessage(p.GetObjectiveDescription(id), "New " .. string.lower(p.GetObjectiveType(id)) .. " objective")
 	end)
@@ -191,10 +168,10 @@ WorldLoaded = function()
 	Camera.Position = DefaultCameraPosition.CenterPosition
 
 	Trigger.AfterDelay(DateTime.Minutes(5), function() SendPatrol(PatrolMammoth) end)
-	Trigger.AfterDelay(DateTime.Minutes(5), function() MoveTruckNorth(Truck1) end)
-	Trigger.AfterDelay(DateTime.Minutes(9), function() MoveTruckNorth(Truck2) end)
-	Trigger.AfterDelay(DateTime.Minutes(12), function() MoveTruckSouth(Truck3) end)
-	Trigger.AfterDelay(DateTime.Minutes(15), function() MoveTruckNorth(Truck4) end)
-	Trigger.AfterDelay(DateTime.Minutes(17), function() MoveTruckSouth(Truck5) end)
-	Trigger.AfterDelay(DateTime.Minutes(18), function() MoveTruckSouth(IntroTruck2) end)
+	Trigger.AfterDelay(DateTime.Minutes(5), function() MoveTruckEscapeRoute(Truck1, TruckEscapeNorth) end)
+	Trigger.AfterDelay(DateTime.Minutes(9), function() MoveTruckEscapeRoute(Truck2, TruckEscapeNorth) end)
+	Trigger.AfterDelay(DateTime.Minutes(12), function() MoveTruckEscapeRoute(Truck3, TruckEscapeSouth) end)
+	Trigger.AfterDelay(DateTime.Minutes(15), function() MoveTruckEscapeRoute(Truck4, TruckEscapeNorth) end)
+	Trigger.AfterDelay(DateTime.Minutes(17), function() MoveTruckEscapeRoute(Truck5, TruckEscapeSouth) end)
+	Trigger.AfterDelay(DateTime.Minutes(18), function() MoveTruckEscapeRoute(IntroTruck2, TruckEscapeSouth) end)
 end

@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2018 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -32,7 +32,8 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 		internal Target Target;
 		internal StateMachine FuzzyStateMachine;
 
-		public Squad(IBot bot, SquadManagerBotModule squadManager, SquadType type) : this(bot, squadManager, type, null) { }
+		public Squad(IBot bot, SquadManagerBotModule squadManager, SquadType type)
+			: this(bot, squadManager, type, null) { }
 
 		public Squad(IBot bot, SquadManagerBotModule squadManager, SquadType type, Actor target)
 		{
@@ -104,7 +105,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 
 		internal void Damage(AttackInfo e)
 		{
-			// Friendly fire damage can happen, as weapons have spread damage.a
+			// Friendly fire damage can happen, as weapons have spread damage.
 			if (e.Attacker.AppearsFriendlyTo(Bot.Player.PlayerActor))
 				return;
 
@@ -122,6 +123,43 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 				ReflexAvoidance(e.Attacker);
 				FuzzyStateMachine.ChangeState(this, new AirFleeState(), true);
 			}
+		}
+
+		public MiniYaml Serialize()
+		{
+			var nodes = new MiniYaml("", new List<MiniYamlNode>()
+			{
+				new MiniYamlNode("Type", FieldSaver.FormatValue(Type)),
+				new MiniYamlNode("Units", FieldSaver.FormatValue(Units.Select(a => a.ActorID).ToArray())),
+			});
+
+			if (Target.Type == TargetType.Actor)
+				nodes.Nodes.Add(new MiniYamlNode("Target", FieldSaver.FormatValue(Target.Actor.ActorID)));
+
+			return nodes;
+		}
+
+		public static Squad Deserialize(IBot bot, SquadManagerBotModule squadManager, MiniYaml yaml)
+		{
+			var type = SquadType.Rush;
+			Actor targetActor = null;
+
+			var typeNode = yaml.Nodes.FirstOrDefault(n => n.Key == "Type");
+			if (typeNode != null)
+				type = FieldLoader.GetValue<SquadType>("Type", typeNode.Value.Value);
+
+			var targetNode = yaml.Nodes.FirstOrDefault(n => n.Key == "Target");
+			if (targetNode != null)
+				targetActor = squadManager.World.GetActorById(FieldLoader.GetValue<uint>("ActiveUnits", targetNode.Value.Value));
+
+			var squad = new Squad(bot, squadManager, type, targetActor);
+
+			var unitsNode = yaml.Nodes.FirstOrDefault(n => n.Key == "Units");
+			if (unitsNode != null)
+				squad.Units.AddRange(FieldLoader.GetValue<uint[]>("Units", unitsNode.Value.Value)
+					.Select(a => squadManager.World.GetActorById(a)));
+
+			return squad;
 		}
 	}
 }

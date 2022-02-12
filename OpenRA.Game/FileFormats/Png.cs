@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2018 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -11,17 +11,20 @@
 
 using System;
 using System.Collections.Generic;
-using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Net;
 using System.Text;
+using ICSharpCode.SharpZipLib.Checksum;
 using ICSharpCode.SharpZipLib.Zip.Compression.Streams;
+using OpenRA.Primitives;
 
 namespace OpenRA.FileFormats
 {
 	public class Png
 	{
+		static readonly byte[] Signature = { 0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a };
+
 		public int Width { get; set; }
 		public int Height { get; set; }
 		public Color[] Palette { get; set; }
@@ -36,9 +39,10 @@ namespace OpenRA.FileFormats
 			s.Position += 8;
 			var headerParsed = false;
 			var isPaletted = false;
+			var is24Bit = false;
 			var data = new List<byte>();
 
-			for (;;)
+			while (true)
 			{
 				var length = IPAddress.NetworkToHostOrder(s.ReadInt32());
 				var type = Encoding.UTF8.GetString(s.ReadBytes(4));
@@ -62,6 +66,7 @@ namespace OpenRA.FileFormats
 							var bitDepth = ms.ReadUInt8();
 							var colorType = (PngColorType)ms.ReadByte();
 							isPaletted = IsPaletted(bitDepth, colorType);
+							is24Bit = colorType == PngColorType.Color;
 
 							var dataLength = Width * Height;
 							if (!isPaletted)
@@ -128,21 +133,33 @@ namespace OpenRA.FileFormats
 							{
 								using (var ds = new InflaterInputStream(ns))
 								{
-									var pxStride = isPaletted ? 1 : 4;
-									var stride = Width * pxStride;
+									var pxStride = isPaletted ? 1 : is24Bit ? 3 : 4;
+									var srcStride = Width * pxStride;
+									var destStride = Width * (isPaletted ? 1 : 4);
 
-									var prevLine = new byte[stride];
+									var prevLine = new byte[srcStride];
 									for (var y = 0; y < Height; y++)
 									{
 										var filter = (PngFilter)ds.ReadByte();
-										var line = ds.ReadBytes(stride);
+										var line = ds.ReadBytes(srcStride);
 
-										for (var i = 0; i < stride; i++)
+										for (var i = 0; i < srcStride; i++)
 											line[i] = i < pxStride
 												? UnapplyFilter(filter, line[i], 0, prevLine[i], 0)
 												: UnapplyFilter(filter, line[i], line[i - pxStride], prevLine[i], prevLine[i - pxStride]);
 
-										Array.Copy(line, 0, Data, y * stride, line.Length);
+										if (is24Bit)
+										{
+											// Fold alpha channel into RGB data
+											for (var i = 0; i < line.Length / 3; i++)
+											{
+												Array.Copy(line, 3 * i, Data, y * destStride + 4 * i, 3);
+												Data[y * destStride + 4 * i + 3] = 255;
+											}
+										}
+										else
+											Array.Copy(line, 0, Data, y * destStride, line.Length);
+
 										prevLine = line;
 									}
 								}
@@ -158,11 +175,30 @@ namespace OpenRA.FileFormats
 			}
 		}
 
+		public Png(byte[] data, int width, int height, Color[] palette = null,
+			Dictionary<string, string> embeddedData = null)
+		{
+			var expectLength = width * height;
+			if (palette == null)
+				expectLength *= 4;
+
+			if (data.Length != expectLength)
+				throw new InvalidDataException("Input data does not match expected length");
+
+			Width = width;
+			Height = height;
+
+			Palette = palette;
+			Data = data;
+
+			if (embeddedData != null)
+				EmbeddedData = embeddedData;
+		}
+
 		public static bool Verify(Stream s)
 		{
 			var pos = s.Position;
-			var signature = new[] { 0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a };
-			var isPng = signature.Aggregate(true, (current, t) => current && s.ReadUInt8() == t);
+			var isPng = Signature.Aggregate(true, (current, t) => current && s.ReadUInt8() == t);
 			s.Position = pos;
 			return isPng;
 		}
@@ -204,7 +240,116 @@ namespace OpenRA.FileFormats
 			if (bitDepth == 8 && colorType == (PngColorType.Color | PngColorType.Alpha))
 				return false;
 
+			if (bitDepth == 8 && colorType == PngColorType.Color)
+				return false;
+
 			throw new InvalidDataException("Unknown pixel format");
+		}
+
+		void WritePngChunk(Stream output, string type, Stream input)
+		{
+			input.Position = 0;
+
+			var typeBytes = Encoding.ASCII.GetBytes(type);
+			output.Write(IPAddress.HostToNetworkOrder((int)input.Length));
+			output.WriteArray(typeBytes);
+
+			var data = input.ReadAllBytes();
+			output.WriteArray(data);
+
+			var crc32 = new Crc32();
+			crc32.Update(typeBytes);
+			crc32.Update(data);
+			output.Write(IPAddress.NetworkToHostOrder((int)crc32.Value));
+		}
+
+		public byte[] Save()
+		{
+			using (var output = new MemoryStream())
+			{
+				output.WriteArray(Signature);
+				using (var header = new MemoryStream())
+				{
+					header.Write(IPAddress.HostToNetworkOrder(Width));
+					header.Write(IPAddress.HostToNetworkOrder(Height));
+					header.WriteByte(8); // Bit depth
+
+					var colorType = Palette != null
+						? PngColorType.Indexed | PngColorType.Color
+						: PngColorType.Color | PngColorType.Alpha;
+					header.WriteByte((byte)colorType);
+
+					header.WriteByte(0); // Compression
+					header.WriteByte(0); // Filter
+					header.WriteByte(0); // Interlacing
+
+					WritePngChunk(output, "IHDR", header);
+				}
+
+				bool alphaPalette = false;
+				if (Palette != null)
+				{
+					using (var palette = new MemoryStream())
+					{
+						foreach (var c in Palette)
+						{
+							palette.WriteByte(c.R);
+							palette.WriteByte(c.G);
+							palette.WriteByte(c.B);
+							alphaPalette |= c.A > 0;
+						}
+
+						WritePngChunk(output, "PLTE", palette);
+					}
+				}
+
+				if (alphaPalette)
+				{
+					using (var alpha = new MemoryStream())
+					{
+						foreach (var c in Palette)
+							alpha.WriteByte(c.A);
+
+						WritePngChunk(output, "tRNS", alpha);
+					}
+				}
+
+				using (var data = new MemoryStream())
+				{
+					using (var compressed = new DeflaterOutputStream(data))
+					{
+						var stride = Width * (Palette != null ? 1 : 4);
+						for (var y = 0; y < Height; y++)
+						{
+							// Write uncompressed scanlines for simplicity
+							compressed.WriteByte(0);
+							compressed.Write(Data, y * stride, stride);
+						}
+
+						compressed.Flush();
+						compressed.Finish();
+
+						WritePngChunk(output, "IDAT", data);
+					}
+				}
+
+				foreach (var kv in EmbeddedData)
+				{
+					using (var text = new MemoryStream())
+					{
+						text.WriteArray(Encoding.ASCII.GetBytes(kv.Key + (char)0 + kv.Value));
+						WritePngChunk(output, "tEXt", text);
+					}
+				}
+
+				WritePngChunk(output, "IEND", new MemoryStream());
+				return output.ToArray();
+			}
+		}
+
+		public void Save(string path)
+		{
+			File.WriteAllBytes(path, Save());
 		}
 	}
 }

@@ -15,6 +15,8 @@ World:
 			normal: Normal
 			hard: Hard
 		Default: normal
+	TimeLimitManager:
+		TimeLimitLocked: True
 
 ^Palettes:
 	FixedColorPalette@SovietTruk:
@@ -101,6 +103,11 @@ TRUK.Hijackable:
 		Range: 6c0
 	Voiced:
 		VoiceSet: SpyVoice
+
+HARV:
+	Harvester:
+		SearchFromProcRadius: 25
+		SearchFromHarvesterRadius: 25
 
 E7:
 	Buildable:

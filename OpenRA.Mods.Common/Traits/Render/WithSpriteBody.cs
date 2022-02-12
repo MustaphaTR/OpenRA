@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2018 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -11,9 +11,9 @@
 
 using System;
 using System.Collections.Generic;
-using System.Drawing;
 using OpenRA.Graphics;
 using OpenRA.Mods.Common.Graphics;
+using OpenRA.Primitives;
 using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.Traits.Render
@@ -21,10 +21,12 @@ namespace OpenRA.Mods.Common.Traits.Render
 	[Desc("Default trait for rendering sprite-based actors.")]
 	public class WithSpriteBodyInfo : PausableConditionalTraitInfo, IRenderActorPreviewSpritesInfo, Requires<RenderSpritesInfo>
 	{
-		[Desc("Animation to play when the actor is created."), SequenceReference]
+		[SequenceReference]
+		[Desc("Animation to play when the actor is created.")]
 		public readonly string StartSequence = null;
 
-		[Desc("Animation to play when the actor is idle."), SequenceReference]
+		[SequenceReference]
+		[Desc("Animation to play when the actor is idle.")]
 		public readonly string Sequence = "idle";
 
 		[Desc("Identifier used to assign modifying traits to this sprite body.")]
@@ -77,12 +79,6 @@ namespace OpenRA.Mods.Common.Traits.Render
 			// Cache the bounds from the default sequence to avoid flickering when the animation changes
 			boundsAnimation = new Animation(init.World, rs.GetImage(init.Self), baseFacing, paused);
 			boundsAnimation.PlayRepeating(info.Sequence);
-
-			if (info.StartSequence != null)
-				PlayCustomAnimation(init.Self, info.StartSequence,
-					() => DefaultAnimation.PlayRepeating(NormalizeSequence(init.Self, info.Sequence)));
-			else
-				DefaultAnimation.PlayRepeating(NormalizeSequence(init.Self, info.Sequence));
 		}
 
 		public string NormalizeSequence(Actor self, string sequence)
@@ -92,7 +88,11 @@ namespace OpenRA.Mods.Common.Traits.Render
 
 		protected override void TraitEnabled(Actor self)
 		{
-			DefaultAnimation.PlayRepeating(NormalizeSequence(self, Info.Sequence));
+			if (Info.StartSequence != null)
+				PlayCustomAnimation(self, Info.StartSequence,
+					() => DefaultAnimation.PlayRepeating(NormalizeSequence(self, Info.Sequence)));
+			else
+				DefaultAnimation.PlayRepeating(NormalizeSequence(self, Info.Sequence));
 		}
 
 		public virtual void PlayCustomAnimation(Actor self, string name, Action after = null)

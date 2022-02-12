@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2018 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -10,9 +10,10 @@
 #endregion
 
 using System;
-using System.Drawing;
+using System.Collections.Generic;
 using OpenRA.Graphics;
 using OpenRA.Mods.Common.Graphics;
+using OpenRA.Primitives;
 
 namespace OpenRA.Mods.Common.HitShapes
 {
@@ -57,14 +58,11 @@ namespace OpenRA.Mods.Common.HitShapes
 			return DistanceFromEdge(pos - new WPos(actorPos.X, actorPos.Y, pos.Z));
 		}
 
-		public void DrawCombatOverlay(WorldRenderer wr, RgbaColorRenderer wcr, Actor actor)
+		IEnumerable<IRenderable> IHitShape.RenderDebugOverlay(WorldRenderer wr, Actor actor)
 		{
 			var actorPos = actor.CenterPosition;
-
-			RangeCircleRenderable.DrawRangeCircle(
-				wr, actorPos + new WVec(0, 0, VerticalTopOffset), Radius, 1, Color.Yellow, 0, Color.Yellow);
-			RangeCircleRenderable.DrawRangeCircle(
-				wr, actorPos + new WVec(0, 0, VerticalBottomOffset), Radius, 1, Color.Yellow, 0, Color.Yellow);
+			yield return new CircleAnnotationRenderable(actorPos + new WVec(0, 0, VerticalTopOffset), Radius, 1, Color.Yellow);
+			yield return new CircleAnnotationRenderable(actorPos + new WVec(0, 0, VerticalBottomOffset), Radius, 1, Color.Yellow);
 		}
 	}
 }

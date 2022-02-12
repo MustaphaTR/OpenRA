@@ -192,6 +192,8 @@ tent:
 		Length: *
 	icon: tenticon
 		UseTilesetExtension: false
+	fake-icon: tenficon
+		UseTilesetExtension: false
 
 kenn:
 	idle:
@@ -255,6 +257,8 @@ weap:
 	idle:
 	damaged-idle:
 		Start: 1
+	place: weapmake
+		Start: 14
 	make: weapmake
 		Length: *
 	build-top: weap3

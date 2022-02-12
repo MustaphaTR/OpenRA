@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2018 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -10,7 +10,6 @@
 #endregion
 
 using System;
-using System.Drawing;
 using OpenRA.Activities;
 using OpenRA.Mods.Common.Activities;
 using OpenRA.Primitives;
@@ -21,8 +20,9 @@ namespace OpenRA.Mods.Common.Traits
 	[Desc("Deliver the unit in production via paradrop.")]
 	public class ProductionParadropInfo : ProductionInfo, Requires<ExitInfo>
 	{
+		[ActorReference(typeof(AircraftInfo))]
 		[Desc("Cargo aircraft used. Must have Aircraft trait.")]
-		[ActorReference(typeof(AircraftInfo))] public readonly string ActorType = "badr";
+		public readonly string ActorType = "badr";
 
 		[Desc("Sound to play when dropping the unit.")]
 		public readonly string ChuteSound = null;
@@ -103,7 +103,6 @@ namespace OpenRA.Mods.Common.Traits
 		{
 			var exit = CPos.Zero;
 			var exitLocation = CPos.Zero;
-			var target = Target.Invalid;
 
 			var info = (ProductionParadropInfo)Info;
 			var actorType = info.ActorType;
@@ -124,35 +123,26 @@ namespace OpenRA.Mods.Common.Traits
 				var initialFacing = exitinfo.Facing < 0 ? (to - spawn).Yaw.Facing : exitinfo.Facing;
 
 				exitLocation = rp.Value != null ? rp.Value.Location : exit;
-				target = Target.FromCell(self.World, exitLocation);
 
 				td.Add(new LocationInit(exit));
 				td.Add(new CenterPositionInit(spawn));
 				td.Add(new FacingInit(initialFacing));
+				td.Add(new CreationActivityDelayInit(exitinfo.ExitDelay));
 			}
 
 			self.World.AddFrameEndTask(w =>
 			{
 				var newUnit = self.World.CreateActor(producee.Name, td);
+				newUnit.Trait<Parachutable>().IgnoreActor = self;
 
-				newUnit.QueueActivity(new Parachute(newUnit, newUnit.CenterPosition, self));
 				var move = newUnit.TraitOrDefault<IMove>();
 				if (move != null)
 				{
-					if (exitinfo.MoveIntoWorld)
-					{
-						if (exitinfo.ExitDelay > 0)
-							newUnit.QueueActivity(new Wait(exitinfo.ExitDelay, false));
-
-						newUnit.QueueActivity(move.MoveIntoWorld(newUnit, exit));
-						if (rp.Value != null)
-							rp.Value.QueueRallyOrder(self, newUnit);
-						else
-							newUnit.QueueActivity(new AttackMoveActivity(newUnit, move.MoveTo(exitLocation, 1)));
-					}
+					if (rp.Value != null)
+						rp.Value.QueueRallyOrder(self, newUnit);
+					else
+						newUnit.QueueActivity(new AttackMoveActivity(newUnit, () => move.MoveTo(exitLocation, 1, targetLineColor: Color.OrangeRed)));
 				}
-
-				newUnit.SetTargetLine(target, rp.Value != null ? Color.Red : Color.Green, false);
 
 				if (!self.IsDead)
 					foreach (var t in self.TraitsImplementing<INotifyProduction>())

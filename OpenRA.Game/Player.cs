@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2018 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -11,7 +11,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Drawing;
 using System.Linq;
 using Eluant;
 using Eluant.ObjectBinding;
@@ -34,6 +33,8 @@ namespace OpenRA
 
 	public enum WinState { Undefined, Won, Lost }
 
+	public class PlayerBitMask { }
+
 	public class Player : IScriptBindable, IScriptNotifyBind, ILuaTableBinding, ILuaEqualityBinding, ILuaToStringBinding
 	{
 		struct StanceColors
@@ -45,7 +46,7 @@ namespace OpenRA
 		}
 
 		public readonly Actor PlayerActor;
-		public readonly HSLColor Color;
+		public readonly Color Color;
 
 		public readonly string PlayerName;
 		public readonly string InternalName;
@@ -71,6 +72,12 @@ namespace OpenRA
 
 		readonly bool inMissionMap;
 		readonly IUnlocksRenderPlayer[] unlockRenderPlayer;
+
+		// Each player is identified with a unique bit in the set
+		// Cache masks for the player's index and ally/enemy player indices for performance.
+		public LongBitSet<PlayerBitMask> PlayerMask;
+		public LongBitSet<PlayerBitMask> AlliedPlayersMask = default(LongBitSet<PlayerBitMask>);
+		public LongBitSet<PlayerBitMask> EnemyPlayersMask = default(LongBitSet<PlayerBitMask>);
 
 		public bool UnlockedRenderPlayer
 		{
@@ -153,6 +160,9 @@ namespace OpenRA
 				Faction = ChooseFaction(world, pr.Faction, false);
 				DisplayFaction = ChooseDisplayFaction(world, pr.Faction);
 			}
+
+			if (!Spectating)
+				PlayerMask = new LongBitSet<PlayerBitMask>(InternalName);
 
 			var playerActorType = world.Type == WorldType.Editor ? "EditorPlayer" : "Player";
 			PlayerActor = world.CreateActor(playerActorType, new TypeDictionary { new OwnerInit(this) });

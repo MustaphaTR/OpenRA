@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2018 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -10,8 +10,8 @@
 #endregion
 
 using System;
-using System.Drawing;
 using OpenRA.Graphics;
+using OpenRA.Primitives;
 
 namespace OpenRA
 {
@@ -19,6 +19,7 @@ namespace OpenRA
 	{
 		IPlatformWindow CreateWindow(Size size, WindowMode windowMode, int batchSize);
 		ISoundEngine CreateSound(string device);
+		IFont CreateFont(byte[] data);
 	}
 
 	public interface IHardwareCursor : IDisposable { }
@@ -40,6 +41,8 @@ namespace OpenRA
 
 		Size WindowSize { get; }
 		float WindowScale { get; }
+		Size SurfaceSize { get; }
+
 		event Action<float, float> OnWindowScaleChanged;
 
 		void PumpInput(IInputHandler inputHandler);
@@ -51,6 +54,7 @@ namespace OpenRA
 
 		IHardwareCursor CreateHardwareCursor(string name, Size size, byte[] data, int2 hotspot);
 		void SetHardwareCursor(IHardwareCursor cursor);
+		void SetRelativeMouseMode(bool mode);
 	}
 
 	public interface IGraphicsContext : IDisposable
@@ -58,10 +62,10 @@ namespace OpenRA
 		IVertexBuffer<Vertex> CreateVertexBuffer(int size);
 		ITexture CreateTexture();
 		IFrameBuffer CreateFrameBuffer(Size s);
+		IFrameBuffer CreateFrameBuffer(Size s, Color clearColor);
 		IShader CreateShader(string name);
-		void EnableScissor(int left, int top, int width, int height);
+		void EnableScissor(int x, int y, int width, int height);
 		void DisableScissor();
-		Bitmap TakeScreenshot();
 		void Present();
 		void DrawPrimitives(PrimitiveType pt, int firstVertex, int numVertices);
 		void Clear();
@@ -128,5 +132,18 @@ namespace OpenRA
 		Windowed,
 		Fullscreen,
 		PseudoFullscreen,
+	}
+
+	public interface IFont : IDisposable
+	{
+		FontGlyph CreateGlyph(char c, int size, float deviceScale);
+	}
+
+	public struct FontGlyph
+	{
+		public int2 Offset;
+		public Size Size;
+		public float Advance;
+		public byte[] Data;
 	}
 }

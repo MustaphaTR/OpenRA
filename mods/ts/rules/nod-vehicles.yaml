@@ -104,7 +104,8 @@ TTNK:
 	Mobile:
 		TurnSpeed: 5
 		Speed: 85
-		RequiresCondition: !empdisable && undeployed && !being-captured
+		ImmovableCondition: !undeployed
+		RequireForceMoveCondition: !undeployed
 	Health:
 		HP: 35000
 	Armor:
@@ -131,12 +132,22 @@ TTNK:
 		Image: ttnk
 	WithMakeAnimation:
 	GrantConditionOnDeploy:
+		PauseOnCondition: empdisable || being-captured
 		DeployedCondition: deployed
 		UndeployedCondition: undeployed
+		UndeployOnMove: true
+		UndeployOnPickup: true
 		Facing: 160
 		AllowedTerrainTypes: Clear, Road, DirtRoad, Rough
-		DeploySound: place2.aud
-		UndeploySound: clicky1.aud
+		DeploySounds: place2.aud
+		UndeploySounds: clicky1.aud
+		Voice: Move
+	EntersTunnels:
+		RequireForceMoveCondition: !undeployed
+	Repairable:
+		RequireForceMoveCondition: !undeployed
+	Passenger:
+		RequireForceMoveCondition: !undeployed
 	GrantCondition@PREVIEWWORKAROUND:
 		Condition: real-actor
 	WithVoxelBody:
@@ -166,6 +177,7 @@ TTNK:
 		Turrets: deployed
 		RequiresCondition: deployed
 		PauseOnCondition: empdisable
+		OutsideRangeRequiresForceFire: True
 	Armament@deployed:
 		Name: deployed
 		Turret: deployed
@@ -189,8 +201,6 @@ TTNK:
 		Range: 1c768
 		RequiresCondition: rank-elite
 	RenderDetectionCircle:
-	Carryable:
-		RequiresCondition: undeployed
 	RevealOnFire:
 		ArmamentNames: primary, deployed
 	RenderVoxels:
@@ -223,7 +233,8 @@ ART2:
 	Mobile:
 		Speed: 71
 		TurnSpeed: 2
-		RequiresCondition: !empdisable && undeployed && !being-captured
+		ImmovableCondition: !undeployed
+		RequireForceMoveCondition: !undeployed
 	RevealsShroud:
 		RequiresCondition: !inside-tunnel
 		Range: 9c0
@@ -234,12 +245,22 @@ ART2:
 		Image: art2
 	WithMakeAnimation:
 	GrantConditionOnDeploy:
+		PauseOnCondition: empdisable || being-captured
 		DeployedCondition: deployed
 		UndeployedCondition: undeployed
+		UndeployOnMove: true
+		UndeployOnPickup: true
 		Facing: 96
 		AllowedTerrainTypes: Clear, Road, DirtRoad, Rough
-		DeploySound: place2.aud
-		UndeploySound: clicky1.aud
+		DeploySounds: place2.aud
+		UndeploySounds: clicky1.aud
+		Voice: Move
+	EntersTunnels:
+		RequireForceMoveCondition: !undeployed
+	Repairable:
+		RequireForceMoveCondition: !undeployed
+	Passenger:
+		RequireForceMoveCondition: !undeployed
 	GrantCondition@PREVIEWWORKAROUND:
 		Condition: real-actor
 	WithVoxelBody:
@@ -256,10 +277,10 @@ ART2:
 		Armament: deployed
 		LocalOffset: 203,0,0
 		LocalOrientation: 0, 128, 0
-		RequiresCondition: deployed
+		RequiresCondition: !undeployed
 	WithVoxelTurret@deployed:
 		Turret: deployed
-		RequiresCondition: deployed
+		RequiresCondition: !undeployed
 	AttackTurreted@deployed:
 		Voice: Attack
 		Armaments: deployed
@@ -268,6 +289,7 @@ ART2:
 		PauseOnCondition: empdisable
 		TargetFrozenActors: True
 		ForceFireIgnoresActors: True
+		OutsideRangeRequiresForceFire: True
 	Armament@deployed:
 		Name: deployed
 		Turret: deployed
@@ -277,8 +299,6 @@ ART2:
 		MuzzleSequence: muzzle
 		MuzzlePalette: effect-ignore-lighting
 	WithMuzzleOverlay:
-	Carryable:
-		RequiresCondition: undeployed
 	RevealOnFire:
 		ArmamentNames: deployed
 
@@ -315,8 +335,10 @@ REPAIR:
 		Voice: Attack
 		PauseOnCondition: empdisable
 	AutoTarget:
+		ScanRadius: 8
+		InitialStance: AttackAnything
 	AutoTargetPriority@DEFAULT:
-		ValidTargets: Vehicles
+		ValidTargets: Vehicle
 
 WEED:
 	Inherits: ^Tank
@@ -337,7 +359,7 @@ WEED:
 		BaleUnloadDelay: 20
 		BaleLoadDelay: 40
 		SearchFromProcRadius: 72
-		SearchFromOrderRadius: 36
+		SearchFromHarvesterRadius: 36
 		HarvestVoice: Attack
 		DeliverVoice: Move
 	Mobile:
@@ -378,7 +400,7 @@ SAPC:
 	Mobile:
 		TurnSpeed: 5
 		Speed: 71
-		RequiresCondition: !empdisable && !loading && !being-captured
+		PauseOnCondition: empdisable || loading || being-captured || carried
 		Locomotor: subterranean
 	Health:
 		HP: 17500
@@ -399,11 +421,16 @@ SAPC:
 		RequiresCondition: !submerged
 	Targetable:
 		RequiresCondition: !inside-tunnel && !submerged
+	Targetable@UNDERGROUND:
+		TargetTypes: Underground
+		RequiresCondition: submerged
 	GrantConditionOnSubterraneanLayer:
 		Condition: submerged
 		SubterraneanTransitionImage: dig
 		SubterraneanTransitionSequence: idle
 		SubterraneanTransitionSound: subdril1.aud
+	Carryable:
+		RequiresCondition: !submerged
 
 SUBTANK:
 	Inherits: ^Tank
@@ -442,11 +469,16 @@ SUBTANK:
 		RequiresCondition: !submerged
 	Targetable:
 		RequiresCondition: !inside-tunnel && !submerged
+	Targetable@UNDERGROUND:
+		TargetTypes: Underground
+		RequiresCondition: submerged
 	GrantConditionOnSubterraneanLayer:
 		Condition: submerged
 		SubterraneanTransitionImage: dig
 		SubterraneanTransitionSequence: idle
 		SubterraneanTransitionSound: subdril1.aud
+	Carryable:
+		RequiresCondition: !submerged
 
 STNK:
 	Inherits: ^Tank

@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2018 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -46,7 +46,7 @@ namespace OpenRA.Mods.Common.Traits
 
 			var mobile = self.TraitOrDefault<Mobile>();
 			if (mobile != null && self.World.SharedRandom.Next(100) <= Info.WarnProbability)
-				mobile.Nudge(self, crusher, true);
+				mobile.Nudge(crusher);
 		}
 
 		void INotifyCrushed.OnCrush(Actor self, Actor crusher, BitSet<CrushClass> crushClasses)
@@ -65,6 +65,14 @@ namespace OpenRA.Mods.Common.Traits
 			return CrushableInner(crushClasses, crusher.Owner);
 		}
 
+		LongBitSet<PlayerBitMask> ICrushable.CrushableBy(Actor self, BitSet<CrushClass> crushClasses)
+		{
+			if (IsTraitDisabled || !self.IsAtGroundLevel() || !Info.CrushClasses.Overlaps(crushClasses))
+				return self.World.NoPlayersMask;
+
+			return Info.CrushedByFriendlies ? self.World.AllPlayersMask : self.Owner.EnemyPlayersMask;
+		}
+
 		bool CrushableInner(BitSet<CrushClass> crushClasses, Player crushOwner)
 		{
 			if (IsTraitDisabled)
@@ -78,6 +86,16 @@ namespace OpenRA.Mods.Common.Traits
 				return false;
 
 			return Info.CrushClasses.Overlaps(crushClasses);
+		}
+
+		protected override void TraitEnabled(Actor self)
+		{
+			self.World.ActorMap.UpdateOccupiedCells(self.OccupiesSpace);
+		}
+
+		protected override void TraitDisabled(Actor self)
+		{
+			self.World.ActorMap.UpdateOccupiedCells(self.OccupiesSpace);
 		}
 	}
 }

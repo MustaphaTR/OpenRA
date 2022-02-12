@@ -964,8 +964,6 @@ c1:
 	stand:
 		Facings: 8
 	panic-stand:
-		Start: 8
-		Stride: 6
 		Facings: 8
 	panic-run:
 		Start: 8
@@ -1014,8 +1012,6 @@ c2:
 	stand:
 		Facings: 8
 	panic-stand:
-		Start: 8
-		Stride: 6
 		Facings: 8
 	panic-run:
 		Start: 8
@@ -1064,8 +1060,6 @@ c3:
 	stand:
 		Facings: 8
 	panic-stand:
-		Start: 8
-		Stride: 6
 		Facings: 8
 	panic-run:
 		Start: 8
@@ -1113,13 +1107,11 @@ c3:
 einstein:
 	stand:
 		Facings: 8
+	panic-stand:
+		Facings: 8
 	panic-run:
 		Start: 8
 		Length: 6
-		Facings: 8
-	panic-stand:
-		Start: 8
-		Stride: 6
 		Facings: 8
 	run:
 		Start: 56
@@ -1159,13 +1151,11 @@ einstein:
 delphi:
 	stand:
 		Facings: 8
+	panic-stand:
+		Facings: 8
 	panic-run:
 		Start: 8
 		Length: 6
-		Facings: 8
-	panic-stand:
-		Start: 8
-		Stride: 6
 		Facings: 8
 	run:
 		Start: 56
@@ -1205,13 +1195,11 @@ delphi:
 chan:
 	stand:
 		Facings: 8
+	panic-stand:
+		Facings: 8
 	panic-run:
 		Start: 8
 		Length: 6
-		Facings: 8
-	panic-stand:
-		Start: 8
-		Stride: 6
 		Facings: 8
 	run:
 		Start: 56
@@ -1253,11 +1241,12 @@ zombie:
 		Facings: 8
 	stand2:
 		Start: 8
-		Length: 8
+		Facings: 8
 	run:
 		Start: 16
 		Length: 6
 		Facings: 8
+		Tick: 100
 	bite:
 		Start: 64
 		Length: 4
@@ -1268,19 +1257,19 @@ zombie:
 		Tick: 120
 	die1:
 		Start: 106
-		Length: 7
+		Length: 8
 	die2:
 		Start: 106
-		Length: 7
+		Length: 8
 	die3:
 		Start: 106
-		Length: 7
+		Length: 8
 	die4:
 		Start: 106
-		Length: 7
+		Length: 8
 	die5:
 		Start: 114
-		Length: 18
+		Length: 19
 	die6: electro
 		Length: *
 		UseTilesetExtension: true
@@ -1300,9 +1289,6 @@ zombie:
 ant:
 	stand: ant1
 		Facings: 8
-	stand2: ant1
-		Start: 8
-		Length: 8
 	run: ant1
 		Start: 8
 		Length: 8
@@ -1325,9 +1311,6 @@ ant:
 fireant:
 	stand: ant2
 		Facings: 8
-	stand2: ant2
-		Start: 8
-		Length: 8
 	run: ant2
 		Start: 8
 		Length: 8
@@ -1350,9 +1333,6 @@ fireant:
 scoutant:
 	stand: ant3
 		Facings: 8
-	stand2: ant3
-		Start: 8
-		Length: 8
 	run: ant3
 		Start: 8
 		Length: 8

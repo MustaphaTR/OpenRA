@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2018 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -21,7 +21,8 @@ namespace OpenRA.Mods.Cnc.Traits
 	[Desc("Transform into a different actor type.")]
 	class InfiltrateForTransformInfo : ITraitInfo
 	{
-		[ActorReference, FieldLoader.Require]
+		[ActorReference]
+		[FieldLoader.Require]
 		public readonly string IntoActor = null;
 
 		public readonly int ForceHealthPercentage = 0;
@@ -60,8 +61,7 @@ namespace OpenRA.Mods.Cnc.Traits
 			if (facing != null)
 				transform.Facing = facing.Facing;
 
-			self.CancelActivity();
-			self.QueueActivity(transform);
+			self.QueueActivity(false, transform);
 		}
 	}
 }

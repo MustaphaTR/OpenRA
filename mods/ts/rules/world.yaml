@@ -3,6 +3,7 @@
 	AlwaysVisible:
 	ScreenMap:
 	ActorMap:
+	Selection:
 	MusicPlaylist:
 		VictoryMusic: score
 		DefeatMusic: maps
@@ -368,11 +369,14 @@ World:
 		PanelName: SKIRMISH_STATS
 	LoadWidgetAtGameStart:
 		ShellmapRoot: MAINMENU_PRERELEASE_NOTIFICATION
+	ScriptTriggers:
+	TimeLimitManager:
 
 EditorWorld:
 	Inherits: ^BaseWorld
 	EditorActorLayer:
 	EditorResourceLayer:
 	EditorSelectionLayer:
-		Palette: placebuilding
+		Palette: placefootprint
 	LoadWidgetAtGameStart:
+	EditorActionManager:

@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2018 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -10,13 +10,14 @@
 #endregion
 
 using System.Collections.Generic;
+using System.Linq;
 using OpenRA.Effects;
 using OpenRA.Graphics;
 using OpenRA.Mods.Common.Traits;
 
 namespace OpenRA.Mods.Common.Effects
 {
-	class RallyPointIndicator : IEffect, IEffectAboveShroud
+	class RallyPointIndicator : IEffect, IEffectAboveShroud, IEffectAnnotation
 	{
 		readonly Actor building;
 		readonly RallyPoint rp;
@@ -92,26 +93,32 @@ namespace OpenRA.Mods.Common.Effects
 			if (!building.World.Selection.Contains(building))
 				return SpriteRenderable.None;
 
-			return RenderInner(wr);
-		}
-
-		IEnumerable<IRenderable> RenderInner(WorldRenderer wr)
-		{
-			if (Game.Settings.Game.DrawTargetLine)
-				yield return new TargetLineRenderable(targetLine, building.Owner.Color.RGB);
-
+			var renderables = SpriteRenderable.None;
 			if (circles != null || flag != null)
 			{
 				var palette = wr.Palette(rp.PaletteName);
-
 				if (circles != null)
-					foreach (var r in circles.Render(targetLine[1], palette))
-						yield return r;
+					renderables = renderables.Concat(circles.Render(targetLine[1], palette));
 
 				if (flag != null)
-					foreach (var r in flag.Render(targetLine[1], palette))
-						yield return r;
+					renderables = renderables.Concat(flag.Render(targetLine[1], palette));
 			}
+
+			return renderables;
+		}
+
+		IEnumerable<IRenderable> IEffectAnnotation.RenderAnnotation(WorldRenderer wr)
+		{
+			if (Game.Settings.Game.TargetLines == TargetLinesType.Disabled)
+				return SpriteRenderable.None;
+
+			if (!building.IsInWorld || !building.Owner.IsAlliedWith(building.World.LocalPlayer))
+				return SpriteRenderable.None;
+
+			if (!building.World.Selection.Contains(building))
+				return SpriteRenderable.None;
+
+			return new IRenderable[] { new TargetLineRenderable(targetLine, building.Owner.Color, rp.Info.LineWidth) };
 		}
 	}
 }

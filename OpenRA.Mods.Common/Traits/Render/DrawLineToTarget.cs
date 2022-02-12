@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2018 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -10,24 +10,38 @@
 #endregion
 
 using System.Collections.Generic;
-using System.Drawing;
+using System.Linq;
 using OpenRA.Graphics;
+using OpenRA.Mods.Common.Orders;
 using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.Traits
 {
+	[Desc("Renders target lines between order waypoints.")]
 	public class DrawLineToTargetInfo : ITraitInfo
 	{
+		[Desc("Delay (in ticks) before the target lines disappear.")]
 		public readonly int Delay = 60;
+
+		[Desc("Width (in pixels) of the target lines.")]
+		public readonly int LineWidth = 1;
+
+		[Desc("Width (in pixels) of the queued target lines.")]
+		public readonly int QueuedLineWidth = 1;
+
+		[Desc("Width (in pixels) of the end node markers.")]
+		public readonly int MarkerWidth = 2;
+
+		[Desc("Width (in pixels) of the queued end node markers.")]
+		public readonly int QueuedMarkerWidth = 2;
 
 		public virtual object Create(ActorInitializer init) { return new DrawLineToTarget(init.Self, this); }
 	}
 
-	public class DrawLineToTarget : IRenderAboveShroudWhenSelected, INotifySelected, INotifyBecomingIdle, INotifyOwnerChanged
+	public class DrawLineToTarget : IRenderAboveShroud, IRenderAnnotationsWhenSelected, INotifySelected
 	{
 		readonly DrawLineToTargetInfo info;
-		List<Target> targets;
-		Color c;
+		readonly List<IRenderable> renderableCache = new List<IRenderable>();
 		int lifetime;
 
 		public DrawLineToTarget(Actor self, DrawLineToTargetInfo info)
@@ -35,92 +49,96 @@ namespace OpenRA.Mods.Common.Traits
 			this.info = info;
 		}
 
-		public void SetTarget(Actor self, Target target, Color c, bool display)
+		public void ShowTargetLines(Actor self)
 		{
-			targets = new List<Target> { target };
-			this.c = c;
-
-			if (display)
-				lifetime = info.Delay;
-		}
-
-		public void SetTargets(Actor self, List<Target> targets, Color c, bool display)
-		{
-			this.targets = targets;
-			this.c = c;
-
-			if (display)
-				lifetime = info.Delay;
-		}
-
-		void INotifySelected.Selected(Actor a)
-		{
-			if (a.IsIdle)
+			if (Game.Settings.Game.TargetLines < TargetLinesType.Automatic || self.IsIdle)
 				return;
 
 			// Reset the order line timeout.
 			lifetime = info.Delay;
 		}
 
-		IEnumerable<IRenderable> IRenderAboveShroudWhenSelected.RenderAboveShroud(Actor self, WorldRenderer wr)
+		void INotifySelected.Selected(Actor self)
 		{
-			var force = Game.GetModifierKeys().HasModifier(Modifiers.Alt);
-			if ((lifetime <= 0 || --lifetime <= 0) && !force)
+			ShowTargetLines(self);
+		}
+
+		IEnumerable<IRenderable> IRenderAboveShroud.RenderAboveShroud(Actor self, WorldRenderer wr)
+		{
+			if (!self.Owner.IsAlliedWith(self.World.LocalPlayer) || Game.Settings.Game.TargetLines == TargetLinesType.Disabled)
 				yield break;
 
-			if (!(force || Game.Settings.Game.DrawTargetLine))
+			// Players want to see the lines when in waypoint mode.
+			var force = Game.GetModifierKeys().HasModifier(Modifiers.Shift) || self.World.OrderGenerator is ForceModifiersOrderGenerator;
+
+			if (--lifetime <= 0 && !force)
 				yield break;
 
-			if (targets == null || targets.Count == 0)
-				yield break;
+			var pal = wr.Palette(TileSet.TerrainPaletteInternalName);
+			var a = self.CurrentActivity;
+			for (; a != null; a = a.NextActivity)
+				if (!a.IsCanceling)
+					foreach (var n in a.TargetLineNodes(self))
+						if (n.Tile != null && n.Target.Type != TargetType.Invalid)
+							yield return new SpriteRenderable(n.Tile, n.Target.CenterPosition, WVec.Zero, -511, pal, 1f, true);
+		}
 
-			foreach (var target in targets)
+		bool IRenderAboveShroud.SpatiallyPartitionable { get { return false; } }
+
+		IEnumerable<IRenderable> IRenderAnnotationsWhenSelected.RenderAnnotations(Actor self, WorldRenderer wr)
+		{
+			if (!self.Owner.IsAlliedWith(self.World.LocalPlayer) || Game.Settings.Game.TargetLines == TargetLinesType.Disabled)
+				return Enumerable.Empty<IRenderable>();
+
+			// Players want to see the lines when in waypoint mode.
+			var force = Game.GetModifierKeys().HasModifier(Modifiers.Shift) || self.World.OrderGenerator is ForceModifiersOrderGenerator;
+
+			if (--lifetime <= 0 && !force)
+				return Enumerable.Empty<IRenderable>();
+
+			renderableCache.Clear();
+			var prev = self.CenterPosition;
+			var a = self.CurrentActivity;
+			for (; a != null; a = a.NextActivity)
 			{
-				if (target.Type == TargetType.Invalid)
+				if (a.IsCanceling)
 					continue;
 
-				yield return new TargetLineRenderable(new[] { self.CenterPosition, target.CenterPosition }, c);
+				foreach (var n in a.TargetLineNodes(self))
+				{
+					if (n.Target.Type != TargetType.Invalid && n.Tile == null)
+					{
+						var lineWidth = renderableCache.Any() ? info.QueuedLineWidth : info.LineWidth;
+						var markerWidth = renderableCache.Any() ? info.QueuedMarkerWidth : info.MarkerWidth;
+
+						var pos = n.Target.CenterPosition;
+						renderableCache.Add(new TargetLineRenderable(new[] { prev, pos }, n.Color, lineWidth, markerWidth));
+						prev = pos;
+					}
+				}
 			}
+
+			// Reverse draw order so target markers are drawn on top of the next line
+			renderableCache.Reverse();
+			return renderableCache;
 		}
 
-		bool IRenderAboveShroudWhenSelected.SpatiallyPartitionable { get { return false; } }
-
-		void INotifyBecomingIdle.OnBecomingIdle(Actor self)
-		{
-			targets = null;
-		}
-
-		void INotifyOwnerChanged.OnOwnerChanged(Actor self, Player oldOwner, Player newOwner)
-		{
-			targets = null;
-		}
+		bool IRenderAnnotationsWhenSelected.SpatiallyPartitionable { get { return false; } }
 	}
 
 	public static class LineTargetExts
 	{
-		public static void SetTargetLines(this Actor self, List<Target> targets, Color color)
+		public static void ShowTargetLines(this Actor self)
 		{
-			var line = self.TraitOrDefault<DrawLineToTarget>();
-			if (line != null)
-				self.World.AddFrameEndTask(w => line.SetTargets(self, targets, color, false));
-		}
-
-		public static void SetTargetLine(this Actor self, Target target, Color color)
-		{
-			self.SetTargetLine(target, color, true);
-		}
-
-		public static void SetTargetLine(this Actor self, Target target, Color color, bool display)
-		{
-			if (!self.Owner.IsAlliedWith(self.World.LocalPlayer))
+			// Target lines are only automatically shown for the owning player
+			// Spectators and allies must use the force-display modifier
+			if (self.Owner != self.World.LocalPlayer)
 				return;
 
-			if (self.Disposed)
-				return;
-
+			// Draw after frame end so that all the queueing of activities are done before drawing.
 			var line = self.TraitOrDefault<DrawLineToTarget>();
 			if (line != null)
-				line.SetTarget(self, target, color, display);
+				self.World.AddFrameEndTask(w => line.ShowTargetLines(self));
 		}
 	}
 }

@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2018 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -11,7 +11,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Drawing;
 
 namespace OpenRA.Primitives
 {
@@ -67,17 +66,5 @@ namespace OpenRA.Primitives
 	public static class Pair
 	{
 		public static Pair<T, U> New<T, U>(T t, U u) { return new Pair<T, U>(t, u); }
-
-		static Pair()
-		{
-			Pair<char, Color>.Ucomparer = new ColorEqualityComparer();
-		}
-
-		// avoid the default crappy one
-		class ColorEqualityComparer : IEqualityComparer<Color>
-		{
-			public bool Equals(Color x, Color y) { return x.ToArgb() == y.ToArgb(); }
-			public int GetHashCode(Color obj) { return obj.GetHashCode(); }
-		}
 	}
 }

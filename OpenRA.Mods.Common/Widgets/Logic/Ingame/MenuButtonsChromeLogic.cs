@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2018 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -12,13 +12,11 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using OpenRA.Mods.Common.Lint;
 using OpenRA.Mods.Common.Traits;
 using OpenRA.Widgets;
 
 namespace OpenRA.Mods.Common.Widgets.Logic
 {
-	[ChromeLogicArgsHotkeys("StatisticsBasicKey", "StatisticsEconomyKey", "StatisticsProductionKey", "StatisticsCombatKey", "StatisticsGraphKey", "StatisticsArmyGraphKey")]
 	public class MenuButtonsChromeLogic : ChromeLogic
 	{
 		readonly World world;
@@ -39,10 +37,6 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			menuRoot = Ui.Root.Get("MENU_ROOT");
 
 			MiniYaml yaml;
-			string[] keyNames = Enum.GetNames(typeof(ObserverStatsPanel));
-			var statsHotkeys = new HotkeyReference[keyNames.Length];
-			for (var i = 0; i < keyNames.Length; i++)
-				statsHotkeys[i] = logicArgs.TryGetValue("Statistics" + keyNames[i] + "Key", out yaml) ? modData.Hotkeys[yaml.Value] : new HotkeyReference();
 
 			// System buttons
 			var options = widget.GetOrNull<MenuButtonWidget>("OPTIONS_BUTTON");
@@ -89,43 +83,6 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				debug.OnClick = () => OpenMenuPanel(debug, new WidgetArgs()
 				{
 					{ "activePanel", IngameInfoPanel.Debug }
-				});
-			}
-
-			var stats = widget.GetOrNull<MenuButtonWidget>("OBSERVER_STATS_BUTTON");
-			if (stats != null)
-			{
-				stats.IsDisabled = () => world.Map.Visibility.HasFlag(MapVisibility.MissionSelector);
-				stats.OnClick = () =>
-				{
-					if (statistics == null)
-						statistics = Game.LoadWidget(world, stats.MenuContainer, menuRoot, new WidgetArgs() { { "activePanel", ObserverStatsPanel.Basic } });
-					else
-						statistics.Visible = !statistics.Visible;
-				};
-			}
-
-			var keyListener = widget.GetOrNull<LogicKeyListenerWidget>("OBSERVER_KEY_LISTENER");
-			if (keyListener != null)
-			{
-				keyListener.AddHandler(e =>
-				{
-					if (e.Event == KeyInputEvent.Down && !e.IsRepeat)
-					{
-						for (var i = 0; i < statsHotkeys.Length; i++)
-						{
-							if (statsHotkeys[i].IsActivatedBy(e))
-							{
-								Game.Sound.PlayNotification(modData.DefaultRules, null, "Sounds", clickSound, null);
-								if (statistics != null)
-									statistics.Removed();
-								statistics = Game.LoadWidget(world, stats.MenuContainer, menuRoot, new WidgetArgs() { { "activePanel", i } });
-								return true;
-							}
-						}
-					}
-
-					return false;
 				});
 			}
 

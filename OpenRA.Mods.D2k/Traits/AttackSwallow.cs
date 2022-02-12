@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2018 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -15,6 +15,7 @@ using OpenRA.Activities;
 using OpenRA.Mods.Common.Activities;
 using OpenRA.Mods.Common.Traits;
 using OpenRA.Mods.D2k.Activities;
+using OpenRA.Primitives;
 using OpenRA.Traits;
 
 namespace OpenRA.Mods.D2k.Traits
@@ -50,7 +51,7 @@ namespace OpenRA.Mods.D2k.Traits
 			Info = info;
 		}
 
-		public override void DoAttack(Actor self, Target target, IEnumerable<Armament> armaments = null)
+		public override void DoAttack(Actor self, Target target)
 		{
 			// This is so that the worm does not launch an attack against a target that has reached solid rock
 			if (target.Type != TargetType.Actor || !CanAttack(self, target))
@@ -66,11 +67,10 @@ namespace OpenRA.Mods.D2k.Traits
 			if (!target.IsInRange(self.CenterPosition, a.MaxRange()))
 				return;
 
-			self.CancelActivity();
-			self.QueueActivity(new SwallowActor(self, target, a, facing));
+			self.QueueActivity(false, new SwallowActor(self, target, a, facing));
 		}
 
-		public override Activity GetAttackActivity(Actor self, Target newTarget, bool allowMove, bool forceAttack)
+		public override Activity GetAttackActivity(Actor self, Target newTarget, bool allowMove, bool forceAttack, Color? targetLineColor)
 		{
 			return new SwallowTarget(self, newTarget, allowMove, forceAttack);
 		}
@@ -85,6 +85,11 @@ namespace OpenRA.Mods.D2k.Traits
 				// Worms ignore visibility, so don't need to recalculate targets
 				targetIsHiddenActor = false;
 				return target;
+			}
+
+			protected override void DoAttack(Actor self, AttackFrontal attack, IEnumerable<Armament> armaments)
+			{
+				attack.DoAttack(self, target);
 			}
 		}
 	}

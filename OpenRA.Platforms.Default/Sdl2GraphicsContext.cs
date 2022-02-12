@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2018 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -10,8 +10,8 @@
 #endregion
 
 using System;
-using System.Drawing;
 using OpenRA.Graphics;
+using OpenRA.Primitives;
 using SDL2;
 
 namespace OpenRA.Platforms.Default
@@ -37,6 +37,13 @@ namespace OpenRA.Platforms.Default
 
 			OpenGL.Initialize();
 
+			uint vao;
+			OpenGL.CheckGLError();
+			OpenGL.glGenVertexArrays(1, out vao);
+			OpenGL.CheckGLError();
+			OpenGL.glBindVertexArray(vao);
+			OpenGL.CheckGLError();
+
 			OpenGL.glEnableVertexAttribArray(Shader.VertexPosAttributeIndex);
 			OpenGL.CheckGLError();
 			OpenGL.glEnableVertexAttribArray(Shader.TexCoordAttributeIndex);
@@ -60,13 +67,19 @@ namespace OpenRA.Platforms.Default
 		public IFrameBuffer CreateFrameBuffer(Size s)
 		{
 			VerifyThreadAffinity();
-			return new FrameBuffer(s, new Texture());
+			return new FrameBuffer(s, new Texture(), Color.FromArgb(0));
 		}
 
-		public IFrameBuffer CreateFrameBuffer(Size s, ITextureInternal texture)
+		public IFrameBuffer CreateFrameBuffer(Size s, Color clearColor)
 		{
 			VerifyThreadAffinity();
-			return new FrameBuffer(s, texture);
+			return new FrameBuffer(s, new Texture(), clearColor);
+		}
+
+		public IFrameBuffer CreateFrameBuffer(Size s, ITextureInternal texture, Color clearColor)
+		{
+			VerifyThreadAffinity();
+			return new FrameBuffer(s, texture, clearColor);
 		}
 
 		public IShader CreateShader(string name)
@@ -75,7 +88,7 @@ namespace OpenRA.Platforms.Default
 			return new Shader(name);
 		}
 
-		public void EnableScissor(int left, int top, int width, int height)
+		public void EnableScissor(int x, int y, int width, int height)
 		{
 			VerifyThreadAffinity();
 
@@ -89,16 +102,15 @@ namespace OpenRA.Platforms.Default
 			var windowScale = window.WindowScale;
 			var surfaceSize = window.SurfaceSize;
 
-			var bottom = windowSize.Height - (top + height);
 			if (windowSize != surfaceSize)
 			{
-				left = (int)Math.Round(windowScale * left);
-				bottom = (int)Math.Round(windowScale * bottom);
+				x = (int)Math.Round(windowScale * x);
+				y = (int)Math.Round(windowScale * y);
 				width = (int)Math.Round(windowScale * width);
 				height = (int)Math.Round(windowScale * height);
 			}
 
-			OpenGL.glScissor(left, bottom, width, height);
+			OpenGL.glScissor(x, y, width, height);
 			OpenGL.CheckGLError();
 			OpenGL.glEnable(OpenGL.GL_SCISSOR_TEST);
 			OpenGL.CheckGLError();
@@ -109,41 +121,6 @@ namespace OpenRA.Platforms.Default
 			VerifyThreadAffinity();
 			OpenGL.glDisable(OpenGL.GL_SCISSOR_TEST);
 			OpenGL.CheckGLError();
-		}
-
-		public Bitmap TakeScreenshot()
-		{
-			var rect = new Rectangle(Point.Empty, window.SurfaceSize);
-			var bitmap = new Bitmap(rect.Width, rect.Height, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
-			var data = bitmap.LockBits(rect,
-				System.Drawing.Imaging.ImageLockMode.WriteOnly, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
-
-			OpenGL.glPushClientAttrib(OpenGL.GL_CLIENT_PIXEL_STORE_BIT);
-
-			OpenGL.glPixelStoref(OpenGL.GL_PACK_ROW_LENGTH, data.Stride / 4f);
-			OpenGL.glPixelStoref(OpenGL.GL_PACK_ALIGNMENT, 1);
-
-			OpenGL.glReadPixels(rect.X, rect.Y, rect.Width, rect.Height, OpenGL.GL_BGRA, OpenGL.GL_UNSIGNED_BYTE, data.Scan0);
-			OpenGL.glFinish();
-
-			OpenGL.glPopClientAttrib();
-
-			// Reset alpha channel to fully opaque
-			unsafe
-			{
-				var colors = (int*)data.Scan0;
-				var stride = data.Stride / 4;
-				for (var y = 0; y < rect.Height; y++)
-				for (var x = 0; x < rect.Width; x++)
-					colors[y * stride + x] |= 0xFF << 24;
-			}
-
-			bitmap.UnlockBits(data);
-
-			// OpenGL standard defines the origin in the bottom left corner which is why this is upside-down by default.
-			bitmap.RotateFlip(RotateFlipType.RotateNoneFlipY);
-
-			return bitmap;
 		}
 
 		public void Present()
@@ -229,7 +206,7 @@ namespace OpenRA.Platforms.Default
 					if (mode == BlendMode.Subtractive)
 					{
 						OpenGL.CheckGLError();
-						OpenGL.glBlendEquation(OpenGL.GL_FUNC_REVERSE_SUBTRACT);
+						OpenGL.glBlendEquationSeparate(OpenGL.GL_FUNC_REVERSE_SUBTRACT, OpenGL.GL_FUNC_ADD);
 					}
 
 					break;

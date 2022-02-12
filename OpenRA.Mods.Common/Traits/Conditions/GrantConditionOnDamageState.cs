@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2018 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -52,7 +52,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		void INotifyCreated.Created(Actor self)
 		{
-			conditionManager = self.TraitOrDefault<ConditionManager>();
+			conditionManager = self.Trait<ConditionManager>();
 			GrantConditionOnValidDamageState(self, health.DamageState);
 		}
 
@@ -70,7 +70,7 @@ namespace OpenRA.Mods.Common.Traits
 		void INotifyDamageStateChanged.DamageStateChanged(Actor self, AttackInfo e)
 		{
 			var granted = conditionToken != ConditionManager.InvalidConditionToken;
-			if ((granted && info.GrantPermanently) || conditionManager == null)
+			if (granted && info.GrantPermanently)
 				return;
 
 			if (!granted && !info.ValidDamageStates.HasFlag(e.PreviousDamageState))

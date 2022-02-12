@@ -78,10 +78,6 @@ E5:
 E6:
 	-RepairsBridges:
 
-HARV:
-	Harvester:
-		SearchFromOrderRadius: 30
-
 MTNK:
 	Buildable:
 		Prerequisites: ~weap
@@ -164,7 +160,7 @@ MoneyCrate:
 	Inherits: ^Crate
 	GiveCashCrateAction:
 		Amount: 2000
-		UseCashTick: yes
+		UseCashTick: true
 
 NUKEOUT.IN:
 	Inherits: NUKE

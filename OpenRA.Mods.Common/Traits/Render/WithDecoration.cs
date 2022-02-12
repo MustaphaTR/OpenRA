@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2018 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -39,8 +39,9 @@ namespace OpenRA.Mods.Common.Traits.Render
 		[Desc("Sequence used for this decoration (can be animated).")]
 		public readonly string Sequence = null;
 
+		[PaletteReference("IsPlayerPalette")]
 		[Desc("Palette to render the sprite in. Reference the world actor's PaletteFrom* traits.")]
-		[PaletteReference("IsPlayerPalette")] public readonly string Palette = "chrome";
+		public readonly string Palette = "chrome";
 
 		[Desc("Custom palette is a player palette BaseName")]
 		public readonly bool IsPlayerPalette = false;
@@ -81,7 +82,7 @@ namespace OpenRA.Mods.Common.Traits.Render
 		public override object Create(ActorInitializer init) { return new WithDecoration(init.Self, this); }
 	}
 
-	public class WithDecoration : ConditionalTrait<WithDecorationInfo>, ITick, IRenderAboveShroud, IRenderAboveShroudWhenSelected
+	public class WithDecoration : ConditionalTrait<WithDecorationInfo>, ITick, IRenderAnnotations, IRenderAnnotationsWhenSelected
 	{
 		protected Animation anim;
 		readonly IDecorationBounds[] decorationBounds;
@@ -123,18 +124,18 @@ namespace OpenRA.Mods.Common.Traits.Render
 			return wr.Palette(Info.Palette + (Info.IsPlayerPalette ? self.Owner.InternalName : ""));
 		}
 
-		IEnumerable<IRenderable> IRenderAboveShroud.RenderAboveShroud(Actor self, WorldRenderer wr)
+		IEnumerable<IRenderable> IRenderAnnotations.RenderAnnotations(Actor self, WorldRenderer wr)
 		{
 			return !Info.RequiresSelection ? RenderInner(self, wr) : SpriteRenderable.None;
 		}
 
-		IEnumerable<IRenderable> IRenderAboveShroudWhenSelected.RenderAboveShroud(Actor self, WorldRenderer wr)
+		IEnumerable<IRenderable> IRenderAnnotationsWhenSelected.RenderAnnotations(Actor self, WorldRenderer wr)
 		{
 			return Info.RequiresSelection ? RenderInner(self, wr) : SpriteRenderable.None;
 		}
 
-		bool IRenderAboveShroud.SpatiallyPartitionable { get { return true; } }
-		bool IRenderAboveShroudWhenSelected.SpatiallyPartitionable { get { return true; } }
+		bool IRenderAnnotations.SpatiallyPartitionable { get { return true; } }
+		bool IRenderAnnotationsWhenSelected.SpatiallyPartitionable { get { return true; } }
 
 		IEnumerable<IRenderable> RenderInner(Actor self, WorldRenderer wr)
 		{

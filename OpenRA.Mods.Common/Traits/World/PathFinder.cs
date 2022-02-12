@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2018 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -33,9 +33,9 @@ namespace OpenRA.Mods.Common.Traits
 		/// Calculates a path for the actor from source to destination
 		/// </summary>
 		/// <returns>A path from start to target</returns>
-		List<CPos> FindUnitPath(CPos source, CPos target, Actor self, Actor ignoreActor);
+		List<CPos> FindUnitPath(CPos source, CPos target, Actor self, Actor ignoreActor, BlockedByActor check);
 
-		List<CPos> FindUnitPathToRange(CPos source, SubCell srcSub, WPos target, WDist range, Actor self);
+		List<CPos> FindUnitPathToRange(CPos source, SubCell srcSub, WPos target, WDist range, Actor self, BlockedByActor check);
 
 		/// <summary>
 		/// Calculates a path given a search specification
@@ -62,9 +62,11 @@ namespace OpenRA.Mods.Common.Traits
 			this.world = world;
 		}
 
-		public List<CPos> FindUnitPath(CPos source, CPos target, Actor self, Actor ignoreActor)
+		public List<CPos> FindUnitPath(CPos source, CPos target, Actor self, Actor ignoreActor, BlockedByActor check)
 		{
-			var li = self.Info.TraitInfo<MobileInfo>().LocomotorInfo;
+			var mobile = self.Trait<Mobile>();
+			var locomotor = mobile.Locomotor;
+
 			if (!cached)
 			{
 				domainIndex = world.WorldActor.TraitOrDefault<DomainIndex>();
@@ -72,24 +74,27 @@ namespace OpenRA.Mods.Common.Traits
 			}
 
 			// If a water-land transition is required, bail early
-			if (domainIndex != null && !domainIndex.IsPassable(source, target, li))
+			if (domainIndex != null && !domainIndex.IsPassable(source, target, locomotor.Info))
 				return EmptyPath;
 
 			var distance = source - target;
-			if (distance.LengthSquared < 3 && li.CanMoveFreelyInto(world, self, target, null, CellConditions.All))
+			var canMoveFreely = locomotor.CanMoveFreelyInto(self, target, check, null);
+			if (distance.LengthSquared < 3 && !canMoveFreely)
+				return new List<CPos> { };
+
+			if (source.Layer == target.Layer && distance.LengthSquared < 3 && canMoveFreely)
 				return new List<CPos> { target };
 
 			List<CPos> pb;
-			using (var fromSrc = PathSearch.FromPoint(world, li, self, target, source, true).WithIgnoredActor(ignoreActor))
-			using (var fromDest = PathSearch.FromPoint(world, li, self, source, target, true).WithIgnoredActor(ignoreActor).Reverse())
-				pb = FindBidiPath(fromSrc, fromDest);
 
-			CheckSanePath2(pb, source, target);
+			using (var fromSrc = PathSearch.FromPoint(world, locomotor, self, target, source, check).WithIgnoredActor(ignoreActor))
+			using (var fromDest = PathSearch.FromPoint(world, locomotor, self, source, target, check).WithIgnoredActor(ignoreActor).Reverse())
+				pb = FindBidiPath(fromSrc, fromDest);
 
 			return pb;
 		}
 
-		public List<CPos> FindUnitPathToRange(CPos source, SubCell srcSub, WPos target, WDist range, Actor self)
+		public List<CPos> FindUnitPathToRange(CPos source, SubCell srcSub, WPos target, WDist range, Actor self, BlockedByActor check)
 		{
 			if (!cached)
 			{
@@ -97,7 +102,8 @@ namespace OpenRA.Mods.Common.Traits
 				cached = true;
 			}
 
-			var mi = self.Info.TraitInfo<MobileInfo>();
+			var mobile = self.Trait<Mobile>();
+			var mi = mobile.Info;
 			var li = mi.LocomotorInfo;
 			var targetCell = world.Map.CellContaining(target);
 
@@ -119,8 +125,10 @@ namespace OpenRA.Mods.Common.Traits
 					return EmptyPath;
 			}
 
-			using (var fromSrc = PathSearch.FromPoints(world, li, self, tilesInRange, source, true))
-			using (var fromDest = PathSearch.FromPoint(world, li, self, source, targetCell, true).Reverse())
+			var locomotor = mobile.Locomotor;
+
+			using (var fromSrc = PathSearch.FromPoints(world, locomotor, self, tilesInRange, source, check))
+			using (var fromDest = PathSearch.FromPoint(world, locomotor, self, source, targetCell, check).Reverse())
 				return FindBidiPath(fromSrc, fromDest);
 		}
 
@@ -197,7 +205,6 @@ namespace OpenRA.Mods.Common.Traits
 			}
 
 			ret.Add(currentNode);
-			CheckSanePath(ret);
 			return ret;
 		}
 
@@ -226,35 +233,7 @@ namespace OpenRA.Mods.Common.Traits
 				ret.Add(q);
 			}
 
-			CheckSanePath(ret);
 			return ret;
-		}
-
-		[Conditional("SANITY_CHECKS")]
-		static void CheckSanePath(IList<CPos> path)
-		{
-			if (path.Count == 0)
-				return;
-			var prev = path[0];
-			foreach (var cell in path)
-			{
-				var d = cell - prev;
-				if (Math.Abs(d.X) > 1 || Math.Abs(d.Y) > 1)
-					throw new InvalidOperationException("(PathFinder) path sanity check failed");
-				prev = cell;
-			}
-		}
-
-		[Conditional("SANITY_CHECKS")]
-		static void CheckSanePath2(IList<CPos> path, CPos src, CPos dest)
-		{
-			if (path.Count == 0)
-				return;
-
-			if (path[0] != dest)
-				throw new InvalidOperationException("(PathFinder) sanity check failed: doesn't go to dest");
-			if (path[path.Count - 1] != src)
-				throw new InvalidOperationException("(PathFinder) sanity check failed: doesn't come from src");
 		}
 	}
 }

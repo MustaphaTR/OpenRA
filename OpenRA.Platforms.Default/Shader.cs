@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2018 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -24,6 +24,7 @@ namespace OpenRA.Platforms.Default
 
 		readonly Dictionary<string, int> samplers = new Dictionary<string, int>();
 		readonly Dictionary<int, ITexture> textures = new Dictionary<int, ITexture>();
+		readonly Queue<int> unbindTextures = new Queue<int>();
 		readonly uint program;
 
 		protected uint CompileShaderObject(int type, string name)
@@ -31,6 +32,9 @@ namespace OpenRA.Platforms.Default
 			var ext = type == OpenGL.GL_VERTEX_SHADER ? "vert" : "frag";
 			var filename = Path.Combine(Platform.GameDir, "glsl", name + "." + ext);
 			var code = File.ReadAllText(filename);
+
+			var version = OpenGL.Features.HasFlag(OpenGL.GLFeatures.GLES) ? "300 es" : "140";
+			code = code.Replace("{VERSION}", version);
 
 			var shader = OpenGL.glCreateShader(type);
 			OpenGL.CheckGLError();
@@ -76,6 +80,9 @@ namespace OpenRA.Platforms.Default
 			OpenGL.CheckGLError();
 			OpenGL.glBindAttribLocation(program, TexMetadataAttributeIndex, "aVertexTexMetadata");
 			OpenGL.CheckGLError();
+			OpenGL.glBindFragDataLocation(program, 0, "fragColor");
+			OpenGL.CheckGLError();
+
 			OpenGL.glAttachShader(program, vertexShader);
 			OpenGL.CheckGLError();
 			OpenGL.glAttachShader(program, fragmentShader);
@@ -134,13 +141,25 @@ namespace OpenRA.Platforms.Default
 		{
 			VerifyThreadAffinity();
 			OpenGL.glUseProgram(program);
+			OpenGL.CheckGLError();
 
 			// bind the textures
 			foreach (var kv in textures)
 			{
-				OpenGL.glActiveTexture(OpenGL.GL_TEXTURE0 + kv.Key);
-				OpenGL.glBindTexture(OpenGL.GL_TEXTURE_2D, ((ITextureInternal)kv.Value).ID);
+				var id = ((ITextureInternal)kv.Value).ID;
+
+				// Evict disposed textures from the cache
+				if (OpenGL.glIsTexture(id))
+				{
+					OpenGL.glActiveTexture(OpenGL.GL_TEXTURE0 + kv.Key);
+					OpenGL.glBindTexture(OpenGL.GL_TEXTURE_2D, id);
+				}
+				else
+					unbindTextures.Enqueue(kv.Key);
 			}
+
+			while (unbindTextures.Count > 0)
+				textures.Remove(unbindTextures.Dequeue());
 
 			OpenGL.CheckGLError();
 		}

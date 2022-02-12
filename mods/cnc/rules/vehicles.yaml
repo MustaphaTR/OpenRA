@@ -1,5 +1,6 @@
 MCV:
 	Inherits: ^Vehicle
+	Inherits@SELECTION_MODE: ^LowPrioritySelectionMode
 	Valued:
 		Cost: 3500
 	Tooltip:
@@ -43,6 +44,7 @@ MCV:
 HARV:
 	Inherits: ^Tank
 	Inherits@CLOAK: ^AcceptsCloakCrate
+	Inherits@SELECTION_MODE: ^LowPrioritySelectionMode
 	Valued:
 		Cost: 1000
 	Tooltip:
@@ -64,8 +66,8 @@ HARV:
 		Capacity: 20
 		BaleLoadDelay: 12
 		BaleUnloadDelay: 6
-		SearchFromProcRadius: 25
-		SearchFromOrderRadius: 15
+		SearchFromProcRadius: 15
+		SearchFromHarvesterRadius: 8
 		EmptyCondition: no-tiberium
 	Mobile:
 		Speed: 85
@@ -109,7 +111,7 @@ APC:
 	Mobile:
 		TurnSpeed: 5
 		Speed: 132
-		RequiresCondition: !notmobile
+		PauseOnCondition: notmobile
 	Health:
 		HP: 19000
 	Repairable:
@@ -681,6 +683,7 @@ MHQ:
 
 TRUCK:
 	Inherits: ^Vehicle
+	Inherits@SELECTION_MODE: ^LowPrioritySelectionMode
 	Buildable:
 		Queue: Vehicle.GDI, Vehicle.Nod
 		BuildPaletteOrder: 35

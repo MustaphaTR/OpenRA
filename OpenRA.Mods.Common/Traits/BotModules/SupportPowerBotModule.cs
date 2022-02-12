@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2018 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -36,13 +36,14 @@ namespace OpenRA.Mods.Common.Traits
 		public override object Create(ActorInitializer init) { return new SupportPowerBotModule(init.Self, this); }
 	}
 
-	public class SupportPowerBotModule : ConditionalTrait<SupportPowerBotModuleInfo>, IBotTick
+	public class SupportPowerBotModule : ConditionalTrait<SupportPowerBotModuleInfo>, IBotTick, IGameSaveTraitData
 	{
 		readonly World world;
 		readonly Player player;
+		readonly Dictionary<SupportPowerInstance, int> waitingPowers = new Dictionary<SupportPowerInstance, int>();
+		readonly Dictionary<string, SupportPowerDecision> powerDecisions = new Dictionary<string, SupportPowerDecision>();
+		readonly List<SupportPowerInstance> stalePowers = new List<SupportPowerInstance>();
 		SupportPowerManager supportPowerManager;
-		Dictionary<SupportPowerInstance, int> waitingPowers = new Dictionary<SupportPowerInstance, int>();
-		Dictionary<string, SupportPowerDecision> powerDecisions = new Dictionary<string, SupportPowerDecision>();
 
 		public SupportPowerBotModule(Actor self, SupportPowerBotModuleInfo info)
 			: base(info)
@@ -108,6 +109,13 @@ namespace OpenRA.Mods.Common.Traits
 					bot.QueueOrder(new Order(sp.Key, supportPowerManager.Self, Target.FromCell(world, attackLocation.Value), false) { SuppressVisualFeedback = true });
 				}
 			}
+
+			// Remove stale powers
+			stalePowers.AddRange(waitingPowers.Keys.Where(wp => !supportPowerManager.Powers.ContainsKey(wp.Key)));
+			foreach (var p in stalePowers)
+				waitingPowers.Remove(p);
+
+			stalePowers.Clear();
 		}
 
 		/// <summary>Scans the map in chunks, evaluating all actors in each.</summary>
@@ -184,6 +192,38 @@ namespace OpenRA.Mods.Common.Traits
 			}
 
 			return bestLocation;
+		}
+
+		List<MiniYamlNode> IGameSaveTraitData.IssueTraitData(Actor self)
+		{
+			if (IsTraitDisabled)
+				return null;
+
+			var waitingPowersNodes = waitingPowers
+				.Select(kv => new MiniYamlNode(kv.Key.Key, FieldSaver.FormatValue(kv.Value)))
+				.ToList();
+
+			return new List<MiniYamlNode>()
+			{
+				new MiniYamlNode("WaitingPowers", "", waitingPowersNodes)
+			};
+		}
+
+		void IGameSaveTraitData.ResolveTraitData(Actor self, List<MiniYamlNode> data)
+		{
+			if (self.World.IsReplay)
+				return;
+
+			var waitingPowersNode = data.FirstOrDefault(n => n.Key == "WaitingPowers");
+			if (waitingPowersNode != null)
+			{
+				foreach (var n in waitingPowersNode.Value.Nodes)
+				{
+					SupportPowerInstance instance;
+					if (supportPowerManager.Powers.TryGetValue(n.Key, out instance))
+						waitingPowers[instance] = FieldLoader.GetValue<int>("WaitingPowers", n.Value.Value);
+				}
+			}
 		}
 	}
 }

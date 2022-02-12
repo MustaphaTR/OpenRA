@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2018 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -11,7 +11,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Drawing;
 using System.Linq;
 using OpenRA.Effects;
 using OpenRA.Graphics;
@@ -220,31 +219,6 @@ namespace OpenRA.Traits
 			return partitionedRenderableFrozenActors[p].InBox(RectWithCorners(a, b)).Where(frozenActorIsValid);
 		}
 
-		Rectangle AggregateBounds(IEnumerable<Rectangle> screenBounds)
-		{
-			if (!screenBounds.Any())
-				return Rectangle.Empty;
-
-			var bounds = screenBounds.First();
-			foreach (var b in screenBounds.Skip(1))
-				bounds = Rectangle.Union(bounds, b);
-
-			return bounds;
-		}
-
-		Rectangle AggregateBounds(IEnumerable<int2> vertices)
-		{
-			if (!vertices.Any())
-				return Rectangle.Empty;
-
-			var first = vertices.First();
-			var rect = new Rectangle(first.X, first.Y, 0, 0);
-			foreach (var v in vertices.Skip(1))
-				rect = Rectangle.Union(rect, new Rectangle(v.X, v.Y, 0, 0));
-
-			return rect;
-		}
-
 		public void TickRender()
 		{
 			foreach (var a in addOrUpdateActors)
@@ -262,7 +236,7 @@ namespace OpenRA.Traits
 				else
 					partitionedMouseActors.Remove(a);
 
-				var screenBounds = AggregateBounds(a.ScreenBounds(worldRenderer));
+				var screenBounds = a.ScreenBounds(worldRenderer).Union();
 				if (!screenBounds.Size.IsEmpty)
 				{
 					if (partitionedRenderableActors.Contains(a))
@@ -299,7 +273,7 @@ namespace OpenRA.Traits
 					else
 						partitionedMouseFrozenActors[kv.Key].Remove(fa);
 
-					var screenBounds = AggregateBounds(fa.ScreenBounds);
+					var screenBounds = fa.ScreenBounds.Union();
 					if (!screenBounds.Size.IsEmpty)
 					{
 						if (partitionedRenderableFrozenActors[kv.Key].Contains(fa))

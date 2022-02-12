@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2018 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -28,14 +28,17 @@ namespace OpenRA.Mods.Cnc.Traits
 		[Desc("The percentage of damage that is received while this actor is closed.")]
 		public readonly int ClosedDamageMultiplier = 50;
 
+		[SequenceReference]
 		[Desc("Sequence to play when opening.")]
-		[SequenceReference] public readonly string OpeningSequence = "opening";
+		public readonly string OpeningSequence = "opening";
 
+		[SequenceReference]
 		[Desc("Sequence to play when closing.")]
-		[SequenceReference] public readonly string ClosingSequence = "closing";
+		public readonly string ClosingSequence = "closing";
 
+		[SequenceReference]
 		[Desc("Idle sequence to play when closed.")]
-		[SequenceReference] public readonly string ClosedIdleSequence = "closed-idle";
+		public readonly string ClosedIdleSequence = "closed-idle";
 
 		[Desc("Which sprite body to play the animation on.")]
 		public readonly string Body = "body";

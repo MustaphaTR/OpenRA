@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2018 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -100,7 +100,7 @@ namespace OpenRA.Mods.Common.Traits
 		public override object Create(ActorInitializer init) { return new SquadManagerBotModule(init.Self, this); }
 	}
 
-	public class SquadManagerBotModule : ConditionalTrait<SquadManagerBotModuleInfo>, IBotTick, IBotRespondToAttack, IBotPositionsUpdated
+	public class SquadManagerBotModule : ConditionalTrait<SquadManagerBotModuleInfo>, IBotEnabled, IBotTick, IBotRespondToAttack, IBotPositionsUpdated, IGameSaveTraitData
 	{
 		public CPos GetRandomBaseCenter()
 		{
@@ -119,6 +119,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		public List<Squad> Squads = new List<Squad>();
 
+		IBot bot;
 		IBotPositionsUpdated[] notifyPositionsUpdated;
 		IBotNotifyIdleBaseUnits[] notifyIdleBaseUnits;
 
@@ -139,7 +140,7 @@ namespace OpenRA.Mods.Common.Traits
 			World = self.World;
 			Player = self.Owner;
 
-			unitCannotBeOrdered = a => a.Owner != Player || a.IsDead || !a.IsInWorld;
+			unitCannotBeOrdered = a => a == null || a.Owner != Player || a.IsDead || !a.IsInWorld;
 		}
 
 		public bool IsEnemyUnit(Actor a)
@@ -162,6 +163,11 @@ namespace OpenRA.Mods.Common.Traits
 			assignRolesTicks = World.LocalRandom.Next(0, Info.AssignRolesInterval);
 			attackForceTicks = World.LocalRandom.Next(0, Info.AttackForceInterval);
 			minAttackForceDelayTicks = World.LocalRandom.Next(0, Info.MinimumAttackForceDelay);
+		}
+
+		void IBotEnabled.BotEnabled(IBot bot)
+		{
+			this.bot = bot;
 		}
 
 		void IBotTick.BotTick(IBot bot)
@@ -356,7 +362,7 @@ namespace OpenRA.Mods.Common.Traits
 				var attackForce = RegisterNewSquad(bot, SquadType.Assault);
 
 				foreach (var a in unitsHangingAroundTheBase)
-					if (!a.Info.HasTraitInfo<AircraftInfo>())
+					if (!a.Info.HasTraitInfo<AircraftInfo>() && !Info.NavalUnitsTypes.Contains(a.Info.Name))
 						attackForce.Units.Add(a);
 
 				unitsHangingAroundTheBase.Clear();
@@ -372,8 +378,8 @@ namespace OpenRA.Mods.Common.Traits
 			// TODO: This should use common names & ExcludeFromSquads instead of hardcoding TraitInfo checks
 			var ownUnits = activeUnits
 				.Where(unit => unit.IsIdle && unit.Info.HasTraitInfo<AttackBaseInfo>()
-					&& !unit.Info.HasTraitInfo<AircraftInfo>() && !unit.Info.HasTraitInfo<HarvesterInfo>()
-					&& !unit.Info.HasTraitInfo<SelectableInfo>()).ToList();
+					&& !unit.Info.HasTraitInfo<AircraftInfo>() && !Info.NavalUnitsTypes.Contains(unit.Info.Name)
+					&& !unit.Info.HasTraitInfo<HarvesterInfo>() && unit.Info.HasTraitInfo<SelectableInfo>()).ToList();
 
 			if (!allEnemyBaseBuilder.Any() || ownUnits.Count < Info.SquadSize)
 				return;
@@ -382,7 +388,7 @@ namespace OpenRA.Mods.Common.Traits
 			{
 				// Don't rush enemy aircraft!
 				var enemies = World.FindActorsInCircle(b.CenterPosition, WDist.FromCells(Info.RushAttackScanRadius))
-					.Where(unit => IsEnemyUnit(unit) && unit.Info.HasTraitInfo<AttackBaseInfo>() && !unit.Info.HasTraitInfo<AircraftInfo>()).ToList();
+					.Where(unit => IsEnemyUnit(unit) && unit.Info.HasTraitInfo<AttackBaseInfo>() && !unit.Info.HasTraitInfo<AircraftInfo>() && !Info.NavalUnitsTypes.Contains(unit.Info.Name)).ToList();
 
 				if (AttackOrFleeFuzzy.Rush.CanAttack(ownUnits, enemies))
 				{
@@ -440,6 +446,80 @@ namespace OpenRA.Mods.Common.Traits
 					n.UpdatedDefenseCenter(e.Attacker.Location);
 
 				ProtectOwn(bot, e.Attacker);
+			}
+		}
+
+		List<MiniYamlNode> IGameSaveTraitData.IssueTraitData(Actor self)
+		{
+			if (IsTraitDisabled)
+				return null;
+
+			return new List<MiniYamlNode>()
+			{
+				new MiniYamlNode("Squads", "", Squads.Select(s => new MiniYamlNode("Squad", s.Serialize())).ToList()),
+				new MiniYamlNode("InitialBaseCenter", FieldSaver.FormatValue(initialBaseCenter)),
+				new MiniYamlNode("UnitsHangingAroundTheBase", FieldSaver.FormatValue(unitsHangingAroundTheBase
+					.Where(a => !unitCannotBeOrdered(a))
+					.Select(a => a.ActorID)
+					.ToArray())),
+				new MiniYamlNode("ActiveUnits", FieldSaver.FormatValue(activeUnits
+					.Where(a => !unitCannotBeOrdered(a))
+					.Select(a => a.ActorID)
+					.ToArray())),
+				new MiniYamlNode("RushTicks", FieldSaver.FormatValue(rushTicks)),
+				new MiniYamlNode("AssignRolesTicks", FieldSaver.FormatValue(assignRolesTicks)),
+				new MiniYamlNode("AttackForceTicks", FieldSaver.FormatValue(attackForceTicks)),
+				new MiniYamlNode("MinAttackForceDelayTicks", FieldSaver.FormatValue(minAttackForceDelayTicks)),
+			};
+		}
+
+		void IGameSaveTraitData.ResolveTraitData(Actor self, List<MiniYamlNode> data)
+		{
+			if (self.World.IsReplay)
+				return;
+
+			var initialBaseCenterNode = data.FirstOrDefault(n => n.Key == "InitialBaseCenter");
+			if (initialBaseCenterNode != null)
+				initialBaseCenter = FieldLoader.GetValue<CPos>("InitialBaseCenter", initialBaseCenterNode.Value.Value);
+
+			var unitsHangingAroundTheBaseNode = data.FirstOrDefault(n => n.Key == "UnitsHangingAroundTheBase");
+			if (unitsHangingAroundTheBaseNode != null)
+			{
+				unitsHangingAroundTheBase.Clear();
+				unitsHangingAroundTheBase.AddRange(FieldLoader.GetValue<uint[]>("UnitsHangingAroundTheBase", unitsHangingAroundTheBaseNode.Value.Value)
+					.Select(a => self.World.GetActorById(a)).Where(a => a != null));
+			}
+
+			var activeUnitsNode = data.FirstOrDefault(n => n.Key == "ActiveUnits");
+			if (activeUnitsNode != null)
+			{
+				activeUnits.Clear();
+				activeUnits.AddRange(FieldLoader.GetValue<uint[]>("ActiveUnits", activeUnitsNode.Value.Value)
+					.Select(a => self.World.GetActorById(a)).Where(a => a != null));
+			}
+
+			var rushTicksNode = data.FirstOrDefault(n => n.Key == "RushTicks");
+			if (rushTicksNode != null)
+				rushTicks = FieldLoader.GetValue<int>("RushTicks", rushTicksNode.Value.Value);
+
+			var assignRolesTicksNode = data.FirstOrDefault(n => n.Key == "AssignRolesTicks");
+			if (assignRolesTicksNode != null)
+				assignRolesTicks = FieldLoader.GetValue<int>("AssignRolesTicks", assignRolesTicksNode.Value.Value);
+
+			var attackForceTicksNode = data.FirstOrDefault(n => n.Key == "AttackForceTicks");
+			if (attackForceTicksNode != null)
+				attackForceTicks = FieldLoader.GetValue<int>("AttackForceTicks", attackForceTicksNode.Value.Value);
+
+			var minAttackForceDelayTicksNode = data.FirstOrDefault(n => n.Key == "MinAttackForceDelayTicks");
+			if (minAttackForceDelayTicksNode != null)
+				minAttackForceDelayTicks = FieldLoader.GetValue<int>("MinAttackForceDelayTicks", minAttackForceDelayTicksNode.Value.Value);
+
+			var squadsNode = data.FirstOrDefault(n => n.Key == "Squads");
+			if (squadsNode != null)
+			{
+				Squads.Clear();
+				foreach (var n in squadsNode.Value.Nodes)
+					Squads.Add(Squad.Deserialize(bot, this, n.Value));
 			}
 		}
 	}

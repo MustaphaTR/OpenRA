@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2018 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -39,16 +39,16 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("What units should the AI have a maximum limit to train.")]
 		public readonly Dictionary<string, int> UnitLimits = null;
 
-		[Desc("Tells AI to don't train from this queue more than specified time at the same time.")]
-		public readonly Dictionary<string, int> QueueLimits = null;
-
 		[Desc("When should the AI start train specific units.")]
 		public readonly Dictionary<string, int> UnitDelays = null;
+
+		[Desc("Tells AI to don't train from this queue more than specified time at the same time.")]
+		public readonly Dictionary<string, int> QueueLimits = null;
 
 		public override object Create(ActorInitializer init) { return new UnitBuilderBotModule(init.Self, this); }
 	}
 
-	public class UnitBuilderBotModule : ConditionalTrait<UnitBuilderBotModuleInfo>, IBotTick, IBotNotifyIdleBaseUnits, IBotRequestUnitProduction
+	public class UnitBuilderBotModule : ConditionalTrait<UnitBuilderBotModuleInfo>, IBotTick, IBotNotifyIdleBaseUnits, IBotRequestUnitProduction, IGameSaveTraitData
 	{
 		public const int FeedbackTime = 30; // ticks; = a bit over 1s. must be >= netlag.
 
@@ -59,8 +59,7 @@ namespace OpenRA.Mods.Common.Traits
 		readonly PlayerResources playerResources;
 
 		IBotRequestPauseUnitProduction[] requestPause;
-
-		List<Actor> idleUnits = new List<Actor>();
+		int idleUnitCount;
 
 		int ticks;
 
@@ -80,7 +79,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		void IBotNotifyIdleBaseUnits.UpdatedIdleBaseUnits(List<Actor> idleUnits)
 		{
-			this.idleUnits = idleUnits;
+			idleUnitCount = idleUnits.Count;
 		}
 
 		void IBotTick.BotTick(IBot bot)
@@ -100,7 +99,7 @@ namespace OpenRA.Mods.Common.Traits
 				}
 
 				foreach (var q in Info.UnitQueues)
-					BuildUnit(bot, q, idleUnits.Count < Info.IdleBaseUnitsMaximum);
+					BuildUnit(bot, q, idleUnitCount < Info.IdleBaseUnitsMaximum);
 			}
 		}
 
@@ -247,6 +246,35 @@ namespace OpenRA.Mods.Common.Traits
 				return false;
 
 			return true;
+		}
+
+		List<MiniYamlNode> IGameSaveTraitData.IssueTraitData(Actor self)
+		{
+			if (IsTraitDisabled)
+				return null;
+
+			return new List<MiniYamlNode>()
+			{
+				new MiniYamlNode("QueuedBuildRequests", FieldSaver.FormatValue(queuedBuildRequests.ToArray())),
+				new MiniYamlNode("IdleUnitCount", FieldSaver.FormatValue(idleUnitCount))
+			};
+		}
+
+		void IGameSaveTraitData.ResolveTraitData(Actor self, List<MiniYamlNode> data)
+		{
+			if (self.World.IsReplay)
+				return;
+
+			var queuedBuildRequestsNode = data.FirstOrDefault(n => n.Key == "QueuedBuildRequests");
+			if (queuedBuildRequestsNode != null)
+			{
+				queuedBuildRequests.Clear();
+				queuedBuildRequests.AddRange(FieldLoader.GetValue<string[]>("QueuedBuildRequests", queuedBuildRequestsNode.Value.Value));
+			}
+
+			var idleUnitCountNode = data.FirstOrDefault(n => n.Key == "IdleUnitCount");
+			if (idleUnitCountNode != null)
+				idleUnitCount = FieldLoader.GetValue<int>("IdleUnitCount", idleUnitCountNode.Value.Value);
 		}
 	}
 }

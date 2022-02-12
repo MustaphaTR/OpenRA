@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2018 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -10,7 +10,6 @@
 #endregion
 
 using System.Collections.Generic;
-using System.Drawing;
 using OpenRA.Mods.Cnc.Activities;
 using OpenRA.Mods.Common;
 using OpenRA.Mods.Common.Activities;
@@ -76,7 +75,7 @@ namespace OpenRA.Mods.Cnc.Traits
 			if (IsTraitDisabled)
 				return false;
 
-			var targetTypes = new BitSet<TargetableType>();
+			var targetTypes = default(BitSet<TargetableType>);
 			if (order.Target.Type == TargetType.FrozenActor)
 				targetTypes = order.Target.FrozenActor.TargetTypes;
 
@@ -115,11 +114,8 @@ namespace OpenRA.Mods.Cnc.Traits
 			if (!CanInfiltrateTarget(self, order.Target))
 				return;
 
-			if (!order.Queued)
-				self.CancelActivity();
-
-			self.SetTargetLine(order.Target, Color.Red);
-			self.QueueActivity(new Infiltrate(self, order.Target, this));
+			self.QueueActivity(order.Queued, new Infiltrate(self, order.Target, this));
+			self.ShowTargetLines();
 		}
 	}
 

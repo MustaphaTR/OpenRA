@@ -28,12 +28,31 @@ GACNST:
 		Value: 2500
 	BaseBuilding:
 	Transforms:
-		RequiresCondition: factundeploy && !build-incomplete
-		PauseOnCondition: being-demolished
+		RequiresCondition: factundeploy
+		PauseOnCondition: empdisable || being-demolished || build-incomplete
 		IntoActor: mcv
 		Offset: 1,1
 		Facing: 96
 		DeployCursor: undeploy
+	TransformsIntoMobile:
+		RequiresCondition: factundeploy
+		Locomotor: tracked
+		Voice: Move
+		RequiresForceMove: true
+	TransformsIntoRepairable:
+		RequiresCondition: factundeploy
+		RepairActors: gadept
+		Voice: Move
+		RequiresForceMove: true
+	TransformsIntoEntersTunnels:
+		RequiresCondition: factundeploy
+		Voice: Move
+		RequiresForceMove: true
+	TransformsIntoPassenger:
+		RequiresCondition: factundeploy
+		CargoType: Vehicle
+		Voice: Move
+		RequiresForceMove: true
 	GrantConditionOnPrerequisite@GLOBALFACTUNDEPLOY:
 		Condition: factundeploy
 		Prerequisites: global-factundeploy

@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2018 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -14,23 +14,28 @@ using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.Traits.Render
 {
+	// TODO: Refactor this trait into WithResupplyOverlay
 	[Desc("Displays an overlay when the building is being repaired by the player.")]
 	public class WithRepairOverlayInfo : PausableConditionalTraitInfo, Requires<RenderSpritesInfo>, Requires<BodyOrientationInfo>
 	{
+		[SequenceReference("Image")]
 		[Desc("Sequence to use upon repair beginning.")]
-		[SequenceReference("Image")] public readonly string StartSequence = null;
+		public readonly string StartSequence = null;
 
+		[SequenceReference]
 		[Desc("Sequence name to play once during repair intervals or repeatedly if a start sequence is set.")]
-		[SequenceReference] public readonly string Sequence = "active";
+		public readonly string Sequence = "active";
 
+		[SequenceReference("Image")]
 		[Desc("Sequence to use after repairing has finished.")]
-		[SequenceReference("Image")] public readonly string EndSequence = null;
+		public readonly string EndSequence = null;
 
 		[Desc("Position relative to body")]
 		public readonly WVec Offset = WVec.Zero;
 
+		[PaletteReference("IsPlayerPalette")]
 		[Desc("Custom palette name")]
-		[PaletteReference("IsPlayerPalette")] public readonly string Palette = null;
+		public readonly string Palette = null;
 
 		[Desc("Custom palette is a player palette BaseName")]
 		public readonly bool IsPlayerPalette = false;
@@ -38,10 +43,11 @@ namespace OpenRA.Mods.Common.Traits.Render
 		public override object Create(ActorInitializer init) { return new WithRepairOverlay(init.Self, this); }
 	}
 
-	public class WithRepairOverlay : PausableConditionalTrait<WithRepairOverlayInfo>, INotifyDamageStateChanged, INotifyRepair
+	public class WithRepairOverlay : PausableConditionalTrait<WithRepairOverlayInfo>, INotifyDamageStateChanged, INotifyResupply
 	{
 		readonly Animation overlay;
 		bool visible;
+		bool repairing;
 
 		public WithRepairOverlay(Actor self, WithRepairOverlayInfo info)
 			: base(info)
@@ -65,8 +71,12 @@ namespace OpenRA.Mods.Common.Traits.Render
 			overlay.ReplaceAnim(RenderSprites.NormalizeSequence(overlay, e.DamageState, overlay.CurrentSequence.Name));
 		}
 
-		void INotifyRepair.BeforeRepair(Actor self, Actor host)
+		void INotifyResupply.BeforeResupply(Actor self, Actor target, ResupplyType types)
 		{
+			repairing = types.HasFlag(ResupplyType.Repair);
+			if (!repairing)
+				return;
+
 			if (Info.StartSequence != null)
 			{
 				visible = true;
@@ -75,18 +85,18 @@ namespace OpenRA.Mods.Common.Traits.Render
 			}
 		}
 
-		void INotifyRepair.RepairTick(Actor self, Actor host)
+		void INotifyResupply.ResupplyTick(Actor self, Actor target, ResupplyType types)
 		{
-			if (Info.StartSequence == null)
+			var wasRepairing = repairing;
+			repairing = types.HasFlag(ResupplyType.Repair);
+
+			if (repairing && Info.StartSequence == null && !visible)
 			{
 				visible = true;
 				overlay.PlayThen(overlay.CurrentSequence.Name, () => visible = false);
 			}
-		}
 
-		void INotifyRepair.AfterRepair(Actor self, Actor target)
-		{
-			if (Info.EndSequence != null)
+			if (!repairing && wasRepairing && Info.EndSequence != null)
 			{
 				visible = true;
 				overlay.PlayThen(Info.EndSequence, () => visible = false);

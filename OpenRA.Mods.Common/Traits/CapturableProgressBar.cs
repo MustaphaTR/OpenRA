@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2018 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -9,48 +9,48 @@
  */
 #endregion
 
-using System.Drawing;
+using System.Collections.Generic;
+using System.Linq;
+using OpenRA.Primitives;
 using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.Traits
 {
-	[Desc("Visualize the progress of this actor being captured.")]
-	class CaptureProgressBarInfo : ITraitInfo, Requires<CapturesInfo>
+	[Desc("Visualize capture progress.")]
+	class CapturableProgressBarInfo : ConditionalTraitInfo, Requires<CapturableInfo>
 	{
 		public readonly Color Color = Color.Orange;
 
-		public object Create(ActorInitializer init) { return new CaptureProgressBar(init.Self, this); }
+		public override object Create(ActorInitializer init) { return new CapturableProgressBar(init.Self, this); }
 	}
 
-	class CaptureProgressBar : ISelectionBar, ICaptureProgressWatcher
+	class CapturableProgressBar : ConditionalTrait<CapturableProgressBarInfo>, ISelectionBar, ICaptureProgressWatcher
 	{
-		readonly CaptureProgressBarInfo info;
-		int current;
-		int total;
+		Dictionary<Actor, Pair<int, int>> progress = new Dictionary<Actor, Pair<int, int>>();
 
-		public CaptureProgressBar(Actor self, CaptureProgressBarInfo info)
-		{
-			this.info = info;
-		}
+		public CapturableProgressBar(Actor self, CapturableProgressBarInfo info)
+			: base(info) { }
 
 		void ICaptureProgressWatcher.Update(Actor self, Actor captor, Actor target, int current, int total)
 		{
-			if (self != captor)
+			if (self != target)
 				return;
 
-			this.current = current;
-			this.total = total;
+			if (total == 0)
+				progress.Remove(captor);
+			else
+				progress[captor] = Pair.New(current, total);
 		}
 
 		float ISelectionBar.GetValue()
 		{
-			if (total == 0)
+			if (IsTraitDisabled || !progress.Any())
 				return 0f;
 
-			return (float)current / total;
+			return progress.Values.Max(p => (float)p.First / p.Second);
 		}
 
-		Color ISelectionBar.GetColor() { return info.Color; }
+		Color ISelectionBar.GetColor() { return Info.Color; }
 		bool ISelectionBar.DisplayWhenEmpty { get { return false; } }
 	}
 }

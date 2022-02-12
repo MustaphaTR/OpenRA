@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2018 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -10,10 +10,10 @@
 #endregion
 
 using System.Collections.Generic;
-using System.Drawing;
 using System.Linq;
 using OpenRA.Graphics;
 using OpenRA.Mods.Common.Graphics;
+using OpenRA.Primitives;
 using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.Traits.Render
@@ -28,7 +28,7 @@ namespace OpenRA.Mods.Common.Traits.Render
 		public object Create(ActorInitializer init) { return new RenderNameTag(init.Self, this); }
 	}
 
-	class RenderNameTag : IRender
+	class RenderNameTag : IRenderAnnotations
 	{
 		readonly SpriteFont font;
 		readonly Color color;
@@ -38,7 +38,7 @@ namespace OpenRA.Mods.Common.Traits.Render
 		public RenderNameTag(Actor self, RenderNameTagInfo info)
 		{
 			font = Game.Renderer.Fonts[info.Font];
-			color = self.Owner.Color.RGB;
+			color = self.Owner.Color;
 
 			if (self.Owner.PlayerName.Length > info.MaxLength)
 				name = self.Owner.PlayerName.Substring(0, info.MaxLength);
@@ -48,19 +48,18 @@ namespace OpenRA.Mods.Common.Traits.Render
 			decorationBounds = self.TraitsImplementing<IDecorationBounds>().ToArray();
 		}
 
-		public IEnumerable<IRenderable> Render(Actor self, WorldRenderer wr)
+		IEnumerable<IRenderable> IRenderAnnotations.RenderAnnotations(Actor self, WorldRenderer wr)
 		{
+			if (self.World.FogObscures(self))
+				yield break;
+
 			var bounds = decorationBounds.FirstNonEmptyBounds(self, wr);
 			var spaceBuffer = (int)(10 / wr.Viewport.Zoom);
 			var effectPos = wr.ProjectedPosition(new int2((bounds.Left + bounds.Right) / 2, bounds.Y - spaceBuffer));
 
-			return new IRenderable[] { new TextRenderable(font, effectPos, 0, color, name) };
+			yield return new TextAnnotationRenderable(font, effectPos, 0, color, name);
 		}
 
-		IEnumerable<Rectangle> IRender.ScreenBounds(Actor self, WorldRenderer wr)
-		{
-			// Name tags don't contribute to actor bounds
-			yield break;
-		}
+		bool IRenderAnnotations.SpatiallyPartitionable { get { return false; } }
 	}
 }

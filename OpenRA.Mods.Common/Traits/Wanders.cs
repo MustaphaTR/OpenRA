@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2018 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -39,7 +39,6 @@ namespace OpenRA.Mods.Common.Traits
 		int countdown;
 		int ticksIdle;
 		int effectiveMoveRadius;
-		bool firstTick = true;
 
 		public Wanders(Actor self, WandersInfo info)
 			: base(info)
@@ -47,6 +46,7 @@ namespace OpenRA.Mods.Common.Traits
 			this.self = self;
 			this.info = info;
 			effectiveMoveRadius = info.WanderMoveRadius;
+			countdown = self.World.SharedRandom.Next(info.MinMoveDelay, info.MaxMoveDelay);
 		}
 
 		protected override void Created(Actor self)
@@ -70,14 +70,6 @@ namespace OpenRA.Mods.Common.Traits
 		{
 			if (IsTraitDisabled)
 				return;
-
-			// OnBecomingIdle has not been called yet at this point, so set the initial countdown here
-			if (firstTick)
-			{
-				countdown = self.World.SharedRandom.Next(info.MinMoveDelay, info.MaxMoveDelay);
-				firstTick = false;
-				return;
-			}
 
 			if (--countdown > 0)
 				return;

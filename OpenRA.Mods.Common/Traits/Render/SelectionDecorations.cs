@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2018 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -10,17 +10,18 @@
 #endregion
 
 using System.Collections.Generic;
-using System.Drawing;
 using System.Linq;
 using OpenRA.Graphics;
 using OpenRA.Mods.Common.Graphics;
+using OpenRA.Primitives;
 using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.Traits.Render
 {
 	public class SelectionDecorationsInfo : ITraitInfo, Requires<IDecorationBoundsInfo>
 	{
-		[PaletteReference] public readonly string Palette = "chrome";
+		[PaletteReference]
+		public readonly string Palette = "chrome";
 
 		[Desc("Health bar, production progress bar etc.")]
 		public readonly bool RenderSelectionBars = true;
@@ -34,7 +35,7 @@ namespace OpenRA.Mods.Common.Traits.Render
 		public object Create(ActorInitializer init) { return new SelectionDecorations(init.Self, this); }
 	}
 
-	public class SelectionDecorations : IRenderAboveShroud, INotifyCreated, ITick
+	public class SelectionDecorations : ISelectionDecorations, IRenderAnnotations, INotifyCreated, ITick
 	{
 		// depends on the order of pips in TraitsInterfaces.cs!
 		static readonly string[] PipStrings = { "pip-empty", "pip-green", "pip-yellow", "pip-red", "pip-gray", "pip-blue", "pip-ammo", "pip-ammoempty" };
@@ -74,7 +75,7 @@ namespace OpenRA.Mods.Common.Traits.Render
 			}
 		}
 
-		IEnumerable<IRenderable> IRenderAboveShroud.RenderAboveShroud(Actor self, WorldRenderer wr)
+		IEnumerable<IRenderable> IRenderAnnotations.RenderAnnotations(Actor self, WorldRenderer wr)
 		{
 			if (self.World.FogObscures(self))
 				return Enumerable.Empty<IRenderable>();
@@ -82,7 +83,7 @@ namespace OpenRA.Mods.Common.Traits.Render
 			return DrawDecorations(self, wr);
 		}
 
-		bool IRenderAboveShroud.SpatiallyPartitionable { get { return true; } }
+		bool IRenderAnnotations.SpatiallyPartitionable { get { return true; } }
 
 		IEnumerable<IRenderable> DrawDecorations(Actor self, WorldRenderer wr)
 		{
@@ -105,10 +106,10 @@ namespace OpenRA.Mods.Common.Traits.Render
 			var displayExtra = selected || (regularWorld && statusBars != StatusBarsType.Standard);
 
 			if (Info.RenderSelectionBox && selected)
-				yield return new SelectionBoxRenderable(self, bounds, Info.SelectionBoxColor);
+				yield return new SelectionBoxAnnotationRenderable(self, bounds, Info.SelectionBoxColor);
 
 			if (Info.RenderSelectionBars && (displayHealth || displayExtra))
-				yield return new SelectionBarsRenderable(self, bounds, displayHealth, displayExtra);
+				yield return new SelectionBarsAnnotationRenderable(self, bounds, displayHealth, displayExtra);
 
 			// Target lines and pips are always only displayed for selected allied actors
 			if (!selected || !self.Owner.IsAlliedWith(wr.World.RenderPlayer))
@@ -119,6 +120,12 @@ namespace OpenRA.Mods.Common.Traits.Render
 
 			foreach (var r in DrawPips(self, bounds, wr))
 				yield return r;
+		}
+
+		public void DrawRollover(Actor self, WorldRenderer worldRenderer)
+		{
+			var bounds = decorationBounds.FirstNonEmptyBounds(self, worldRenderer);
+			new SelectionBarsAnnotationRenderable(self, bounds, true, true).Render(worldRenderer);
 		}
 
 		IEnumerable<IRenderable> DrawPips(Actor self, Rectangle bounds, WorldRenderer wr)

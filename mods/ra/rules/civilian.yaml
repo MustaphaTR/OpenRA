@@ -104,6 +104,7 @@ FCOM:
 	Power:
 		Amount: 0
 	ProvidesPrerequisite@buildingname:
+	AppearsOnMapPreview:
 	GpsDot:
 		String: Forward
 
@@ -137,11 +138,12 @@ HOSP:
 	RevealsShroud:
 		Range: 4c0
 	WithBuildingBib:
-		HasMinibib: Yes
+		HasMinibib: true
 	WithDeathAnimation:
 		DeathSequence: dead
 		UseDeathTypeSuffix: false
 	ProvidesPrerequisite@buildingname:
+	AppearsOnMapPreview:
 	GpsDot:
 		String: Hospital
 
@@ -422,6 +424,7 @@ MISS:
 		DeathSequence: dead
 		UseDeathTypeSuffix: false
 	ProvidesPrerequisite@buildingname:
+	AppearsOnMapPreview:
 	GpsDot:
 		String: Communications
 
@@ -455,6 +458,7 @@ BIO:
 		DeathSequence: dead
 		UseDeathTypeSuffix: false
 	ProvidesPrerequisite@buildingname:
+	AppearsOnMapPreview:
 	GpsDot:
 		String: Biohazard
 
@@ -497,8 +501,10 @@ OILB:
 		Weapon: BarrelExplode
 	GpsDot:
 		String: Oil
+	AppearsOnMapPreview:
 	GivesCashOnCapture:
 		Amount: 100
+	UpdatesDerrickCount:
 
 BR1:
 	Inherits: ^Bridge
@@ -525,7 +531,7 @@ BR2:
 BR3:
 	Inherits: ^Bridge
 	Bridge:
-		Long: yes
+		Long: true
 		ShorePieces: br1,br2
 		Template: 241
 		DamagedTemplate: 242

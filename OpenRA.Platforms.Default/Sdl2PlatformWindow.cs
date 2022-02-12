@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2018 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -10,8 +10,8 @@
 #endregion
 
 using System;
-using System.Drawing;
 using System.Runtime.InteropServices;
+using OpenRA.Primitives;
 using SDL2;
 
 namespace OpenRA.Platforms.Default
@@ -30,6 +30,7 @@ namespace OpenRA.Platforms.Default
 		Size windowSize;
 		Size surfaceSize;
 		float windowScale;
+		int2? lockedMousePosition;
 
 		internal IntPtr Window
 		{
@@ -58,7 +59,7 @@ namespace OpenRA.Platforms.Default
 			}
 		}
 
-		internal Size SurfaceSize
+		public Size SurfaceSize
 		{
 			get
 			{
@@ -74,8 +75,6 @@ namespace OpenRA.Platforms.Default
 
 		public Sdl2PlatformWindow(Size requestWindowSize, WindowMode windowMode, int batchSize)
 		{
-			Console.WriteLine("Using SDL 2 with OpenGL renderer");
-
 			// Lock the Window/Surface properties until initialization is complete
 			lock (syncObject)
 			{
@@ -91,6 +90,25 @@ namespace OpenRA.Platforms.Default
 				SDL.SDL_GL_SetAttribute(SDL.SDL_GLattr.SDL_GL_GREEN_SIZE, 8);
 				SDL.SDL_GL_SetAttribute(SDL.SDL_GLattr.SDL_GL_BLUE_SIZE, 8);
 				SDL.SDL_GL_SetAttribute(SDL.SDL_GLattr.SDL_GL_ALPHA_SIZE, 0);
+
+				// Decide between OpenGL and OpenGL ES rendering
+				// Test whether we can use the preferred renderer and fall back to the other if that fails
+				// If neither works we will throw a graphics error later when trying to create the real window
+				bool useGLES;
+				if (Game.Settings.Graphics.PreferGLES)
+					useGLES = CanCreateGLWindow(3, 0, SDL.SDL_GLprofile.SDL_GL_CONTEXT_PROFILE_ES);
+				else
+					useGLES = !CanCreateGLWindow(3, 2, SDL.SDL_GLprofile.SDL_GL_CONTEXT_PROFILE_CORE);
+
+				var glMajor = 3;
+				var glMinor = useGLES ? 0 : 2;
+				var glProfile = useGLES ? SDL.SDL_GLprofile.SDL_GL_CONTEXT_PROFILE_ES : SDL.SDL_GLprofile.SDL_GL_CONTEXT_PROFILE_CORE;
+
+				SDL.SDL_GL_SetAttribute(SDL.SDL_GLattr.SDL_GL_CONTEXT_MAJOR_VERSION, glMajor);
+				SDL.SDL_GL_SetAttribute(SDL.SDL_GLattr.SDL_GL_CONTEXT_MINOR_VERSION, glMinor);
+				SDL.SDL_GL_SetAttribute(SDL.SDL_GLattr.SDL_GL_CONTEXT_PROFILE_MASK, (int)glProfile);
+
+				Console.WriteLine("Using SDL 2 with OpenGL{0} renderer", useGLES ? " ES" : "");
 
 				SDL.SDL_DisplayMode display;
 				SDL.SDL_GetCurrentDisplayMode(0, out display);
@@ -276,6 +294,23 @@ namespace OpenRA.Platforms.Default
 			}
 		}
 
+		public void SetRelativeMouseMode(bool mode)
+		{
+			if (mode)
+			{
+				int x, y;
+				SDL.SDL_GetMouseState(out x, out y);
+				lockedMousePosition = new int2(x, y);
+			}
+			else
+			{
+				if (lockedMousePosition.HasValue)
+					SDL.SDL_WarpMouseInWindow(window, lockedMousePosition.Value.X, lockedMousePosition.Value.Y);
+
+				lockedMousePosition = null;
+			}
+		}
+
 		internal void WindowSizeChanged()
 		{
 			// The ratio between pixels and points can change when moving between displays in OSX
@@ -331,7 +366,10 @@ namespace OpenRA.Platforms.Default
 		public void PumpInput(IInputHandler inputHandler)
 		{
 			VerifyThreadAffinity();
-			input.PumpInput(this, inputHandler);
+			input.PumpInput(this, inputHandler, lockedMousePosition);
+
+			if (lockedMousePosition.HasValue)
+				SDL.SDL_WarpMouseInWindow(window, lockedMousePosition.Value.X, lockedMousePosition.Value.Y);
 		}
 
 		public string GetClipboardText()
@@ -344,6 +382,34 @@ namespace OpenRA.Platforms.Default
 		{
 			VerifyThreadAffinity();
 			return input.SetClipboardText(text);
+		}
+
+		static bool CanCreateGLWindow(int major, int minor, SDL.SDL_GLprofile profile)
+		{
+			// Implementation inspired by TestIndividualGLVersion from Veldrid
+			SDL.SDL_GL_SetAttribute(SDL.SDL_GLattr.SDL_GL_CONTEXT_MAJOR_VERSION, major);
+			SDL.SDL_GL_SetAttribute(SDL.SDL_GLattr.SDL_GL_CONTEXT_MINOR_VERSION, minor);
+			SDL.SDL_GL_SetAttribute(SDL.SDL_GLattr.SDL_GL_CONTEXT_PROFILE_MASK, (int)profile);
+
+			var flags = SDL.SDL_WindowFlags.SDL_WINDOW_HIDDEN | SDL.SDL_WindowFlags.SDL_WINDOW_OPENGL;
+			var window = SDL.SDL_CreateWindow("", 0, 0, 1, 1, flags);
+			if (window == IntPtr.Zero || !string.IsNullOrEmpty(SDL.SDL_GetError()))
+			{
+				SDL.SDL_ClearError();
+				return false;
+			}
+
+			var context = SDL.SDL_GL_CreateContext(window);
+			if (context == IntPtr.Zero || SDL.SDL_GL_MakeCurrent(window, context) < 0)
+			{
+				SDL.SDL_ClearError();
+				SDL.SDL_DestroyWindow(window);
+				return false;
+			}
+
+			SDL.SDL_GL_DeleteContext(context);
+			SDL.SDL_DestroyWindow(window);
+			return true;
 		}
 	}
 }

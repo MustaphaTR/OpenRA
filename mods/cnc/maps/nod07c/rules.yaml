@@ -70,7 +70,8 @@ E5:
 
 HARV:
 	Harvester:
-		SearchFromOrderRadius: 30
+		SearchFromProcRadius: 30
+		SearchFromHarvesterRadius: 30
 
 HTNK:
 	Buildable:

@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2018 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -10,8 +10,8 @@
 #endregion
 
 using System.Collections.Generic;
-using System.Drawing;
 using System.Linq;
+using OpenRA.Primitives;
 
 namespace OpenRA.Graphics
 {
@@ -19,11 +19,15 @@ namespace OpenRA.Graphics
 	{
 		readonly IEnumerable<WPos> waypoints;
 		readonly Color color;
+		readonly int width;
+		readonly int markerSize;
 
-		public TargetLineRenderable(IEnumerable<WPos> waypoints, Color color)
+		public TargetLineRenderable(IEnumerable<WPos> waypoints, Color color, int width = 1, int markerSize = 1)
 		{
 			this.waypoints = waypoints;
 			this.color = color;
+			this.width = width;
+			this.markerSize = markerSize;
 		}
 
 		public WPos Pos { get { return waypoints.First(); } }
@@ -42,26 +46,24 @@ namespace OpenRA.Graphics
 			if (!waypoints.Any())
 				return;
 
-			var iz = 1 / wr.Viewport.Zoom;
-			var first = wr.Screen3DPosition(waypoints.First());
+			var first = wr.Viewport.WorldToViewPx(wr.Screen3DPosition(waypoints.First()));
 			var a = first;
-			foreach (var b in waypoints.Skip(1).Select(pos => wr.Screen3DPosition(pos)))
+			foreach (var b in waypoints.Skip(1).Select(pos => wr.Viewport.WorldToViewPx(wr.Screen3DPosition(pos))))
 			{
-				Game.Renderer.WorldRgbaColorRenderer.DrawLine(a, b, iz, color);
-				DrawTargetMarker(wr, color, b);
+				Game.Renderer.RgbaColorRenderer.DrawLine(a, b, width, color);
+				DrawTargetMarker(wr, color, b, markerSize);
 				a = b;
 			}
 
 			DrawTargetMarker(wr, color, first);
 		}
 
-		public static void DrawTargetMarker(WorldRenderer wr, Color color, float3 location)
+		public static void DrawTargetMarker(WorldRenderer wr, Color color, int2 screenPos, int size = 1)
 		{
-			var iz = 1 / wr.Viewport.Zoom;
-			var offset = new float2(iz, iz);
-			var tl = location - offset;
-			var br = location + offset;
-			Game.Renderer.WorldRgbaColorRenderer.FillRect(tl, br, color);
+			var offset = new int2(size, size);
+			var tl = screenPos - offset;
+			var br = screenPos + offset;
+			Game.Renderer.RgbaColorRenderer.FillRect(tl, br, color);
 		}
 
 		public void RenderDebugGeometry(WorldRenderer wr) { }

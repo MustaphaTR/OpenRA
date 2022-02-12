@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2018 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -10,8 +10,8 @@
 #endregion
 
 using System;
-using System.Drawing;
 using System.Linq;
+using OpenRA.Primitives;
 using OpenRA.Support;
 
 namespace OpenRA.Graphics
@@ -60,6 +60,22 @@ namespace OpenRA.Graphics
 			{
 				var shadow = CurrentSequence.GetShadow(CurrentFrame, facingFunc());
 				var shadowRenderable = new SpriteRenderable(shadow, pos, offset, CurrentSequence.ShadowZOffset + zOffset, palette, scale, true);
+				return new IRenderable[] { shadowRenderable, imageRenderable };
+			}
+
+			return new IRenderable[] { imageRenderable };
+		}
+
+		public IRenderable[] RenderUI(int2 pos, WVec offset, int zOffset, PaletteReference palette, float scale)
+		{
+			var imagePos = pos - new int2((int)(scale * Image.Size.X / 2), (int)(scale * Image.Size.Y / 2));
+			var imageRenderable = new UISpriteRenderable(Image, WPos.Zero + offset, imagePos, CurrentSequence.ZOffset + zOffset, palette, scale);
+
+			if (CurrentSequence.ShadowStart >= 0)
+			{
+				var shadow = CurrentSequence.GetShadow(CurrentFrame, facingFunc());
+				var shadowPos = pos - new int2((int)(scale * shadow.Size.X / 2), (int)(scale * shadow.Size.Y / 2));
+				var shadowRenderable = new UISpriteRenderable(shadow, WPos.Zero + offset, shadowPos, CurrentSequence.ShadowZOffset + zOffset, palette, scale);
 				return new IRenderable[] { shadowRenderable, imageRenderable };
 			}
 

@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2018 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -10,10 +10,10 @@
 #endregion
 
 using System.Collections.Generic;
-using System.Drawing;
 using System.Linq;
 using OpenRA.Graphics;
 using OpenRA.Mods.Common.Graphics;
+using OpenRA.Primitives;
 using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.Traits.Render
@@ -41,14 +41,14 @@ namespace OpenRA.Mods.Common.Traits.Render
 
 		void IRulesetLoaded<ActorInfo>.RulesetLoaded(Ruleset rules, ActorInfo info)
 		{
-			if (!Game.ModData.Manifest.Fonts.ContainsKey(Font))
+			if (!Game.ModData.Manifest.Get<Fonts>().FontList.ContainsKey(Font))
 				throw new YamlException("Font '{0}' is not listed in the mod.yaml's Fonts section".F(Font));
 		}
 
 		public object Create(ActorInitializer init) { return new WithTextControlGroupDecoration(init.Self, this); }
 	}
 
-	public class WithTextControlGroupDecoration : IRenderAboveShroudWhenSelected, INotifyOwnerChanged
+	public class WithTextControlGroupDecoration : IRenderAnnotationsWhenSelected, INotifyOwnerChanged
 	{
 		readonly WithTextControlGroupDecorationInfo info;
 		readonly IDecorationBounds[] decorationBounds;
@@ -64,10 +64,10 @@ namespace OpenRA.Mods.Common.Traits.Render
 				throw new YamlException("Font '{0}' is not listed in the mod.yaml's Fonts section".F(info.Font));
 
 			decorationBounds = self.TraitsImplementing<IDecorationBounds>().ToArray();
-			color = info.UsePlayerColor ? self.Owner.Color.RGB : info.Color;
+			color = info.UsePlayerColor ? self.Owner.Color : info.Color;
 		}
 
-		IEnumerable<IRenderable> IRenderAboveShroudWhenSelected.RenderAboveShroud(Actor self, WorldRenderer wr)
+		IEnumerable<IRenderable> IRenderAnnotationsWhenSelected.RenderAnnotations(Actor self, WorldRenderer wr)
 		{
 			if (self.World.FogObscures(self))
 				yield break;
@@ -79,7 +79,7 @@ namespace OpenRA.Mods.Common.Traits.Render
 				yield return r;
 		}
 
-		bool IRenderAboveShroudWhenSelected.SpatiallyPartitionable { get { return true; } }
+		bool IRenderAnnotationsWhenSelected.SpatiallyPartitionable { get { return true; } }
 
 		IEnumerable<IRenderable> DrawControlGroup(Actor self, WorldRenderer wr)
 		{
@@ -92,7 +92,7 @@ namespace OpenRA.Mods.Common.Traits.Render
 			var halfSize = font.Measure(number) / 2;
 
 			var boundsOffset = new int2(bounds.Left + bounds.Right, bounds.Top + bounds.Bottom) / 2;
-			var sizeOffset = new int2();
+			var sizeOffset = int2.Zero;
 			if (info.ReferencePoint.HasFlag(ReferencePoints.Top))
 			{
 				boundsOffset -= new int2(0, bounds.Height / 2);
@@ -117,13 +117,13 @@ namespace OpenRA.Mods.Common.Traits.Render
 
 			var screenPos = boundsOffset + sizeOffset + info.ScreenOffset;
 
-			yield return new TextRenderable(font, wr.ProjectedPosition(screenPos), info.ZOffset, color, number);
+			yield return new TextAnnotationRenderable(font, wr.ProjectedPosition(screenPos), info.ZOffset, color, number);
 		}
 
 		void INotifyOwnerChanged.OnOwnerChanged(Actor self, Player oldOwner, Player newOwner)
 		{
 			if (info.UsePlayerColor)
-				color = newOwner.Color.RGB;
+				color = newOwner.Color;
 		}
 	}
 }

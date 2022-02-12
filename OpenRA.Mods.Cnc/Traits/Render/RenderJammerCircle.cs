@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2018 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -10,10 +10,10 @@
 #endregion
 
 using System.Collections.Generic;
-using System.Drawing;
 using OpenRA.Graphics;
 using OpenRA.Mods.Common.Graphics;
 using OpenRA.Mods.Common.Traits;
+using OpenRA.Primitives;
 using OpenRA.Traits;
 
 namespace OpenRA.Mods.Cnc.Traits
@@ -21,12 +21,12 @@ namespace OpenRA.Mods.Cnc.Traits
 	// TODO: remove all the Render*Circle duplication
 	class RenderJammerCircleInfo : TraitInfo<RenderJammerCircle>, IPlaceBuildingDecorationInfo
 	{
-		public IEnumerable<IRenderable> Render(WorldRenderer wr, World w, ActorInfo ai, WPos centerPosition)
+		public IEnumerable<IRenderable> RenderAnnotations(WorldRenderer wr, World w, ActorInfo ai, WPos centerPosition)
 		{
 			var jamsMissiles = ai.TraitInfoOrDefault<JamsMissilesInfo>();
 			if (jamsMissiles != null)
 			{
-				yield return new RangeCircleRenderable(
+				yield return new RangeCircleAnnotationRenderable(
 					centerPosition,
 					jamsMissiles.Range,
 					0,
@@ -36,14 +36,14 @@ namespace OpenRA.Mods.Cnc.Traits
 
 			foreach (var a in w.ActorsWithTrait<RenderJammerCircle>())
 				if (a.Actor.Owner.IsAlliedWith(w.RenderPlayer))
-					foreach (var r in a.Trait.RenderAboveShroud(a.Actor, wr))
+					foreach (var r in a.Trait.RenderAnnotations(a.Actor, wr))
 						yield return r;
 		}
 	}
 
-	class RenderJammerCircle : IRenderAboveShroudWhenSelected
+	class RenderJammerCircle : IRenderAnnotationsWhenSelected
 	{
-		public IEnumerable<IRenderable> RenderAboveShroud(Actor self, WorldRenderer wr)
+		public IEnumerable<IRenderable> RenderAnnotations(Actor self, WorldRenderer wr)
 		{
 			if (!self.Owner.IsAlliedWith(self.World.RenderPlayer))
 				yield break;
@@ -51,7 +51,7 @@ namespace OpenRA.Mods.Cnc.Traits
 			var jamsMissiles = self.Info.TraitInfoOrDefault<JamsMissilesInfo>();
 			if (jamsMissiles != null)
 			{
-				yield return new RangeCircleRenderable(
+				yield return new RangeCircleAnnotationRenderable(
 					self.CenterPosition,
 					jamsMissiles.Range,
 					0,
@@ -60,6 +60,6 @@ namespace OpenRA.Mods.Cnc.Traits
 			}
 		}
 
-		bool IRenderAboveShroudWhenSelected.SpatiallyPartitionable { get { return false; } }
+		bool IRenderAnnotationsWhenSelected.SpatiallyPartitionable { get { return false; } }
 	}
 }

@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2018 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -11,13 +11,14 @@
 
 using System.Collections.Generic;
 using System.Linq;
+using OpenRA.Mods.Common.Activities;
 using OpenRA.Mods.Common.Traits.Render;
 using OpenRA.Primitives;
 using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.Traits
 {
-	class CrateInfo : ITraitInfo, IPositionableInfo, Requires<RenderSpritesInfo>
+	public class CrateInfo : ITraitInfo, IPositionableInfo, Requires<RenderSpritesInfo>
 	{
 		[Desc("Length of time (in seconds) until the crate gets removed automatically. " +
 			"A value of zero disables auto-removal.")]
@@ -39,9 +40,9 @@ namespace OpenRA.Mods.Common.Traits
 
 		bool IOccupySpaceInfo.SharesCell { get { return false; } }
 
-		public bool CanEnterCell(World world, Actor self, CPos cell, Actor ignoreActor = null, bool checkTransientActors = true)
+		public bool CanEnterCell(World world, Actor self, CPos cell, Actor ignoreActor = null, BlockedByActor check = BlockedByActor.All)
 		{
-			return GetAvailableSubCell(world, cell, ignoreActor, checkTransientActors) != SubCell.Invalid;
+			return GetAvailableSubCell(world, cell, ignoreActor, check) != SubCell.Invalid;
 		}
 
 		public bool CanExistInCell(World world, CPos cell)
@@ -56,7 +57,7 @@ namespace OpenRA.Mods.Common.Traits
 			return true;
 		}
 
-		public SubCell GetAvailableSubCell(World world, CPos cell, Actor ignoreActor = null, bool checkTransientActors = true)
+		public SubCell GetAvailableSubCell(World world, CPos cell, Actor ignoreActor = null, BlockedByActor check = BlockedByActor.All)
 		{
 			if (!CanExistInCell(world, cell))
 				return SubCell.Invalid;
@@ -64,7 +65,7 @@ namespace OpenRA.Mods.Common.Traits
 			if (world.WorldActor.Trait<BuildingInfluence>().GetBuildingAt(cell) != null)
 				return SubCell.Invalid;
 
-			if (!checkTransientActors)
+			if (check == BlockedByActor.None)
 				return SubCell.FullCell;
 
 			return !world.ActorMap.GetActorsAt(cell).Any(x => x != ignoreActor)
@@ -72,7 +73,7 @@ namespace OpenRA.Mods.Common.Traits
 		}
 	}
 
-	class Crate : ITick, IPositionable, ICrushable, ISync,
+	public class Crate : ITick, IPositionable, ICrushable, ISync,
 		INotifyParachute, INotifyAddedToWorld, INotifyRemovedFromWorld, INotifyCrushed
 	{
 		readonly Actor self;
@@ -80,8 +81,11 @@ namespace OpenRA.Mods.Common.Traits
 		readonly CrateSpawner spawner;
 		bool collected;
 
-		[Sync] int ticks;
-		[Sync] public CPos Location;
+		[Sync]
+		int ticks;
+
+		[Sync]
+		public CPos Location;
 
 		public Crate(ActorInitializer init, CrateInfo info)
 		{
@@ -107,7 +111,7 @@ namespace OpenRA.Mods.Common.Traits
 		}
 
 		void INotifyParachute.OnParachute(Actor self) { }
-		void INotifyParachute.OnLanded(Actor self, Actor ignore)
+		void INotifyParachute.OnLanded(Actor self)
 		{
 			// Check whether the crate landed on anything
 			var landedOn = self.World.ActorMap.GetActorsAt(self.Location)
@@ -208,16 +212,16 @@ namespace OpenRA.Mods.Common.Traits
 
 		public bool IsLeavingCell(CPos location, SubCell subCell = SubCell.Any) { return self.Location == location && ticks + 1 == info.Lifetime * 25; }
 		public SubCell GetValidSubCell(SubCell preferred = SubCell.Any) { return SubCell.FullCell; }
-		public SubCell GetAvailableSubCell(CPos cell, SubCell preferredSubCell = SubCell.Any, Actor ignoreActor = null, bool checkTransientActors = true)
+		public SubCell GetAvailableSubCell(CPos cell, SubCell preferredSubCell = SubCell.Any, Actor ignoreActor = null, BlockedByActor check = BlockedByActor.All)
 		{
-			return info.GetAvailableSubCell(self.World, cell, ignoreActor, checkTransientActors);
+			return info.GetAvailableSubCell(self.World, cell, ignoreActor, check);
 		}
 
 		public bool CanExistInCell(CPos cell) { return info.CanExistInCell(self.World, cell); }
 
-		public bool CanEnterCell(CPos a, Actor ignoreActor = null, bool checkTransientActors = true)
+		public bool CanEnterCell(CPos a, Actor ignoreActor = null, BlockedByActor check = BlockedByActor.All)
 		{
-			return GetAvailableSubCell(a, SubCell.Any, ignoreActor, checkTransientActors) != SubCell.Invalid;
+			return GetAvailableSubCell(a, SubCell.Any, ignoreActor, check) != SubCell.Invalid;
 		}
 
 		bool ICrushable.CrushableBy(Actor self, Actor crusher, BitSet<CrushClass> crushClasses)
@@ -226,12 +230,20 @@ namespace OpenRA.Mods.Common.Traits
 			return self.IsAtGroundLevel() && crushClasses.Contains(info.CrushClass);
 		}
 
+		LongBitSet<PlayerBitMask> ICrushable.CrushableBy(Actor self, BitSet<CrushClass> crushClasses)
+		{
+			return self.IsAtGroundLevel() && crushClasses.Contains(info.CrushClass) ? self.World.AllPlayersMask : self.World.NoPlayersMask;
+		}
+
 		void INotifyAddedToWorld.AddedToWorld(Actor self)
 		{
 			self.World.AddToMaps(self, this);
 
 			if (spawner != null)
 				spawner.IncrementCrates();
+
+			if (self.World.Map.DistanceAboveTerrain(CenterPosition) > WDist.Zero && self.TraitOrDefault<Parachutable>() != null)
+				self.QueueActivity(new Parachute(self));
 		}
 
 		void INotifyRemovedFromWorld.RemovedFromWorld(Actor self)

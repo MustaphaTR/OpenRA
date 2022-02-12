@@ -58,25 +58,31 @@ Background@SETTINGS_PANEL:
 			Height: 25
 			Children:
 				Button@DISPLAY_TAB:
-					X: 115
+					X: 70
 					Width: 90
 					Height: 25
 					Text: Display
 					Font: Bold
 				Button@AUDIO_TAB:
-					X: 205
+					X: 70 + WIDTH
 					Width: 90
 					Height: 25
 					Text: Audio
 					Font: Bold
 				Button@INPUT_TAB:
-					X: 295
+					X: 70 + 2 * WIDTH
 					Width: 90
 					Height: 25
 					Text: Input
 					Font: Bold
+				Button@HOTKEYS_TAB:
+					X: 70 + 3 * WIDTH
+					Width: 90
+					Height: 25
+					Text: Hotkeys
+					Font: Bold
 				Button@ADVANCED_TAB:
-					X: 385
+					X: 70 + 4 * WIDTH
 					Width: 90
 					Height: 25
 					Text: Advanced
@@ -89,7 +95,7 @@ Background@SETTINGS_PANEL:
 			Children:
 				Label@MODE_LABEL:
 					X: 110
-					Y: 39
+					Y: 41
 					Width: 45
 					Height: 25
 					Align: Right
@@ -108,7 +114,7 @@ Background@SETTINGS_PANEL:
 						Label@At:
 							Text: @
 							Font: Bold
-							Y: 0 - 1
+							Y: 1
 							Height: 25
 							Width: 25
 							Align: Center
@@ -122,7 +128,7 @@ Background@SETTINGS_PANEL:
 							Text: x
 							Font: Bold
 							X: 70
-							Y: 0 - 1
+							Y: 0
 							Height: 25
 							Width: 15
 							Align: Center
@@ -169,7 +175,7 @@ Background@SETTINGS_PANEL:
 					Text: Also Double Cursor
 				Label@FRAME_LIMIT_DESC_A:
 					X: 45
-					Y: 157
+					Y: 159
 					Width: 50
 					Height: 25
 					Text: Limit to
@@ -183,7 +189,7 @@ Background@SETTINGS_PANEL:
 					Type: Integer
 				Label@FRAME_LIMIT_DESC_B:
 					X: 150
-					Y: 157
+					Y: 159
 					Height: 25
 					Text: FPS
 				Checkbox@PLAYER_STANCE_COLORS_CHECKBOX:
@@ -196,7 +202,7 @@ Background@SETTINGS_PANEL:
 				Label@PLAYER:
 					Text: Player:
 					X: 15
-					Y: 205
+					Y: 208
 				TextField@PLAYERNAME:
 					Text: Name
 					X: 65
@@ -218,9 +224,11 @@ Background@SETTINGS_PANEL:
 							Width: PARENT_RIGHT - 35
 							Height: PARENT_BOTTOM - 12
 				Label@STATUS_BARS:
-					X: 310
-					Y: 275
+					X: 250
+					Y: 278
+					Width: 145
 					Text: Status Bars:
+					Align: Right
 				DropDownButton@STATUS_BAR_DROPDOWN:
 					X: 400
 					Y: 265
@@ -228,13 +236,18 @@ Background@SETTINGS_PANEL:
 					Height: 25
 					Font: Regular
 					Text: Standard
-				Checkbox@DISPLAY_TARGET_LINES_CHECKBOX:
-					X: 310
+				Label@TARGET_LINES:
+					X: 250
+					Y: 243
+					Width: 145
+					Text: Target Lines:
+					Align: Right
+				DropDownButton@TARGET_LINES_DROPDOWN:
+					X: 400
 					Y: 230
-					Width: 200
-					Height: 20
+					Width: 170
+					Height: 25
 					Font: Regular
-					Text: Display Target Lines
 				Label@LOCALIZATION_TITLE:
 					Y: 270
 					Width: PARENT_RIGHT
@@ -280,7 +293,7 @@ Background@SETTINGS_PANEL:
 			Children:
 				Label@SOUND_LABEL:
 					X: PARENT_RIGHT - WIDTH - 270
-					Y: 37
+					Y: 39
 					Width: 95
 					Height: 25
 					Align: Right
@@ -307,7 +320,7 @@ Background@SETTINGS_PANEL:
 					Text: Mute Sound
 				Label@MUSIC_LABEL:
 					X: PARENT_RIGHT - WIDTH - 270
-					Y: 67
+					Y: 69
 					Width: 95
 					Height: 25
 					Align: Right
@@ -320,7 +333,7 @@ Background@SETTINGS_PANEL:
 					Ticks: 7
 				Label@VIDEO_LABEL:
 					X: PARENT_RIGHT - WIDTH - 270
-					Y: 97
+					Y: 99
 					Width: 95
 					Height: 25
 					Align: Right
@@ -333,7 +346,7 @@ Background@SETTINGS_PANEL:
 					Ticks: 7
 				Label@AUDIO_DEVICE_LABEL:
 					X: 190 - WIDTH - 5
-					Y: 244
+					Y: 245
 					Width: 75
 					Height: 25
 					Align: Right
@@ -344,7 +357,7 @@ Background@SETTINGS_PANEL:
 					Width: 300
 					Height: 25
 				Label@AUDIO_DEVICE_DESC:
-					Y: 265
+					Y: 266
 					Width: PARENT_RIGHT
 					Height: 25
 					Font: Tiny
@@ -365,7 +378,7 @@ Background@SETTINGS_PANEL:
 					Text: Left-click Orders
 				Label@MIDDLE_MOUSE_SCROLL_LABEL:
 					X: PARENT_RIGHT - WIDTH - 120
-					Y: 39
+					Y: 41
 					Width: 160
 					Height: 20
 					Font: Regular
@@ -379,7 +392,7 @@ Background@SETTINGS_PANEL:
 					Font: Regular
 				Label@MIDDLE_MOUSE_SCROLL_LABEL:
 					X: PARENT_RIGHT - WIDTH - 120
-					Y: 69
+					Y: 71
 					Width: 160
 					Height: 20
 					Font: Regular
@@ -393,7 +406,7 @@ Background@SETTINGS_PANEL:
 					Font: Regular
 				Label@ZOOM_MODIFIER_LABEL:
 					X: PARENT_RIGHT - WIDTH - 120
-					Y: 98
+					Y: 101
 					Width: 160
 					Height: 20
 					Font: Regular
@@ -429,7 +442,7 @@ Background@SETTINGS_PANEL:
 					Text: Lock mouse to window
 				Label@SCROLL_SPEED_LABEL:
 					X: PARENT_RIGHT - WIDTH - 270
-					Y: 127
+					Y: 129
 					Width: 95
 					Height: 25
 					Text: Scroll Speed:
@@ -444,7 +457,7 @@ Background@SETTINGS_PANEL:
 					MaximumValue: 50
 				Label@UI_SCROLL_SPEED_LABEL:
 					X: PARENT_RIGHT - WIDTH - 106
-					Y: 127
+					Y: 129
 					Width: 95
 					Height: 25
 					Text: UI Scroll:
@@ -457,19 +470,19 @@ Background@SETTINGS_PANEL:
 					Ticks: 5
 					MinimumValue: 1
 					MaximumValue: 100
-				Label@HOTKEYS_TITLE:
-					Y: 165
-					Width: PARENT_RIGHT
-					Font: Bold
-					Text: Hotkeys
-					Align: Center
+		Container@HOTKEYS_PANEL:
+			X: 5
+			Y: 50
+			Width: PARENT_RIGHT - 10
+			Height: PARENT_BOTTOM
+			Children:
 				ScrollPanel@HOTKEY_LIST:
 					X: 15
-					Y: 185
-					Width: 560
+					Y: 40
+					Width: PARENT_RIGHT - 30
 					TopBottomSpacing: 4
 					ItemSpacing: 4
-					Height: 160
+					Height: 222
 					Children:
 						ScrollItem@HEADER:
 							BaseName: scrollheader
@@ -504,10 +517,12 @@ Background@SETTINGS_PANEL:
 													Width: PARENT_RIGHT - 85
 													Height: 25
 													Align: Right
-												HotkeyEntry@HOTKEY:
+												Button@HOTKEY:
 													X: PARENT_RIGHT - WIDTH
 													Width: 80
 													Height: 25
+													Align: Left
+													TooltipContainer: TOOLTIP_CONTAINER
 										Container@THREE_COLUMN:
 											Width: 173
 											Height: 25
@@ -518,10 +533,75 @@ Background@SETTINGS_PANEL:
 													Width: PARENT_RIGHT - 84
 													Height: 25
 													Align: Right
-												HotkeyEntry@HOTKEY:
+												Button@HOTKEY:
 													X: PARENT_RIGHT - WIDTH + 1
 													Width: 80
 													Height: 25
+													Align: Left
+													TooltipContainer: TOOLTIP_CONTAINER
+				Background@HOTKEY_DIALOG_ROOT:
+					X: 15
+					Y: 270
+					Width: PARENT_RIGHT - 30
+					Height: 73
+					Background: dialog3
+					Children:
+						Label@HOTKEY_LABEL:
+							X: 15
+							Y: 19
+							Width: 219 - 15 - 10
+							Height: 25
+							Font: Bold
+							Align: Right
+						HotkeyEntry@HOTKEY_ENTRY:
+							X: 219
+							Y: 20
+							Width: 170
+							Height: 25
+						Container@NOTICES:
+							X: 219
+							Y: 42
+							Width: 170
+							Height: 25
+							Children:
+								Label@DEFAULT_NOTICE:
+									Width: PARENT_RIGHT
+									Height: PARENT_BOTTOM
+									Font: Tiny
+									Align: Left
+									Text: This is the default
+								Label@ORIGINAL_NOTICE:
+									Width: PARENT_RIGHT
+									Height: PARENT_BOTTOM
+									Font: Tiny
+									Align: Left
+									Text: The default is "{0}"
+								Label@DUPLICATE_NOTICE:
+									Width: PARENT_RIGHT
+									Height: PARENT_BOTTOM
+									Font: Tiny
+									Align: Left
+									Text: This is already used for "{0}"
+						Button@CLEAR_HOTKEY_BUTTON:
+							X: PARENT_RIGHT - 2 * WIDTH - 30
+							Y: 20
+							Width: 65
+							Height: 25
+							Text: Clear
+							Font: Bold
+							TooltipText: Unbind the hotkey
+							TooltipContainer: TOOLTIP_CONTAINER
+							TooltipTemplate: SIMPLE_TOOLTIP
+						Button@RESET_HOTKEY_BUTTON:
+							X: PARENT_RIGHT - WIDTH - 20
+							Y: 20
+							Width: 65
+							Height: 25
+							Text: Reset
+							Font: Bold
+							TooltipText: Reset to default
+							TooltipContainer: TOOLTIP_CONTAINER
+							TooltipTemplate: SIMPLE_TOOLTIP
 		Container@ADVANCED_PANEL:
 			X: 5
 			Y: 50
@@ -592,7 +672,7 @@ Background@SETTINGS_PANEL:
 							Width: PARENT_RIGHT
 							Height: 20
 							Font: Regular
-							Text: Additional developer-specific options can be enabled via the 
+							Text: Additional developer-specific options can be enabled via the
 							Align: Center
 						Label@B:
 							Y: 20
@@ -640,10 +720,4 @@ Background@SETTINGS_PANEL:
 							Height: 20
 							Font: Regular
 							Text: Enable Debug Commands in Replays
-						Checkbox@STRICTACTIVITY_CHECKBOX:
-							X: 310
-							Y: 280
-							Width: 300
-							Height: 20
-							Font: Regular
-							Text: Strict Activity checking
+		TooltipContainer@TOOLTIP_CONTAINER:

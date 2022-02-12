@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2018 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -127,6 +127,21 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				var reslayer = worldRenderer.World.WorldActor.TraitsImplementing<EditorResourceLayer>().FirstOrDefault();
 				if (reslayer != null)
 					cashLabel.GetText = () => "$ {0}".F(reslayer.NetWorth);
+			}
+
+			var actionManager = world.WorldActor.Trait<EditorActionManager>();
+			var undoButton = widget.GetOrNull<ButtonWidget>("UNDO_BUTTON");
+			if (undoButton != null)
+			{
+				undoButton.IsDisabled = () => !actionManager.HasUndos();
+				undoButton.OnClick = () => actionManager.Undo();
+			}
+
+			var redoButton = widget.GetOrNull<ButtonWidget>("REDO_BUTTON");
+			if (redoButton != null)
+			{
+				redoButton.IsDisabled = () => !actionManager.HasRedos();
+				redoButton.OnClick = () => actionManager.Redo();
 			}
 		}
 

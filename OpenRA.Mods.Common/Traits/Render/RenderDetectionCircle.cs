@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2018 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -10,10 +10,10 @@
 #endregion
 
 using System.Collections.Generic;
-using System.Drawing;
 using System.Linq;
 using OpenRA.Graphics;
 using OpenRA.Mods.Common.Graphics;
+using OpenRA.Primitives;
 using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.Traits.Render
@@ -35,7 +35,7 @@ namespace OpenRA.Mods.Common.Traits.Render
 		public object Create(ActorInitializer init) { return new RenderDetectionCircle(init.Self, this); }
 	}
 
-	class RenderDetectionCircle : ITick, IRenderAboveShroudWhenSelected
+	class RenderDetectionCircle : ITick, IRenderAnnotationsWhenSelected
 	{
 		readonly RenderDetectionCircleInfo info;
 		WAngle lineAngle;
@@ -45,20 +45,19 @@ namespace OpenRA.Mods.Common.Traits.Render
 			this.info = info;
 		}
 
-		IEnumerable<IRenderable> IRenderAboveShroudWhenSelected.RenderAboveShroud(Actor self, WorldRenderer wr)
+		IEnumerable<IRenderable> IRenderAnnotationsWhenSelected.RenderAnnotations(Actor self, WorldRenderer wr)
 		{
 			if (!self.Owner.IsAlliedWith(self.World.RenderPlayer))
 				yield break;
 
 			var range = self.TraitsImplementing<DetectCloaked>()
-				.Where(a => !a.IsTraitDisabled)
-				.Select(a => a.Info.Range)
+				.Select(a => a.Range)
 				.Append(WDist.Zero).Max();
 
 			if (range == WDist.Zero)
 				yield break;
 
-			yield return new DetectionCircleRenderable(
+			yield return new DetectionCircleAnnotationRenderable(
 				self.CenterPosition,
 				range,
 				0,
@@ -69,7 +68,7 @@ namespace OpenRA.Mods.Common.Traits.Render
 				info.ContrastColor);
 		}
 
-		bool IRenderAboveShroudWhenSelected.SpatiallyPartitionable { get { return false; } }
+		bool IRenderAnnotationsWhenSelected.SpatiallyPartitionable { get { return false; } }
 
 		void ITick.Tick(Actor self)
 		{

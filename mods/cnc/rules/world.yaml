@@ -3,6 +3,7 @@
 	Inherits: ^Palettes
 	ScreenMap:
 	ActorMap:
+	Selection:
 	MusicPlaylist:
 		VictoryMusic: win1
 		DefeatMusic: nod_map1
@@ -258,6 +259,8 @@ World:
 	RadarPings:
 	LoadWidgetAtGameStart:
 		ShellmapRoot: MENU_BACKGROUND
+	ScriptTriggers:
+	TimeLimitManager:
 
 EditorWorld:
 	Inherits: ^BaseWorld
@@ -265,3 +268,4 @@ EditorWorld:
 	EditorResourceLayer:
 	EditorSelectionLayer:
 	LoadWidgetAtGameStart:
+	EditorActionManager:

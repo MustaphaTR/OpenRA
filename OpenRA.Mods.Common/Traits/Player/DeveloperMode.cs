@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2017 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -77,13 +77,26 @@ namespace OpenRA.Mods.Common.Traits
 		readonly DeveloperModeInfo info;
 		public bool Enabled { get; private set; }
 
-		[Sync] bool fastCharge;
-		[Sync] bool allTech;
-		[Sync] bool fastBuild;
-		[Sync] bool disableShroud;
-		[Sync] bool pathDebug;
-		[Sync] bool unlimitedPower;
-		[Sync] bool buildAnywhere;
+		[Sync]
+		bool fastCharge;
+
+		[Sync]
+		bool allTech;
+
+		[Sync]
+		bool fastBuild;
+
+		[Sync]
+		bool disableShroud;
+
+		[Sync]
+		bool pathDebug;
+
+		[Sync]
+		bool unlimitedPower;
+
+		[Sync]
+		bool buildAnywhere;
 
 		public bool FastCharge { get { return Enabled && fastCharge; } }
 		public bool AllTech { get { return Enabled && allTech; } }
@@ -117,6 +130,7 @@ namespace OpenRA.Mods.Common.Traits
 			if (!Enabled)
 				return;
 
+			var debugSuffix = "";
 			switch (order.OrderString)
 			{
 				case "DevAll":
@@ -162,7 +176,21 @@ namespace OpenRA.Mods.Common.Traits
 				case "DevGiveCash":
 				{
 					var amount = order.ExtraData != 0 ? (int)order.ExtraData : info.Cash;
-					self.Trait<PlayerResources>().GiveCash(amount);
+					self.Trait<PlayerResources>().ChangeCash(amount);
+
+					debugSuffix = " ({0} credits)".F(amount);
+					break;
+				}
+
+				case "DevGiveCashAll":
+				{
+					var amount = order.ExtraData != 0 ? (int)order.ExtraData : info.Cash;
+					var receivingPlayers = self.World.Players.Where(p => p.Playable);
+
+					foreach (var player in receivingPlayers)
+						player.PlayerActor.Trait<PlayerResources>().ChangeCash(amount);
+
+					debugSuffix = " ({0} credits)".F(amount);
 					break;
 				}
 
@@ -212,6 +240,15 @@ namespace OpenRA.Mods.Common.Traits
 				case "DevBuildAnywhere":
 				{
 					buildAnywhere ^= true;
+					break;
+				}
+
+				case "DevPlayerExperience":
+				{
+					var playerExperience = self.Owner.PlayerActor.TraitOrDefault<PlayerExperience>();
+					if (playerExperience != null)
+						playerExperience.GiveExperience((int)order.ExtraData);
+
 					break;
 				}
 
@@ -278,7 +315,7 @@ namespace OpenRA.Mods.Common.Traits
 					return;
 			}
 
-			Game.Debug("Cheat used: {0} by {1}", order.OrderString, self.Owner.PlayerName);
+			Game.Debug("Cheat used: {0} by {1}{2}", order.OrderString, self.Owner.PlayerName, debugSuffix);
 		}
 	}
 }

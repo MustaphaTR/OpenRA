@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2018 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -31,7 +31,7 @@ namespace OpenRA.Mods.Common.Traits
 		public readonly WVec Offset = WVec.Zero;
 
 		[Desc("Facing to use for actor previews (map editor, color picker, etc)")]
-		public readonly int PreviewFacing = 92;
+		public readonly int PreviewFacing = 96;
 
 		[Desc("Display order for the turret facing slider in the map editor")]
 		public readonly int EditorTurretFacingDisplayOrder = 4;
@@ -79,8 +79,12 @@ namespace OpenRA.Mods.Common.Traits
 		IFacing facing;
 		BodyOrientation body;
 
-		[Sync] public int QuantizedFacings = 0;
-		[Sync] public int TurretFacing = 0;
+		[Sync]
+		public int QuantizedFacings = 0;
+
+		[Sync]
+		public int TurretFacing = 0;
+
 		public int? DesiredFacing;
 		int realignTick = 0;
 
@@ -261,7 +265,9 @@ namespace OpenRA.Mods.Common.Traits
 
 	public class TurretFacingInit : IActorInit<int>
 	{
-		[FieldFromYamlKey] readonly int value = 128;
+		[FieldFromYamlKey]
+		readonly int value = 128;
+
 		public TurretFacingInit() { }
 		public TurretFacingInit(int init) { value = init; }
 		public int Value(World world) { return value; }
@@ -271,6 +277,7 @@ namespace OpenRA.Mods.Common.Traits
 	{
 		[DictionaryFromYamlKey]
 		readonly Dictionary<string, int> value = new Dictionary<string, int>();
+
 		public TurretFacingsInit() { }
 		public TurretFacingsInit(Dictionary<string, int> init) { value = init; }
 		public Dictionary<string, int> Value(World world) { return value; }

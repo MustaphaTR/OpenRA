@@ -3,6 +3,7 @@
 	AlwaysVisible:
 	ScreenMap:
 	ActorMap:
+	Selection:
 	MusicPlaylist:
 		VictoryMusic: score
 		DefeatMusic: score
@@ -232,6 +233,9 @@ World:
 		ExitDelay: 0
 		PanelName: SKIRMISH_STATS
 	LoadWidgetAtGameStart:
+	ScriptTriggers:
+	StartGameNotification:
+	TimeLimitManager:
 
 EditorWorld:
 	Inherits: ^BaseWorld
@@ -239,3 +243,4 @@ EditorWorld:
 	D2kEditorResourceLayer:
 	EditorSelectionLayer:
 	LoadWidgetAtGameStart:
+	EditorActionManager:

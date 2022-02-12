@@ -57,6 +57,9 @@ World:
 		SeparateTeamSpawnsCheckboxEnabled: False
 		SeparateTeamSpawnsCheckboxLocked: True
 		SeparateTeamSpawnsCheckboxVisible: False
+	TimeLimitManager:
+		TimeLimitLocked: True
+		TimeLimitDropdownVisible: False
 
 FORTCRATE:
 	Inherits: ^Crate
@@ -135,6 +138,7 @@ OILB:
 
 MOBILETENT:
 	Inherits: ^Vehicle
+	Inherits@SELECTION_MODE: ^LowPrioritySelectionMode
 	Valued:
 		Cost: 2000
 	Tooltip:
@@ -172,8 +176,6 @@ TENT:
 	-Sellable:
 	Demolishable:
 		-Condition:
-	WithMakeAnimation:
-		-Condition:
 	BaseProvider:
 		Range: 12c0
 	Power:
@@ -210,6 +212,7 @@ PBOX:
 DOG:
 	Buildable:
 		Prerequisites: barracks
+		BuildAtProductionType: Soldier
 	Valued:
 		Cost: 20
 
