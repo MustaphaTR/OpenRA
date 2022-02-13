@@ -498,56 +498,6 @@ namespace OpenRA.Mods.Common.Traits
 				n.VisualPositionChanged(self, fromCell.Layer, toCell.Layer);
 		}
 
-		public IEnumerable<IOrderTargeter> Orders { get { yield return new MoveOrderTargeter(self, this); } }
-
-		// Note: Returns a valid order even if the unit can't move to the target
-		public Order IssueOrder(Actor self, IOrderTargeter order, Target target, bool queued)
-		{
-			if (order is MoveOrderTargeter)
-				return new Order("Move", self, target, queued);
-
-			return null;
-		}
-
-		public void ResolveOrder(Actor self, Order order)
-		{
-			if (order.OrderString == "Move")
-			{
-				var loc = self.World.Map.Clamp(order.TargetLocation);
-
-				if (!Info.LocomotorInfo.MoveIntoShroud && !self.Owner.Shroud.IsExplored(loc))
-					return;
-
-				if (!order.Queued)
-					self.CancelActivity();
-
-				self.SetTargetLine(Target.FromCell(self.World, loc), Color.Green);
-				self.QueueActivity(order.Queued, new Move(self, loc, WDist.FromCells(8), null, true));
-			}
-
-			if (order.OrderString == "Stop")
-				self.CancelActivity();
-
-			if (order.OrderString == "Scatter")
-				Nudge(self, self, true);
-		}
-
-		public string VoicePhraseForOrder(Actor self, Order order)
-		{
-			if (!Info.LocomotorInfo.MoveIntoShroud && !self.Owner.Shroud.IsExplored(order.TargetLocation))
-				return null;
-
-			switch (order.OrderString)
-			{
-				case "Move":
-				case "Scatter":
-				case "Stop":
-					return Info.Voice;
-				default:
-					return null;
-			}
-		}
-
 		public bool IsLeavingCell(CPos location, SubCell subCell = SubCell.Any)
 		{
 			return ToCell != location && fromCell == location
@@ -1030,6 +980,11 @@ namespace OpenRA.Mods.Common.Traits
 				default:
 					return null;
 			}
+		}
+
+		Activity ICreationActivity.GetCreationActivity()
+		{
+			return returnToCellOnCreation ? new ReturnToCellActivity(self, creationActivityDelay, returnToCellOnCreationRecalculateSubCell) : null;
 		}
 
 		class MoveOrderTargeter : IOrderTargeter

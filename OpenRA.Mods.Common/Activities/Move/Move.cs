@@ -383,7 +383,7 @@ namespace OpenRA.Mods.Common.Activities
 			public override bool Tick(Actor self)
 			{
 				if (Move.mobile.IsTraitDisabled)
-					return this;
+					return false;
 
 				var ret = InnerTick(self, Move.mobile);
 

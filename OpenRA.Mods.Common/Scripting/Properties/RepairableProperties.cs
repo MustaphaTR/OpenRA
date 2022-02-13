@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2017 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -20,19 +20,14 @@ namespace OpenRA.Mods.Common.Scripting
 	[ScriptPropertyGroup("Repairable")]
 	public class RepairableProperties : ScriptActorProperties, Requires<RepairableInfo>
 	{
-		//// readonly Repaira cargo;
-
 		public RepairableProperties(ScriptContext context, Actor self)
-			: base(context, self)
-		{
-			// cargo = self.Trait<Cargo>();
-		}
+			: base(context, self) { }
 
 		[ScriptActorPropertyActivity]
-		[Desc("Command the actor to get fixed at the target repairer actor.")]
-		public void RepairAt(Actor host)
+		[Desc("Command the actor to get fixed at the target resupllier actor.")]
+		public void ResupplyAt(Actor host, bool stayOnResupplier = false)
 		{
-			Self.QueueActivity(new Repair(Self, host, new WDist(512)));
+			Self.QueueActivity(new Resupply(Self, host, new WDist(512), stayOnResupplier));
 		}
 	}
 }

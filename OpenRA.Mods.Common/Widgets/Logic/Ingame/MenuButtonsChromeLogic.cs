@@ -26,7 +26,6 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 
 		bool disableSystemButtons;
 		Widget currentWidget;
-		Widget statistics;
 
 		[ObjectCreator.UseCtor]
 		public MenuButtonsChromeLogic(Widget widget, ModData modData, World world, Dictionary<string, MiniYaml> logicArgs)

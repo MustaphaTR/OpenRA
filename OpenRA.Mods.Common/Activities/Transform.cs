@@ -64,7 +64,7 @@ namespace OpenRA.Mods.Common.Activities
 
 			// Wait forever
 			QueueChild(new WaitFor(() => false));
-			return this;
+			return false;
 		}
 
 		void PlayTransformAnimations(Actor self)

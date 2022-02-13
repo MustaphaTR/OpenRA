@@ -36,9 +36,6 @@ namespace OpenRA.Mods.Common.Traits
 
 		public readonly int BaleLoadDelay = 4;
 
-		[Desc("How much bales can i dump at once.")]
-		public readonly int BaleUnloadAmount = 1;
-
 		[Desc("How fast it can dump it's carryage.")]
 		public readonly int BaleUnloadDelay = 4;
 

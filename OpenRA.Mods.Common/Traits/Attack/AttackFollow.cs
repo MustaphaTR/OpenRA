@@ -88,31 +88,6 @@ namespace OpenRA.Mods.Common.Traits
 			var armaments = ChooseArmamentsForTarget(target, forceAttack);
 			foreach (var a in armaments)
 				if (target.IsInRange(pos, a.MaxRange()) && (a.Weapon.MinRange == WDist.Zero || !target.IsInRange(pos, a.Weapon.MinRange)))
-					if (TargetInFiringArc(self, target, Info.FacingTolerance))
-						return true;
-
-			return false;
-		}
-
-		protected override void Created(Actor self)
-		{
-			mobile = self.TraitOrDefault<Mobile>();
-			autoTarget = self.TraitOrDefault<AutoTarget>();
-			base.Created(self);
-		}
-
-		protected bool CanAimAtTarget(Actor self, Target target, bool forceAttack)
-		{
-			if (target.Type == TargetType.Actor && !target.Actor.CanBeViewedByPlayer(self.Owner))
-				return false;
-
-			if (target.Type == TargetType.FrozenActor && !target.FrozenActor.IsValid)
-				return false;
-
-			var pos = self.CenterPosition;
-			var armaments = ChooseArmamentsForTarget(target, forceAttack);
-			foreach (var a in armaments)
-				if (target.IsInRange(pos, a.MaxRange()) && (a.Weapon.MinRange == WDist.Zero || !target.IsInRange(pos, a.Weapon.MinRange)))
 					return true;
 
 			return false;
@@ -121,9 +96,6 @@ namespace OpenRA.Mods.Common.Traits
 		protected override void Tick(Actor self)
 		{
 			if (IsTraitDisabled)
-				requestedTarget = opportunityTarget = Target.Invalid;
-
-			if (requestedTargetLastTick != self.World.WorldTick)
 			{
 				RequestedTarget = OpportunityTarget = Target.Invalid;
 				opportunityTargetIsPersistentTarget = false;
@@ -193,19 +165,6 @@ namespace OpenRA.Mods.Common.Traits
 				RequestedTarget = target;
 				requestedForceAttack = forceAttack;
 				requestedTargetPresetForActivity = activity;
-			}
-		}
-
-		public override void OnQueueAttackActivity(Actor self, Target target, bool queued, bool allowMove, bool forceAttack)
-		{
-			// If not queued we know that the attack activity will run next
-			// We can improve responsiveness for turreted actors by preempting
-			// the last order (usually a move) and set the target immediately
-			if (!queued)
-			{
-				requestedTarget = target;
-				requestedForceAttack = forceAttack;
-				requestedTargetLastTick = self.World.WorldTick;
 			}
 		}
 
@@ -305,7 +264,7 @@ namespace OpenRA.Mods.Common.Traits
 
 				// Check that AttackFollow hasn't cancelled the target by modifying attack.Target
 				// Having both this and AttackFollow modify that field is a horrible hack.
-				if (hasTicked && attackFollows.All(a => a.requestedTarget.Type == TargetType.Invalid))
+				if (hasTicked && attackFollows.All(a => a.RequestedTarget.Type == TargetType.Invalid))
 					return true;
 
 				if (attackFollows.All(a => a.IsTraitPaused))

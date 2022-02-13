@@ -10,7 +10,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Drawing;
 using System.Linq;
 using OpenRA.Effects;
 using OpenRA.GameRules;
@@ -206,7 +205,7 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 					world.Map.CenterOfCell(xy),
 					power.Info.TargetCircleRange,
 					0,
-					power.Info.TargetCircleUsePlayerColor ? power.Self.Owner.Color.RGB : power.Info.TargetCircleColor,
+					power.Info.TargetCircleUsePlayerColor ? power.Self.Owner.Color : power.Info.TargetCircleColor,
 					Color.FromArgb(96, Color.Black));
 			}
 		}

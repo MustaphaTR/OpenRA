@@ -407,7 +407,7 @@ namespace OpenRA.Mods.Common.Traits
 				var positionable = passenger.Trait<IPositionable>();
 				positionable.SetPosition(passenger, self.Location);
 
-				if (self.Owner.WinState != WinState.Lost && !inAir && positionable.CanEnterCell(self.Location, self, false))
+				if (self.Owner.WinState != WinState.Lost && !inAir && positionable.CanEnterCell(self.Location, self, BlockedByActor.None))
 				{
 					self.World.AddFrameEndTask(world => world.Add(passenger));
 					var nbms = passenger.TraitsImplementing<INotifyBlockingMove>();
@@ -452,7 +452,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		void INotifyKilled.Killed(Actor self, AttackInfo e)
 		{
-			while (!IsEmpty(self) && CanUnload(true))
+			while (!IsEmpty(self) && CanUnload(BlockedByActor.All))
 			{
 				var passenger = Unload(self);
 				var cp = self.CenterPosition;
@@ -461,7 +461,7 @@ namespace OpenRA.Mods.Common.Traits
 				var health = passenger.TraitOrDefault<Health>();
 				positionable.SetPosition(passenger, self.Location);
 
-				if (self.Owner.WinState != WinState.Lost && !inAir && positionable.CanEnterCell(self.Location, self, false))
+				if (self.Owner.WinState != WinState.Lost && !inAir && positionable.CanEnterCell(self.Location, self, BlockedByActor.None))
 				{
 					self.World.AddFrameEndTask(w => w.Add(passenger));
 					var nbms = passenger.TraitsImplementing<INotifyBlockingMove>();

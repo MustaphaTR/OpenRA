@@ -10,7 +10,6 @@
 #endregion
 
 using System.Collections.Generic;
-using System.Drawing;
 using System.Linq;
 using OpenRA.Primitives;
 using OpenRA.Traits;
@@ -237,7 +236,7 @@ namespace OpenRA.Mods.Common.Traits
 				return false;
 
 			if (info.ShowChatMessage && self.World.LocalPlayer == self.Owner)
-				Game.AddChatLine(Color.White, "Battlefield Control", info.ChatMessage);
+				Game.AddSystemLine("Battlefield Control", info.ChatMessage);
 
 			if (info.BeingCapturedNotification != null)
 				Game.Sound.PlayNotification(self.World.Map.Rules, self.Owner, "Speech", info.BeingCapturedNotification, self.Owner.Faction.InternalName);

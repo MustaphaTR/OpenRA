@@ -171,7 +171,7 @@ namespace OpenRA.Mods.Common.Orders
 			if (mi.Button == MouseButton.Left)
 			{
 				var orderType = "PlaceBuilding";
-				var topLeft = TopLeft
+				var topLeft = TopLeft;
 				var cannotBuildAudio = buildableInfo.CannotBuildAudio != null ? buildableInfo.CannotBuildAudio : queue.Info.CannotBuildAudio;
 
 				var plugInfo = ai.TraitInfoOrDefault<PlugInfo>();

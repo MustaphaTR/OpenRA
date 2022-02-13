@@ -653,12 +653,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		void INotifyBecomingIdle.OnBecomingIdle(Actor self)
 		{
-			// HACK: Work around AttackMove relying on INotifyIdle.TickIdle to continue its path
-			// AttackMoveActivity needs to be rewritten to use child activities instead!
-			if (attackMove != null && attackMove.TargetLocation.HasValue)
-				((INotifyIdle)attackMove).TickIdle(self);
-			else
-				OnBecomingIdle(self);
+			OnBecomingIdle(self);
 		}
 
 		protected virtual void OnBecomingIdle(Actor self)

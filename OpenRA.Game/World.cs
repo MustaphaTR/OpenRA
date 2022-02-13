@@ -202,8 +202,6 @@ namespace OpenRA
 			// Reset mask
 			LongBitSet<PlayerBitMask>.Reset();
 
-			Selection = new Selection(WorldActor.TraitsImplementing<INotifySelection>());
-
 			// Add players
 			foreach (var cmp in WorldActor.TraitsImplementing<ICreatePlayers>())
 				cmp.CreatePlayers(this);

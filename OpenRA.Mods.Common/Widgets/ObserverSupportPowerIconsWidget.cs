@@ -102,7 +102,6 @@ namespace OpenRA.Mods.Common.Widgets
 				return;
 
 			var powers = player.PlayerActor.Trait<SupportPowerManager>().Powers
-				.Where(x => !x.Value.Disabled && x.Value.GetLevel() != 0)
 				.Where(x => !x.Value.Disabled)
 				.OrderBy(p => p.Value.Info.SupportPowerPaletteOrder)
 				.Select((a, i) => new { a, i })
@@ -137,7 +136,7 @@ namespace OpenRA.Mods.Common.Widgets
 					() => item.TotalTime == 0 ? 0 : ((item.TotalTime - item.RemainingTime)
 						* (clock.CurrentSequence.Length - 1) / item.TotalTime));
 				clock.Tick();
-				WidgetUtils.DrawSHPCentered(clock.Image, location + iconSize, worldRenderer.Palette(ClockPalette), 1f);
+				WidgetUtils.DrawSHPCentered(clock.Image, location + 0.5f * iconSize, worldRenderer.Palette(ClockPalette), 0.5f);
 
 				var tiny = Game.Renderer.Fonts["Tiny"];
 				var text = GetOverlayForItem(item, timestep);

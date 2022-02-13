@@ -142,7 +142,7 @@ namespace OpenRA.Scripting
 		public World World { get; private set; }
 		public WorldRenderer WorldRenderer { get; private set; }
 
-		internal readonly MemoryConstrainedLuaRuntime runtime;
+		internal readonly MemoryConstrainedLuaRuntime Runtime;
 		readonly LuaFunction tick;
 
 		readonly Type[] knownActorCommands;

@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2018 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -9,21 +9,21 @@
  */
 #endregion
 
-using System;
-using System.Drawing;
 using OpenRA.Mods.Common.Traits;
+using OpenRA.Primitives;
 using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.Activities
 {
-	public class EnterSharedTransport : Enter
+	class RideSharedTransport : Enter
 	{
 		readonly SharedPassenger passenger;
 
 		Actor enterActor;
 		SharedCargo enterCargo;
+		Aircraft enterAircraft;
 
-		public EnterSharedTransport(Actor self, Target target)
+		public RideSharedTransport(Actor self, Target target)
 			: base(self, target, WDist.Zero, Color.Green)
 		{
 			passenger = self.Trait<SharedPassenger>();
@@ -33,6 +33,7 @@ namespace OpenRA.Mods.Common.Activities
 		{
 			enterActor = targetActor;
 			enterCargo = targetActor.TraitOrDefault<SharedCargo>();
+			enterAircraft = targetActor.TraitOrDefault<Aircraft>();
 
 			// Make sure we can still enter the transport
 			// (but not before, because this may stop the actor in the middle of nowhere)
@@ -42,6 +43,9 @@ namespace OpenRA.Mods.Common.Activities
 				return false;
 			}
 
+			if (enterAircraft != null && !enterAircraft.AtLandAltitude)
+				return false;
+
 			return true;
 		}
 
@@ -49,31 +53,32 @@ namespace OpenRA.Mods.Common.Activities
 		{
 			self.World.AddFrameEndTask(w =>
 			{
+				if (self.IsDead)
+					return;
+
 				// Make sure the target hasn't changed while entering
 				// OnEnterComplete is only called if targetActor is alive
 				if (targetActor != enterActor)
 					return;
 
-				if (self.IsDead || enterActor.IsDead || !enterCargo.CanLoad(enterActor, self))
+				if (!enterCargo.CanLoad(enterActor, self))
 					return;
 
 				enterCargo.Load(enterActor, self);
 				w.Remove(self);
-
-				// Preemptively cancel any activities to avoid an edge-case where successively queued
-				// EnterTransports corrupt the actor state. Activities are cancelled again on unload
-				self.CancelActivity();
 			});
-		}
-
-		protected override void OnCancel(Actor self)
-		{
-			passenger.Unreserve(self);
 		}
 
 		protected override void OnLastRun(Actor self)
 		{
 			passenger.Unreserve(self);
+		}
+
+		public override void Cancel(Actor self, bool keepQueue = false)
+		{
+			passenger.Unreserve(self);
+
+			base.Cancel(self, keepQueue);
 		}
 	}
 }

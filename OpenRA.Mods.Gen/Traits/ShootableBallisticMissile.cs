@@ -9,7 +9,6 @@
  */
 #endregion
 
-using System.Drawing;
 using System.Collections.Generic;
 using System.Linq;
 using OpenRA.Activities;

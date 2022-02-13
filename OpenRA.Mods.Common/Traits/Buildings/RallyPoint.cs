@@ -14,6 +14,7 @@ using System.Collections.Generic;
 using System.Linq;
 using OpenRA.Mods.Common.Activities;
 using OpenRA.Mods.Common.Effects;
+using OpenRA.Primitives;
 using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.Traits
@@ -153,10 +154,9 @@ namespace OpenRA.Mods.Common.Traits
 				throw new InvalidOperationException("How come rally point mover not have IMove trait? Actor: " + unit.ToString());
 
 			var rallyAcceptor = GetRallyAcceptor(self, Location);
-
 			if (rallyAcceptor == null)
 			{
-				unit.QueueActivity(new AttackMoveActivity(unit, unit.Trait<IMove>().MoveTo(Location, 1, targetLineColor: Color.OrangeRed)));
+				unit.QueueActivity(new AttackMoveActivity(unit, () => unit.Trait<IMove>().MoveTo(Location, 1, targetLineColor: Color.OrangeRed)));
 				return;
 			}
 
@@ -169,7 +169,7 @@ namespace OpenRA.Mods.Common.Traits
 			if (ar.IsAcceptableActor(unit, rallyAcceptor))
 				unit.QueueActivity(ar.RallyActivities(unit, rallyAcceptor));
 			else
-				unit.QueueActivity(new AttackMoveActivity(unit, unit.Trait<IMove>().MoveTo(Location, 1, targetLineColor: Color.OrangeRed)));
+				unit.QueueActivity(new AttackMoveActivity(unit, () => unit.Trait<IMove>().MoveTo(Location, 1, targetLineColor: Color.OrangeRed)));
 		}
 
 		public static bool IsForceSet(Order order)

@@ -38,7 +38,7 @@ namespace OpenRA.Mods.Common.Activities
 			if (remainingTicks == 0 || (NextActivity != null && remainingTicks < 0))
 				return true;
 
-			if (aircraft.ForceLanding || IsCanceling)
+			if (IsCanceling)
 				return true;
 
 			if (remainingTicks > 0)
