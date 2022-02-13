@@ -241,7 +241,9 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 					return;
 
 				var spawnOffset = exit == null ? WVec.Zero : exit.SpawnOffset;
-				slave.Trait<IPositionable>().SetVisualPosition(slave, centerPosition + spawnOffset);
+				var positionable = slave.Trait<IPositionable>();
+				positionable.SetPosition(slave, centerPosition + spawnOffset);
+				positionable.SetVisualPosition(slave, centerPosition + spawnOffset);
 
 				var location = self.World.Map.CellContaining(centerPosition + spawnOffset);
 
