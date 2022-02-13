@@ -15,7 +15,7 @@ using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.Traits
 {
-	class ImmobileInfo : ITraitInfo, IOccupySpaceInfo
+	public class ImmobileInfo : ITraitInfo, IOccupySpaceInfo
 	{
 		public readonly bool OccupiesSpace = true;
 		public object Create(ActorInitializer init) { return new Immobile(init, this); }
@@ -31,7 +31,7 @@ namespace OpenRA.Mods.Common.Traits
 		bool IOccupySpaceInfo.SharesCell { get { return false; } }
 	}
 
-	class Immobile : IOccupySpace, ISync, INotifyAddedToWorld, INotifyRemovedFromWorld
+	public class Immobile : IOccupySpace, ISync, INotifyAddedToWorld, INotifyRemovedFromWorld
 	{
 		[Sync]
 		readonly CPos location;

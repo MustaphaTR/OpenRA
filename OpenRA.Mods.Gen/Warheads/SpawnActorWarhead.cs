@@ -11,6 +11,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using OpenRA.Mods.Common.Activities;
+using OpenRA.Mods.Common.Traits;
 using OpenRA.Mods.Common.Warheads;
 using OpenRA.Mods.Yupgi_alert.Activities;
 using OpenRA.Primitives;
@@ -33,6 +34,9 @@ namespace OpenRA.Mods.Yupgi_alert.Warheads
 
 		public readonly int FallRate = 130;
 
+		[Desc("Always spawn the actors on the ground.")]
+		public readonly bool ForceGround = false;
+
 		[Desc("Map player to give the actors to. Defaults to the firer.")]
 		public readonly string Owner = null;
 
@@ -51,36 +55,77 @@ namespace OpenRA.Mods.Yupgi_alert.Warheads
 			{
 				var placed = false;
 				var td = new TypeDictionary();
+				var ai = map.Rules.Actors[a.ToLowerInvariant()];
+
 				if (Owner == null)
 					td.Add(new OwnerInit(firedBy.Owner));
 				else
 					td.Add(new OwnerInit(firedBy.World.Players.First(p => p.InternalName == Owner)));
 
-				var unit = firedBy.World.CreateActor(false, a.ToLowerInvariant(), td);
-
-				while (cell.MoveNext())
+				// HACK HACK HACK
+				// Immobile does not offer a check directly if the actor can exist in a position.
+				// It also crashes the game if it's actor's created without a LocationInit.
+				// See AS/Engine#84.
+				if (ai.HasTraitInfo<ImmobileInfo>())
 				{
-					if (unit.Trait<IPositionable>().CanEnterCell(cell.Current))
+					var immobileInfo = ai.TraitInfo<ImmobileInfo>();
+
+					while (cell.MoveNext())
 					{
-						var cellpos = firedBy.World.Map.CenterOfCell(cell.Current);
-						var pos = cellpos.Z < target.CenterPosition.Z
-							? new WPos(cellpos.X, cellpos.Y, target.CenterPosition.Z)
-							: cellpos;
-						firedBy.World.AddFrameEndTask(w =>
+						if (!immobileInfo.OccupiesSpace || !firedBy.World.ActorMap.GetActorsAt(cell.Current).Any())
 						{
+							firedBy.World.AddFrameEndTask(w =>
+							{
+								td.Add(new LocationInit(cell.Current));
+								var immobileunit = firedBy.World.CreateActor(false, a.ToLowerInvariant(), td);
+
+								w.Add(immobileunit);
+							});
+
+							break;
+						}
+					}
+
+					continue;
+				}
+
+				firedBy.World.AddFrameEndTask(w =>
+				{
+					var unit = firedBy.World.CreateActor(false, a.ToLowerInvariant(), td);
+					var positionable = unit.TraitOrDefault<IPositionable>();
+					cell = targetCells.GetEnumerator();
+
+					while (cell.MoveNext() && !placed)
+					{
+						var subCell = positionable.GetAvailableSubCell(cell.Current);
+
+						if (ai.HasTraitInfo<AircraftInfo>()
+							&& ai.TraitInfo<AircraftInfo>().CanEnterCell(firedBy.World, unit, cell.Current))
+							subCell = SubCell.FullCell;
+
+						if (subCell != SubCell.Invalid)
+						{
+							positionable.SetPosition(unit, cell.Current, subCell);
+
+							var pos = unit.CenterPosition;
+							if (!ForceGround)
+								pos += new WVec(WDist.Zero, WDist.Zero, firedBy.World.Map.DistanceAboveTerrain(target.CenterPosition));
+
+							positionable.SetVisualPosition(unit, pos);
 							w.Add(unit);
+
 							if (Paradrop)
 								unit.QueueActivity(new Parachute(unit));
 							else
 								unit.QueueActivity(new FallDown(unit, pos, FallRate));
-						});
-						placed = true;
-						break;
-					}
-				}
 
-				if (!placed)
-					unit.Dispose();
+							placed = true;
+						}
+					}
+
+					if (!placed)
+						unit.Dispose();
+				});
 			}
 		}
 	}
