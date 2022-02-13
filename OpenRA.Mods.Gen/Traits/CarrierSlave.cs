@@ -57,10 +57,7 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 
             var aircraft = self.TraitOrDefault<Aircraft>();
             if (self.TraitOrDefault<AttackAircraft>() != null) // Let attack planes approach me first, before landing.
-                if (aircraft != null && aircraft.Info.VTOL == true)
-				    self.QueueActivity(new HeliFly(self, target, WDist.Zero, Info.LandingDistance));
-                else
-                    self.QueueActivity(new Fly(self, target, WDist.Zero, Info.LandingDistance));
+				self.QueueActivity(new Fly(self, target, WDist.Zero, Info.LandingDistance));
 
             self.QueueActivity(new EnterCarrierMaster(self, Master, spawnerMaster, EnterBehaviour.Exit));
         }

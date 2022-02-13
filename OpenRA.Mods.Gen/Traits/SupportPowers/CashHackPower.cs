@@ -15,6 +15,7 @@ using System.Linq;
 using OpenRA.Graphics;
 using OpenRA.Mods.Common.Effects;
 using OpenRA.Mods.Common.Graphics;
+using OpenRA.Mods.Common.Orders;
 using OpenRA.Mods.Common.Traits;
 using OpenRA.Mods.Common.Traits.Render;
 using OpenRA.Primitives;
@@ -70,9 +71,9 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 
 			var ownResources = self.Owner.PlayerActor.Trait<PlayerResources>();
 
-			Game.Sound.Play(SoundType.World, info.OnFireSound, self.World.Map.CenterOfCell(order.TargetLocation));
+			Game.Sound.Play(SoundType.World, info.OnFireSound, order.Target.CenterPosition);
 
-			foreach (var a in UnitsInRange(order.TargetLocation))
+			foreach (var a in UnitsInRange(self.World.Map.CellContaining(order.Target.CenterPosition)))
 			{
 				var enemyResources = a.Owner.PlayerActor.Trait<PlayerResources>();
 
@@ -103,7 +104,7 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 			});
 		}
 
-		class SelectHackTarget : IOrderGenerator
+		class SelectHackTarget : OrderGenerator
 		{
 			readonly CashHackPower power;
 			readonly SupportPowerManager manager;
@@ -120,21 +121,21 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 				this.power = power;
 			}
 
-			public IEnumerable<Order> Order(World world, CPos cell, int2 worldPixel, MouseInput mi)
+			protected override IEnumerable<Order> OrderInner(World world, CPos cell, int2 worldPixel, MouseInput mi)
 			{
 				world.CancelInputMode();
 				if (mi.Button == MouseButton.Left && power.UnitsInRange(cell).Any())
 					yield return new Order(order, manager.Self, Target.FromCell(world, cell), false) { SuppressVisualFeedback = true };
 			}
 
-			public void Tick(World world)
+			protected override void Tick(World world)
 			{
 				// Cancel the OG if we can't use the power
 				if (!manager.Powers.ContainsKey(order))
 					world.CancelInputMode();
 			}
 
-			public IEnumerable<IRenderable> RenderAboveShroud(WorldRenderer wr, World world)
+			protected override IEnumerable<IRenderable> RenderAnnotations(WorldRenderer wr, World world)
 			{
 				var xy = wr.Viewport.ViewToWorld(Viewport.LastMousePos);
 				foreach (var unit in power.UnitsInRange(xy))
@@ -142,12 +143,13 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 					var bounds = unit.TraitsImplementing<IDecorationBounds>()
 						.Select(b => b.DecorationBounds(unit, wr))
 						.FirstOrDefault(b => !b.IsEmpty);
-					yield return new SelectionBoxRenderable(unit, bounds, Color.Red);
+					yield return new SelectionBoxAnnotationRenderable(unit, bounds, Color.Red);
 				}
 			}
 
-			public IEnumerable<IRenderable> Render(WorldRenderer wr, World world) { yield break; }
-			public string GetCursor(World world, CPos cell, int2 worldPixel, MouseInput mi)
+			protected override IEnumerable<IRenderable> RenderAboveShroud(WorldRenderer wr, World world) { yield break; }
+			protected override IEnumerable<IRenderable> Render(WorldRenderer wr, World world) { yield break; }
+			protected override string GetCursor(World world, CPos cell, int2 worldPixel, MouseInput mi)
 			{
 				return power.UnitsInRange(cell).Any() ? "ability" : "move-blocked";
 			}

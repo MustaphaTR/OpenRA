@@ -39,7 +39,7 @@ namespace OpenRA.Mods.Common.Traits
 		Activity IAcceptsRallyPoint.RallyActivities(Actor produced, Actor dest)
 		{
 			var info = produced.Info.TraitInfo<DeliversCashInfo>();
-			produced.SetTargetLine(Target.FromActor(dest), Color.Yellow);
+			produced.ShowTargetLines();
 			return new DonateCash(produced, Target.FromActor(dest), info.Payload, info.PlayerExperience);
 		}
 	}

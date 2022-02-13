@@ -3,7 +3,7 @@
  * Written by Boolbada of OP Mod.
  * Follows GPLv3 License as the OpenRA engine:
  *
- * Copyright 2007-2018 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -246,7 +246,7 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 				var location = self.World.Map.CellContaining(centerPosition + spawnOffset);
 
 				var mv = slave.Trait<IMove>();
-				slave.QueueActivity(mv.MoveIntoWorld(slave, location, Info.SubCell > 0 ? (SubCell)Info.SubCell : SubCell.Any));
+				slave.QueueActivity(mv.ReturnToCell(slave));
 
 				// Move to rally point if any.
 				if (rallyPoint != null)

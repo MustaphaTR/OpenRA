@@ -37,7 +37,7 @@ namespace OpenRA.Mods.Yupgi_alert.Orders
 
         public virtual bool IsQueued { get; protected set; }
 
-        public bool TargetOverridesSelection(TargetModifiers modifiers) { return true; }
+        public bool TargetOverridesSelection(Actor self, Target target, List<Actor> actorsAt, CPos xy, TargetModifiers modifiers) { return true; }
 
         public bool CanTargetActor(Actor self, Actor target, TargetModifiers modifiers, ref string cursor)
         {

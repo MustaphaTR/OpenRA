@@ -31,7 +31,7 @@ namespace OpenRA.Mods.Yupgi_alert.Activities
 			this.dropPosition = dropPosition;
 		}
 
-		Activity FirstTick(Actor self)
+		bool FirstTick(Actor self)
 		{
 			triggered = true;
 
@@ -39,18 +39,18 @@ namespace OpenRA.Mods.Yupgi_alert.Activities
 			pos.SetPosition(self, dropPosition);
 			currentPosition = self.CenterPosition;
 
-			return this;
+			return false;
 		}
 
-		Activity LastTick(Actor self)
+		bool LastTick(Actor self)
 		{
 			var dat = self.World.Map.DistanceAboveTerrain(currentPosition);
 			pos.SetPosition(self, currentPosition - new WVec(WDist.Zero, WDist.Zero, dat));
 
-			return NextActivity;
+			return true;
 		}
 
-		public override Activity Tick(Actor self)
+		public override bool Tick(Actor self)
 		{
 			// If this is the first tick
 			if (!triggered)
@@ -64,13 +64,7 @@ namespace OpenRA.Mods.Yupgi_alert.Activities
 
 			pos.SetVisualPosition(self, currentPosition);
 
-			return this;
-		}
-
-		// Only the last queued activity (given order) is kept
-		public override void Queue(Activity activity)
-		{
-			NextActivity = activity;
+			return false;
 		}
 	}
 }

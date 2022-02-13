@@ -47,7 +47,7 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 
 		public IReadOnlyDictionary<CPos, SubCell> OccupiedCells(ActorInfo info, CPos location, SubCell subCell = SubCell.Any) { return new ReadOnlyDictionary<CPos, SubCell>(); }
 		bool IOccupySpaceInfo.SharesCell { get { return false; } }
-		public bool CanEnterCell(World world, Actor self, CPos cell, Actor ignoreActor = null, bool checkTransientActors = true)
+		public bool CanEnterCell(World world, Actor self, CPos cell, Actor ignoreActor = null, BlockedByActor check = BlockedByActor.All)
 		{
 			// SBMs may not land.
 			return false;
@@ -133,9 +133,9 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 
         public bool CanExistInCell(CPos cell) { return true; }
         public bool IsLeavingCell(CPos location, SubCell subCell = SubCell.Any) { return false; } // TODO: Handle landing
-		public bool CanEnterCell(CPos cell, Actor ignoreActor = null, bool checkTransientActors = true) { return true; }
+		public bool CanEnterCell(CPos cell, Actor ignoreActor = null, BlockedByActor check = BlockedByActor.All) { return true; }
 		public SubCell GetValidSubCell(SubCell preferred) { return SubCell.Invalid; }
-		public SubCell GetAvailableSubCell(CPos a, SubCell preferredSubCell = SubCell.Any, Actor ignoreActor = null, bool checkTransientActors = true)
+		public SubCell GetAvailableSubCell(CPos a, SubCell preferredSubCell = SubCell.Any, Actor ignoreActor = null, BlockedByActor check = BlockedByActor.All)
 		{
 			// Does not use any subcell
 			return SubCell.Invalid;
@@ -170,12 +170,12 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 
 		#region Implement IMove
 
-		public Activity MoveTo(CPos cell, int nearEnough)
+		public Activity MoveTo(CPos cell, int nearEnough, Color? targetLineColor = null)
 		{
 			return new ShootableBallisticMissileFly(self, Target.FromCell(self.World, cell));
 		}
 
-		public Activity MoveTo(CPos cell, Actor ignoredActor)
+		public Activity MoveTo(CPos cell, Actor ignoreActor, Color? targetLineColor = null)
 		{
 			return new ShootableBallisticMissileFly(self, Target.FromCell(self.World, cell));
 		}
@@ -198,11 +198,8 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 			return null;
 		}
 
-		public Activity MoveIntoWorld(Actor self, CPos cell, SubCell subCell = SubCell.Any)
-		{
-			return null;
-		}
-		
+		public Activity ReturnToCell(Actor self) { return null; }
+
 		public Activity MoveToTarget(Actor self, Target target,
 			WPos? initialTargetPosition = null, Color? targetLineColor = null)
 		{
@@ -227,20 +224,17 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 
         public CPos NearestMoveableCell(CPos cell) { return cell; }
 
-		// Technically, ballstic movement always moves non-vertical moves = always false.
-		public bool IsMovingVertically { get { return false; } set { } }
-
-		// And ballistic missiles can't stop moving.
-		public bool IsMoving
+		public MovementType CurrentMovementTypes
 		{
 			get
 			{
-				return true;
+				// Technically, ballstic movement always moves non-vertical moves.
+				// And ballistic missiles can't stop moving.
+				return MovementType.Horizontal;
 			}
-
 			set
 			{
-				System.Diagnostics.Debug.Assert(false, "You can't set IsMoving property for shootable ballistic missiles.");
+				System.Diagnostics.Debug.Assert(false, "You can't set CurrentMovementTypes property for shootable ballistic missiles.");
 			}
 		}
 
@@ -283,7 +277,7 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 		{
 			if (order.OrderString == "Move")
 			{
-				var cell = self.World.Map.Clamp(order.TargetLocation);
+				var cell = self.World.Map.Clamp(self.World.Map.CellContaining(order.Target.CenterPosition));
 				var target = Target.FromCell(self.World, cell);
 				self.QueueActivity(order.Queued, new ShootableBallisticMissileFly(self, target));
 			}

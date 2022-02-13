@@ -10,6 +10,7 @@
 #endregion
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using OpenRA.Activities;
 using OpenRA.Mods.Common;
@@ -29,19 +30,21 @@ namespace OpenRA.Mods.Yupgi_alert.Activities
 		readonly SupplyCollectorInfo collectorInfo;
 		readonly IMove move;
 		readonly Mobile mobile;
+		readonly Color? targetLineColor;
 
-		public FindGoods(Actor self)
+		public FindGoods(Actor self, Color? targetLineColor = null)
 		{
 			collector = self.Trait<SupplyCollector>();
 			collectorInfo = self.Info.TraitInfo<SupplyCollectorInfo>();
             move = self.Trait<IMove>();
 			mobile = self.TraitOrDefault<Mobile>();
+			this.targetLineColor = targetLineColor;
 		}
 
-        public override Activity Tick(Actor self)
+        public override bool Tick(Actor self)
         {
-            if (IsCanceled || NextActivity != null)
-                return NextActivity;
+            if (IsCanceling)
+                return true;
 
             if (collector.collectionBuilding == null || !collector.collectionBuilding.IsInWorld || !collectorInfo.CollectionStances.HasStance(self.Owner.Stances[collector.collectionBuilding.Owner]) || collector.collectionBuilding.Trait<SupplyDock>().IsEmpty)
             {
@@ -50,12 +53,12 @@ namespace OpenRA.Mods.Yupgi_alert.Activities
 
             if (collector.collectionBuilding == null || !collector.collectionBuilding.IsInWorld)
             {
-                return ActivityUtils.SequenceActivities(new Wait(collectorInfo.SearchForCollectionBuildingDelay), this);
+                QueueChild(new Wait(collectorInfo.SearchForCollectionBuildingDelay));
+				return false;
             }
 
 			var dock = collector.collectionBuilding;
 			var center = collector.deliveryBuilding;
-			self.SetTargetLine(Target.FromActor(dock), Color.Green, false);
 
 			CPos cell;
 			var dockTrait = dock.Trait<SupplyDock>();
@@ -69,21 +72,24 @@ namespace OpenRA.Mods.Yupgi_alert.Activities
 
 			if (!offsets.Select(c => dock.Location + c).Where(c => centerTrait == null || !deliveryOffsets.Select(d => center.Location + d).Contains(c)).Contains(self.Location))
 			{
-                return ActivityUtils.SequenceActivities(move.MoveTo(cell, 2), this);
+                QueueChild(move.MoveTo(cell, 2));
+				return false;
             }
 
 			if (self.TraitOrDefault<IFacing>() != null)
 			{
 				if (dockTrait.Info.Facing >= 0 && self.Trait<IFacing>().Facing != dockTrait.Info.Facing)
 				{
-					return ActivityUtils.SequenceActivities(new Turn(self, dockTrait.Info.Facing), this);
+					QueueChild(new Turn(self, dockTrait.Info.Facing));
+					return false;
 				}
 				else if (dockTrait.Info.Facing == -1)
 				{
 					var facing = (dock.CenterPosition - self.CenterPosition).Yaw.Facing;
 					if (self.Trait<IFacing>().Facing != facing)
 					{
-						return ActivityUtils.SequenceActivities(new Turn(self, facing), this);
+						QueueChild(new Turn(self, facing));
+						return false;
 					}
 				}
 			}
@@ -91,7 +97,8 @@ namespace OpenRA.Mods.Yupgi_alert.Activities
 			if (!collector.Waiting)
 			{
 				collector.Waiting = true;
-				return ActivityUtils.SequenceActivities(new Wait(collectorInfo.CollectionDelay), this);
+				QueueChild(new Wait(collectorInfo.CollectionDelay));
+				return false;
 			}
 
 			var wsb = self.TraitsImplementing<WithSpriteBody>().Where(t => !t.IsTraitDisabled).FirstOrDefault();
@@ -103,7 +110,8 @@ namespace OpenRA.Mods.Yupgi_alert.Activities
 					wsco.Visible = true;
 					wsco.Anim.PlayThen(wsco.Info.Sequence, () => wsco.Visible = false);
 					collector.DeliveryAnimPlayed = true;
-					return ActivityUtils.SequenceActivities(new Wait(wsco.Info.WaitDelay), this);
+					QueueChild(new Wait(wsco.Info.WaitDelay));
+					return false;
 				}
 			}
 
@@ -115,7 +123,14 @@ namespace OpenRA.Mods.Yupgi_alert.Activities
 			collector.CheckConditions(self);
 			dockTrait.CheckConditions(dock);
 
-			return new DeliverGoods(self);
+			self.QueueActivity(new DeliverGoods(self));
+			return true;
         }
+
+		public override IEnumerable<TargetLineNode> TargetLineNodes(Actor self)
+		{
+			if (targetLineColor != null && collector.collectionBuilding != null)
+				yield return new TargetLineNode(Target.FromActor(collector.collectionBuilding), targetLineColor.Value);
+		}
     }
 }

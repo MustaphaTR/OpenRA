@@ -109,7 +109,7 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
         public void Created(Actor self)
         {
             if (Info.SearchOnCreation)
-                self.QueueActivity(new FindGoods(self));
+                self.QueueActivity(new FindGoods(self, Color.Green));
 
 			conditionManager = self.TraitOrDefault<ConditionManager>();
 			CheckConditions(self);
@@ -124,16 +124,16 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 
                 var cell = self.Location;
                 var moveTo = mobile.NearestMoveableCell(cell, 2, 5);
-                self.QueueActivity(mobile.MoveTo(moveTo, 0));
-                self.SetTargetLine(Target.FromCell(self.World, moveTo), Color.Gray, false);
+                self.QueueActivity(mobile.MoveTo(moveTo, 0, Color.Green));
+				self.ShowTargetLines();
 
                 if (IsEmpty)
 				{
-					self.QueueActivity(new FindGoods(self));
+					self.QueueActivity(new FindGoods(self, Color.Green));
                 }
                 else
 				{
-					self.QueueActivity(new DeliverGoods(self));
+					self.QueueActivity(new DeliverGoods(self, Color.Green));
 				}
             }
         }
@@ -145,11 +145,11 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 
             if (IsEmpty)
 			{
-				self.QueueActivity(new FindGoods(self));
+				self.QueueActivity(new FindGoods(self, Color.Green));
             }
             else
 			{
-				self.QueueActivity(new DeliverGoods(self));
+				self.QueueActivity(new DeliverGoods(self, Color.Green));
 			}
         }
 
@@ -215,12 +215,9 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 				Waiting = false;
 				DeliveryAnimPlayed = false;
 
-				self.SetTargetLine(order.Target, Color.Green);
-
-                self.CancelActivity();
-
-                var next = new FindGoods(self);
-                self.QueueActivity(next);
+                var next = new FindGoods(self, Color.Green);
+                self.QueueActivity(order.Queued, next);
+				self.ShowTargetLines();
             }
             else if (order.OrderString == "Deliver")
             {
@@ -238,12 +235,9 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 				Waiting = false;
 				DeliveryAnimPlayed = false;
 
-				self.SetTargetLine(order.Target, Color.Green);
-
-                self.CancelActivity();
-
-                var next = new DeliverGoods(self);
-                self.QueueActivity(next);
+                var next = new DeliverGoods(self, Color.Green);
+                self.QueueActivity(order.Queued, next);
+				self.ShowTargetLines();
             }
             else if (order.OrderString == "Stop" || order.OrderString == "Move")
             {
@@ -299,8 +293,7 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 
 			// Start a search from each supply center's delivery location:
 			List<CPos> path;
-			var li = self.Info.TraitInfo<MobileInfo>().LocomotorInfo;
-			using (var search = PathSearch.FromPoints(self.World, li, self, docks.Values.Select(r => r.Location), self.Location, false)
+			using (var search = PathSearch.FromPoints(self.World, mobile.Locomotor, self, docks.Values.Select(r => r.Location), self.Location, BlockedByActor.None)
 				.WithCustomCost(loc =>
 			{
 				if (!docks.ContainsKey(loc))
@@ -311,7 +304,7 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 				// Too many collectors clogs up the supply center's delivery location:
 				var dockInfo = docks[loc].Actor.Trait<SupplyDock>().Info;
 				if (occupancy >= (Info.IsAircraft ? dockInfo.AircraftCollectionOffsets.Count() : dockInfo.CollectionOffsets.Count()) * Info.CollectionQueueMultiplier)
-					return Constants.InvalidNode;
+					return int.MaxValue; // PathGraph.CostForInvalidCell;
 
 				// Prefer supply centers with less occupancy (multiplier is to offset distance cost):
 				return occupancy * Info.CollectionQueueCostModifier;
@@ -350,8 +343,7 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 
 			// Start a search from each supply center's delivery location:
 			List<CPos> path;
-			var li = self.Info.TraitInfo<MobileInfo>().LocomotorInfo;
-			using (var search = PathSearch.FromPoints(self.World, li, self, centers.Values.Select(r => r.Location), self.Location, false)
+			using (var search = PathSearch.FromPoints(self.World, mobile.Locomotor, self, centers.Values.Select(r => r.Location), self.Location, BlockedByActor.None)
 				.WithCustomCost(loc =>
 				{
 					if (!centers.ContainsKey(loc))
@@ -361,7 +353,7 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 
 					// Too many collectors clogs up the supply center's delivery location:
 					if (occupancy >= Info.MaxDeliveryQueue)
-						return Constants.InvalidNode;
+						return int.MaxValue; // PathGraph.CostForInvalidCell;
 
 					// Prefer supply centers with less occupancy (multiplier is to offset distance cost):
 					return occupancy * Info.DeliveryQueueCostModifier;

@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2016 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -29,6 +29,7 @@ namespace OpenRA.Mods.Yupgi_alert.Activities
 		public BlimpFallToEarth(Actor self, BlimpFallsToEarthInfo info)
 		{
 			this.info = info;
+			IsInterruptible = false;
 			aircraft = self.Trait<Aircraft>();
 			if (info.Spins)
 			{
@@ -37,7 +38,7 @@ namespace OpenRA.Mods.Yupgi_alert.Activities
 			}
 		}
 
-		public override Activity Tick(Actor self)
+		public override bool Tick(Actor self)
 		{
 			if (self.World.Map.DistanceAboveTerrain(self.CenterPosition).Length <= 0)
 			{
@@ -48,7 +49,8 @@ namespace OpenRA.Mods.Yupgi_alert.Activities
 				}
 
 				self.Dispose();
-				return null;
+				Cancel(self);
+				return true;
 			}
 
 			if (info.Spins)
@@ -61,7 +63,7 @@ namespace OpenRA.Mods.Yupgi_alert.Activities
 			move -= new WVec(WDist.Zero, WDist.Zero, info.Velocity);
 			aircraft.SetPosition(self, aircraft.CenterPosition + move);
 
-			return this;
+			return false;
 		}
 	}
 }
