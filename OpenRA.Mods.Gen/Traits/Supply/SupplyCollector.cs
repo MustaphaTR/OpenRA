@@ -81,7 +81,7 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
     }
     public class SupplyCollector : IIssueOrder, IResolveOrder, IOrderVoice, IPips, ISync, INotifyCreated, INotifyIdle, INotifyBlockingMove
     {
-		public  readonly SupplyCollectorInfo Info;
+		public readonly SupplyCollectorInfo Info;
         readonly Mobile mobile;
         readonly Actor self;
 
@@ -90,6 +90,7 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
         bool idleSmart = true;
 		public bool Waiting = false;
 		public bool DeliveryAnimPlayed = false;
+		public HarvesterResourceMultiplier[] ResourceMultipliers;
 
 		[Sync] public Actor deliveryBuilding = null;
         [Sync] public Actor collectionBuilding = null;
@@ -102,6 +103,7 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
             this.self = self;
 			Info = info;
 			mobile = self.TraitOrDefault<Mobile>();
+			ResourceMultipliers = self.TraitsImplementing<HarvesterResourceMultiplier>().ToArray();
 
 			Amount = 0;
 		}

@@ -130,9 +130,10 @@ namespace OpenRA.Mods.Yupgi_alert.Activities
 					}
 				}
 
+				var amountToGive = Util.ApplyPercentageModifiers(amount, collector.ResourceMultipliers.Select(m => m.GetModifier()));
 				collector.Waiting = false;
 				collector.DeliveryAnimPlayed = false;
-				centerTrait.GiveResource(amount, self.Info.Name);
+				centerTrait.GiveResource(amountToGive, self.Info.Name);
 
 				collector.Amount = 0;
 				collector.CheckConditions(self);

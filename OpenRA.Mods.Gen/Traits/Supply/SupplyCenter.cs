@@ -12,6 +12,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using OpenRA.Mods.Common;
 using OpenRA.Mods.Common.Effects;
 using OpenRA.Mods.Common.Traits;
 using OpenRA.Traits;
@@ -43,11 +44,12 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 		public virtual object Create(ActorInitializer init) { return new SupplyCenter(init.Self, this); }
 	}
 
-	public class SupplyCenter : ITick, IResourceExchange, INotifyOwnerChanged
+	public class SupplyCenter : ITick, IResourceExchange, INotifyCreated, INotifyOwnerChanged
 	{
 		readonly Actor self;
 		public readonly SupplyCenterInfo Info;
 		PlayerResources playerResources;
+		RefineryResourceMultiplier[] resourceMultipliers;
 
 		int currentDisplayTick = 0;
 		int currentDisplayValue = 0;
@@ -59,11 +61,18 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 			playerResources = self.Owner.PlayerActor.Trait<PlayerResources>();
 			currentDisplayTick = info.TickRate;
 		}
-		
+
+		void INotifyCreated.Created(Actor self)
+		{
+			resourceMultipliers = self.TraitsImplementing<RefineryResourceMultiplier>().ToArray();
+		}
+
 		public bool CanGiveResource(int amount) { return !Info.UseStorage || Info.DiscardExcessResources || playerResources.CanGiveResources(amount); }
 
 		public void GiveResource(int amount, string collector)
 		{
+			amount = Util.ApplyPercentageModifiers(amount, resourceMultipliers.Select(m => m.GetModifier()));
+
 			if (Info.UseStorage)
 			{
 				if (Info.DiscardExcessResources)
