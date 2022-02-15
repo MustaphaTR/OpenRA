@@ -349,14 +349,6 @@ namespace OpenRA.Mods.Common.Traits
 				IsMoving(self, otherActor))
 				return false;
 
-			if (Info.BlockerActors != null)
-				if (!Info.BlockerActors.Contains(otherActor.Info.Name))
-					return false;
-
-			if (Info.NonBlockerActors != null)
-				if (Info.NonBlockerActors.Contains(otherActor.Info.Name))
-					return false;
-
 			if (cellFlag.HasCellFlag(CellFlag.HasTemporaryBlocker))
 			{
 				// If there is a temporary blocker in our path, but we can remove it, we are not blocked.
@@ -503,6 +495,12 @@ namespace OpenRA.Mods.Common.Traits
 					var mobile = actor.OccupiesSpace as Mobile;
 					var isMovable = mobile != null && !mobile.IsTraitDisabled && !mobile.IsTraitPaused && !mobile.IsImmovable;
 					var isMoving = isMovable && mobile.CurrentMovementTypes.HasMovementType(MovementType.Horizontal);
+
+					if (Info.BlockerActors != null && !Info.BlockerActors.Contains(actor.Info.Name))
+						continue;
+
+					if (Info.NonBlockerActors != null && Info.NonBlockerActors.Contains(actor.Info.Name))
+						continue;
 
 					if (crushables.Any())
 					{
