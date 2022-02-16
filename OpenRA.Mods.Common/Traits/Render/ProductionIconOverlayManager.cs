@@ -35,13 +35,17 @@ namespace OpenRA.Mods.Common.Traits.Render
 		[Desc("Palette to render the sprite in. Reference the world actor's PaletteFrom* traits.")]
 		public readonly string Palette = "chrome";
 
+		[Desc("Point on the production icon's used as reference for offsetting the overlay. ",
+			"Possible values are combinations of Center, Top, Bottom, Left, Right.")]
+		public readonly ReferencePoints ReferencePoint = ReferencePoints.Top | ReferencePoints.Left;
+
 		public virtual void RulesetLoaded(Ruleset rules, ActorInfo ai)
 		{
-			if (rules.Actors[SystemActors.Player].TraitInfos<ProductionIconOverlayManagerInfo>().Where(piom => piom != this && piom.Type == Type).Any())
-				throw new YamlException($"Multiple 'ProductionIconOverlayManager's with type '{Type}' exist.");
+			if (rules.Actors["player"].TraitInfos<ProductionIconOverlayManagerInfo>().Where(piom => piom != this && piom.Type == Type).Any())
+				throw new YamlException("Multiple 'ProductionIconOverlayManager's with type '{0}' exist.".F(Type));
 		}
 
-		public object Create(ActorInitializer init) { return new VeteranProductionIconOverlay(init, this); }
+		public object Create(ActorInitializer init) { return new ProductionIconOverlayManager(init, this); }
 	}
 
 	public class ProductionIconOverlayManager : ITechTreeElement, IProductionIconOverlay
