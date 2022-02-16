@@ -61,6 +61,8 @@ namespace OpenRA.Mods.Common.Traits
 
 		public readonly HashSet<string> LandableTerrainTypes = new HashSet<string>();
 
+		public readonly HashSet<string> LandableActorTypes = new HashSet<string>();
+
 		[Desc("Can the actor be ordered to move in to shroud?")]
 		public readonly bool MoveIntoShroud = true;
 
@@ -604,7 +606,7 @@ namespace OpenRA.Mods.Common.Traits
 		bool IsBlockedBy(Actor self, Actor otherActor, Actor ignoreActor, bool blockedByMobile = true)
 		{
 			// We are not blocked by the actor we are ignoring.
-			if (otherActor == self || otherActor == ignoreActor)
+			if (otherActor == self || otherActor == ignoreActor || Info.LandableActorTypes.Contains(otherActor.Info.Name))
 				return false;
 
 			// We are not blocked by actors we can nudge out of the way
