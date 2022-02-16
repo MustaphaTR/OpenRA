@@ -29,7 +29,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		void INotifyAddedToWorld.AddedToWorld(Actor self)
 		{
-			self.QueueActivity(new TakeOff(self));
+			self.QueueActivity(new FlyIdle(self));
 		}
 	}
 }
