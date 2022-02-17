@@ -657,9 +657,8 @@ namespace OpenRA.Mods.Common.Traits
 	}
 
 	[RequireExplicitImplementation]
-	public interface IResourcePurifier
+	public interface INotifyPassengersDamage
 	{
-		int RefineAmount(int amount, string refinery, string harvester);
-		bool ShowTicksOnRefinery { get; }
+		void DamagePassengers(int damage, Actor attacker, int amount, Dictionary<string, int> versus, BitSet<DamageType> damageTypes, IEnumerable<int> damageModifiers);
 	}
 }

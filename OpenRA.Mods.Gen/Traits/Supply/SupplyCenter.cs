@@ -83,15 +83,6 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 			else
 				playerResources.GiveCash(amount);
 
-			var purifiers = self.World.ActorsWithTrait<IResourcePurifier>().Where(x => x.Actor.Owner == self.Owner).Select(x => x.Trait);
-			foreach (var p in purifiers)
-			{
-				var cash = p.RefineAmount(amount, self.Info.Name, collector);
-
-				if (p.ShowTicksOnRefinery && Info.ShowTicks)
-					currentDisplayValue += cash;
-			}
-
 			if (Info.ShowTicks)
 				currentDisplayValue += amount;
 		}

@@ -79,7 +79,7 @@ namespace OpenRA.Mods.Common.Traits
 	}
 
 	public class SharedCargo : PausableConditionalTrait<SharedCargoInfo>, IPips, IIssueOrder, IResolveOrder, IOrderVoice, INotifyCreated,
-		INotifyAddedToWorld, ITick, IIssueDeployOrder, INotifyKilled, INotifyActorDisposing
+		INotifyAddedToWorld, ITick, IIssueDeployOrder, INotifyKilled, INotifyActorDisposing, INotifyPassengersDamage
 	{
 		readonly Actor self;
 		public readonly SharedCargoManager Manager;
@@ -410,6 +410,29 @@ namespace OpenRA.Mods.Common.Traits
 			{
 				currentCell = cell;
 				CurrentAdjacentCells = GetAdjacentCells();
+			}
+		}
+
+		int DamageVersus(Actor victim, Dictionary<string, int> versus)
+		{
+			// If no Versus values are defined, DamageVersus would return 100 anyway, so we might as well do that early.
+			if (versus.Count == 0)
+				return 100;
+
+			var armor = victim.TraitsImplementing<Armor>()
+				.Where(a => !a.IsTraitDisabled && a.Info.Type != null && versus.ContainsKey(a.Info.Type))
+				.Select(a => versus[a.Info.Type]);
+
+			return Util.ApplyPercentageModifiers(100, armor);
+		}
+
+		void INotifyPassengersDamage.DamagePassengers(int damage, Actor attacker, int amount, Dictionary<string, int> versus, BitSet<DamageType> damageTypes, IEnumerable<int> damageModifiers)
+		{
+			var passengersToDamage = amount > 0 && amount < Manager.Cargo.ToArray().Count() ? Manager.Cargo.Shuffle(self.World.SharedRandom).Take(amount).ToArray() : Manager.Cargo.ToArray();
+			foreach (var passenger in passengersToDamage)
+			{
+				var d = Util.ApplyPercentageModifiers(damage, damageModifiers.Append(DamageVersus(passenger, versus)));
+				passenger.InflictDamage(attacker, new Damage(d, damageTypes));
 			}
 		}
 	}
