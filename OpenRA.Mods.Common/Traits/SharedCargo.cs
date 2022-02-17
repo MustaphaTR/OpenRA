@@ -340,6 +340,7 @@ namespace OpenRA.Mods.Common.Traits
 			{
 				Manager.ReservedWeight -= w;
 				Manager.Reserves.Remove(a);
+				ReleaseLock(self);
 
 				if (loadingToken != ConditionManager.InvalidConditionToken)
 					loadingToken = conditionManager.RevokeCondition(self, loadingToken);
