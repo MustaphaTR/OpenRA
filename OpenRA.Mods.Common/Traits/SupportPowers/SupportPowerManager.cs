@@ -24,7 +24,7 @@ namespace OpenRA.Mods.Common.Traits
 		public object Create(ActorInitializer init) { return new SupportPowerManager(init); }
 	}
 
-	public class SupportPowerManager : ITick, IResolveOrder
+	public class SupportPowerManager : ITick, IResolveOrder, ITechTreeElement
 	{
 		public readonly Actor Self;
 		public readonly Dictionary<string, SupportPowerInstance> Powers = new Dictionary<string, SupportPowerInstance>();
@@ -58,7 +58,8 @@ namespace OpenRA.Mods.Common.Traits
 			{
 				var key = MakeKey(t);
 
-				if (!Powers.ContainsKey(key))
+				var hasKey = Powers.ContainsKey(key);
+				if (!hasKey)
 				{
 					Powers.Add(key, new SupportPowerInstance(key, this)
 					{
@@ -69,6 +70,17 @@ namespace OpenRA.Mods.Common.Traits
 				}
 
 				Powers[key].Instances.Add(t);
+
+				if (!hasKey)
+				{
+					foreach (var prerequisite in t.Info.Prerequisites)
+					{
+						var techKey = key + prerequisite.Key;
+						TechTree.Add(techKey, prerequisite.Value, 0, this);
+					}
+
+					TechTree.Update();
+				}
 			}
 		}
 
@@ -82,9 +94,17 @@ namespace OpenRA.Mods.Common.Traits
 				var key = MakeKey(t);
 				Powers[key].Instances.Remove(t);
 
-				if (Powers[key].Instances.Count == 0 && !Powers[key].Disabled)
+				if (Powers[key].Instances.Count == 0)
 				{
 					Powers.Remove(key);
+
+					foreach (var prerequisite in t.Info.Prerequisites)
+					{
+						var techKey = key + prerequisite.Key;
+						TechTree.Remove(techKey);
+					}
+
+					TechTree.Update();
 				}
 			}
 		}
@@ -113,13 +133,34 @@ namespace OpenRA.Mods.Common.Traits
 
 		public IEnumerable<SupportPowerInstance> GetPowersForActor(Actor a)
 		{
-			if (a.Owner != Self.Owner || !a.Info.HasTraitInfo<SupportPowerInfo>())
+			if (Powers.Count == 0 || a.Owner != Self.Owner || !a.Info.HasTraitInfo<SupportPowerInfo>())
 				return NoInstances;
 
 			return a.TraitsImplementing<SupportPower>()
 				.Select(t => Powers[MakeKey(t)])
 				.Where(p => p.Instances.Any(i => !i.IsTraitDisabled && i.Self == a));
 		}
+
+		void ITechTreeElement.PrerequisitesAvailable(string key)
+		{
+			SupportPowerInstance sp;
+			if (!Powers.TryGetValue(key.Remove(key.Length - 1), out sp))
+				return;
+
+			sp.CheckPrerequisites(false);
+		}
+
+		void ITechTreeElement.PrerequisitesUnavailable(string key)
+		{
+			SupportPowerInstance sp;
+			if (!Powers.TryGetValue(key.Remove(key.Length - 1), out sp))
+				return;
+
+			sp.CheckPrerequisites(false);
+		}
+
+		void ITechTreeElement.PrerequisitesItemHidden(string key) { }
+		void ITechTreeElement.PrerequisitesItemVisible(string key) { }
 	}
 
 	public class SupportPowerInstance
@@ -132,7 +173,16 @@ namespace OpenRA.Mods.Common.Traits
 		public int RemainingTime;
 		public int TotalTime;
 		public bool Active { get; private set; }
-		public bool Disabled { get { return (!prereqsAvailable && !manager.DevMode.AllTech) || !instancesEnabled || oneShotFired; } }
+		public bool Disabled
+		{
+			get
+			{
+				return manager.Self.Owner.WinState == WinState.Lost ||
+					(!prereqsAvailable && !manager.DevMode.AllTech) ||
+					!instancesEnabled ||
+					oneShotFired;
+			}
+		}
 
 		public SupportPowerInfo Info { get { return Instances.Select(i => i.Info).FirstOrDefault(); } }
 		public bool Ready { get { return Active && RemainingTime == 0; } }
@@ -147,9 +197,12 @@ namespace OpenRA.Mods.Common.Traits
 			Key = key;
 		}
 
-		public void PrerequisitesAvailable(bool available)
+		public void CheckPrerequisites(bool disable)
 		{
-			prereqsAvailable = available;
+			if (disable)
+				prereqsAvailable = false;
+			else
+				prereqsAvailable = GetLevel() != 0;
 		}
 
 		bool notifiedCharging;
@@ -223,13 +276,16 @@ namespace OpenRA.Mods.Common.Traits
 
 			if (Info.OneShot)
 			{
-				PrerequisitesAvailable(false);
+				CheckPrerequisites(true);
 				oneShotFired = true;
 			}
 		}
 
 		public int GetLevel()
 		{
+			if (Info == null)
+				return 0;
+
 			var availables = Info.Prerequisites.Where(p => manager.TechTree.HasPrerequisites(p.Value));
 			var level = availables.Any() ? availables.Max(p => p.Key) : 0;
 
