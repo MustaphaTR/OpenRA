@@ -30,7 +30,7 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 		[Desc("Initial delay to create the mines.")]
 		public readonly int InitialDelay = 1;
 
-		[Desc("Recreate the mines, if they are destroyed after this much of time.")]
+		[Desc("Recreate the mines, if they are destroyed after this much of time. Use -1 to disable respawn.")]
 		public readonly int RecreationInterval = 2500;
 
 		[Desc("Remove the mines if the trait gets disabled.")]
@@ -41,7 +41,10 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 
 	public class LaysMinefield : PausableConditionalTrait<LaysMinefieldInfo>, INotifyKilled, INotifyOwnerChanged, INotifyActorDisposing, ITick, ISync
 	{
-		[Sync] int ticks;
+		[Sync]
+		int ticks;
+
+		bool spawned;
 		List<Actor> mines = new List<Actor>();
 
 		public LaysMinefield(LaysMinefieldInfo info)
@@ -54,9 +57,13 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 		{
 			if (IsTraitPaused || IsTraitDisabled)
 				return;
+			
+			if (spawned && Info.RecreationInterval < 0)
+				return;
 
 			if (--ticks < 0)
 			{
+				spawned = true;
 				ticks = Info.RecreationInterval;
 				SpawnMines(self);
 			}
