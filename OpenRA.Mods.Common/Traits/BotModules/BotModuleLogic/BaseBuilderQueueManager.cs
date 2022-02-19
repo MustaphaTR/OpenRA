@@ -490,16 +490,34 @@ namespace OpenRA.Mods.Common.Traits
 
 				case BuildingType.Refinery:
 
-					// Try and place the refinery near a resource field
-					var nearbyResources = world.Map.FindTilesInAnnulus(baseCenter, baseBuilder.Info.MinBaseRadius, baseBuilder.Info.MaxBaseRadius)
-						.Where(a => resourceTypeIndices.Get(world.Map.GetTerrainIndex(a)))
-						.Shuffle(world.LocalRandom).Take(baseBuilder.Info.MaxResourceCellsToCheck);
-
-					foreach (var r in nearbyResources)
+					// Don't check for resources if the mod has docks
+					if (!baseBuilder.Info.SupplyDockTypes.Any())
 					{
-						var found = findPos(baseCenter, r, baseBuilder.Info.MinBaseRadius, baseBuilder.Info.MaxBaseRadius);
-						if (found != null)
-							return found;
+						// Try and place the refinery near a resource field
+						var nearbyResources = world.Map.FindTilesInAnnulus(baseCenter, baseBuilder.Info.MinBaseRadius, baseBuilder.Info.MaxBaseRadius)
+							.Where(a => resourceTypeIndices.Get(world.Map.GetTerrainIndex(a)))
+							.Shuffle(world.LocalRandom).Take(baseBuilder.Info.MaxResourceCellsToCheck);
+
+						foreach (var r in nearbyResources)
+						{
+							var found = findPos(baseCenter, r, baseBuilder.Info.MinBaseRadius, baseBuilder.Info.MaxBaseRadius);
+							if (found != null)
+								return found;
+						}
+					}
+					else
+					{
+						// Try and place the refinery near a supply dock
+						var nearbyDocks = world.FindActorsInCircle(world.Map.CenterOfCell(baseCenter), WDist.FromCells(baseBuilder.Info.MaxBaseRadius))
+							.Where(a => baseBuilder.Info.SupplyDockTypes.Contains(a.Info.Name))
+							.Shuffle(world.LocalRandom).Take(baseBuilder.Info.MaxResourceCellsToCheck);
+
+						foreach (var r in nearbyDocks)
+						{
+							var found = findPos(baseCenter, world.Map.CellContaining(r.CenterPosition), baseBuilder.Info.MinBaseRadius, baseBuilder.Info.MaxBaseRadius);
+							if (found != null)
+								return found;
+						}
 					}
 
 					// Try and find a free spot somewhere else in the base

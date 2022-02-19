@@ -30,6 +30,9 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Tells the AI what building types are considered refineries.")]
 		public readonly HashSet<string> RefineryTypes = new HashSet<string>();
 
+		[Desc("Tells the AI to build refineries near these actors.")]
+		public readonly HashSet<string> SupplyDockTypes = new HashSet<string>();
+
 		[Desc("Tells the AI what it can still build when it has less cash than ProductionMinimumCash.")]
 		public readonly HashSet<string> CashGeneratorTypes = new HashSet<string>();
 
