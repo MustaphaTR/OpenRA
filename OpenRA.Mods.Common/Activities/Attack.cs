@@ -87,7 +87,7 @@ namespace OpenRA.Mods.Common.Activities
 
 		public override bool Tick(Actor self)
 		{
-			if (IsCanceling)
+			if (IsCanceling || !attackTraits.Any(x => !x.IsTraitDisabled))
 				return true;
 
 			bool targetIsHiddenActor;
