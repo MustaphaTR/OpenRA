@@ -30,6 +30,7 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 	{
 		public CarrierSlaveInfo Info { get; private set; }
 
-		public MissileSpawnerSlave(ActorInitializer init, MissileSpawnerSlaveInfo info) : base(init, info) { }
+		public MissileSpawnerSlave(ActorInitializer init, MissileSpawnerSlaveInfo info)
+			: base(init, info) { }
 	}
 }

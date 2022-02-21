@@ -57,7 +57,9 @@ namespace OpenRA.Mods.AS.Traits
 		readonly AIDeployHelperInfo info;
 
 		GrantConditionOnDeploy gcod;
-		[Sync] int undeployTicks, deployTicks;
+
+		[Sync]
+		int undeployTicks, deployTicks;
 
 		public AIDeployHelper(AIDeployHelperInfo info)
 		{

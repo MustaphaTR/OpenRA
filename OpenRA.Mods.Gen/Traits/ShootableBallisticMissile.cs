@@ -321,7 +321,7 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 
 		public void Disposing(Actor self) { }
 
-		Pair<CPos, SubCell> [] IOccupySpace.OccupiedCells ()
+		Pair<CPos, SubCell>[] IOccupySpace.OccupiedCells()
 		{
 			return NoCells;
 		}
