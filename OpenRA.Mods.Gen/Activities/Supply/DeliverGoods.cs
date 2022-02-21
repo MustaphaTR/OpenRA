@@ -24,11 +24,11 @@ using OpenRA.Traits;
 
 namespace OpenRA.Mods.Yupgi_alert.Activities
 {
-    class DeliverGoods : Activity
-    {
-        readonly SupplyCollector collector;
+	class DeliverGoods : Activity
+	{
+		readonly SupplyCollector collector;
 		readonly SupplyCollectorInfo collectorInfo;
-        readonly IMove move;
+		readonly IMove move;
 		readonly Mobile mobile;
 		readonly Color? targetLineColor;
 
@@ -36,28 +36,28 @@ namespace OpenRA.Mods.Yupgi_alert.Activities
 		{
 			collector = self.Trait<SupplyCollector>();
 			collectorInfo = self.Info.TraitInfo<SupplyCollectorInfo>();
-            move = self.Trait<IMove>();
+			move = self.Trait<IMove>();
 			mobile = self.TraitOrDefault<Mobile>();
 			this.targetLineColor = targetLineColor;
 		}
 
-        public override bool Tick(Actor self)
-        {
-            if (IsCanceling)
-                return true;
+		public override bool Tick(Actor self)
+		{
+			if (IsCanceling)
+				return true;
 
-            if (collector.deliveryBuilding == null || !collector.deliveryBuilding.IsInWorld || !collectorInfo.DeliveryStances.HasStance(self.Owner.Stances[collector.deliveryBuilding.Owner]))
-            {
-				collector.deliveryBuilding = collector.ClosestDeliveryBuilding(self);
-            }
+			if (collector.DeliveryBuilding == null || !collector.DeliveryBuilding.IsInWorld || !collectorInfo.DeliveryStances.HasStance(self.Owner.Stances[collector.DeliveryBuilding.Owner]))
+			{
+				collector.DeliveryBuilding = collector.ClosestDeliveryBuilding(self);
+			}
 
-            if (collector.deliveryBuilding == null || !collector.deliveryBuilding.IsInWorld)
-            {
-                QueueChild(new Wait(collectorInfo.SearchForDeliveryBuildingDelay));
+			if (collector.DeliveryBuilding == null || !collector.DeliveryBuilding.IsInWorld)
+			{
+				QueueChild(new Wait(collectorInfo.SearchForDeliveryBuildingDelay));
 				return false;
-            }
+			}
 
-			var center = collector.deliveryBuilding;
+			var center = collector.DeliveryBuilding;
 
 			CPos cell;
 			var centerTrait = center.Trait<SupplyCenter>();
@@ -67,10 +67,10 @@ namespace OpenRA.Mods.Yupgi_alert.Activities
 				cell = self.ClosestCell(centerTrait.Info.DeliveryOffsets.Select(c => center.Location + c));
 
 			if (!centerTrait.Info.DeliveryOffsets.Select(c => center.Location + c).Contains(self.Location))
-            {
-                QueueChild(move.MoveTo(cell, 2));
+			{
+				QueueChild(move.MoveTo(cell, 2));
 				return false;
-            }
+			}
 
 			if (self.Trait<IFacing>() != null)
 			{
@@ -103,9 +103,9 @@ namespace OpenRA.Mods.Yupgi_alert.Activities
 				self.QueueActivity(new FindGoods(self));
 				return true;
 			}
-			
+
 			if (centerTrait.CanGiveResource(amount))
-            {
+			{
 				var wsb = self.TraitsImplementing<WithSpriteBody>().Where(t => !t.IsTraitDisabled).FirstOrDefault();
 				var wsda = self.Info.TraitInfoOrDefault<WithSupplyDeliveryAnimationInfo>();
 				var rs = self.TraitOrDefault<RenderSprites>();
@@ -146,12 +146,12 @@ namespace OpenRA.Mods.Yupgi_alert.Activities
 
 			self.QueueActivity(new FindGoods(self));
 			return true;
-        }
+		}
 
 		public override IEnumerable<TargetLineNode> TargetLineNodes(Actor self)
 		{
-			if (targetLineColor != null && collector.deliveryBuilding != null)
-				yield return new TargetLineNode(Target.FromActor(collector.deliveryBuilding), targetLineColor.Value);
+			if (targetLineColor != null && collector.DeliveryBuilding != null)
+				yield return new TargetLineNode(Target.FromActor(collector.DeliveryBuilding), targetLineColor.Value);
 		}
-    }
+	}
 }

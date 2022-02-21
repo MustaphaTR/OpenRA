@@ -1,6 +1,6 @@
 ﻿#region Copyright & License Information
 /*
- * Copyright 2007-2018 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -19,8 +19,9 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 {
 	public class WithSupplyDeliveryOverlayInfo : ITraitInfo, Requires<WithSpriteBodyInfo>
 	{
+		[SequenceReference]
 		[Desc("Sequence name to use")]
-		[SequenceReference] public readonly string Sequence = "deliver";
+		public readonly string Sequence = "deliver";
 
 		[Desc("Position relative to body")]
 		public readonly WVec LocalOffset = WVec.Zero;
@@ -30,7 +31,8 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 		"ex. Chinnok giving cash right after crane is at the ground and doesn't wait it to go back up.")]
 		public readonly int WaitDelay = 25;
 
-		[PaletteReference] public readonly string Palette = "effect";
+		[PaletteReference]
+		public readonly string Palette = "effect";
 
 		public object Create(ActorInitializer init) { return new WithSupplyDeliveryOverlay(init.Self, this); }
 	}

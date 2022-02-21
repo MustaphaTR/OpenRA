@@ -274,7 +274,7 @@ namespace OpenRA.Mods.Common.Traits
 				target = target.Recalculate(self.Owner, out targetIsHiddenActor);
 				foreach (var attack in attackFollows)
 					attack.SetRequestedTarget(self, target, forceAttack);
-				
+
 				hasTicked = true;
 
 				if (!targetIsHiddenActor && target.Type == TargetType.Actor)

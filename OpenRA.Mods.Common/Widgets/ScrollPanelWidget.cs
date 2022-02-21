@@ -192,7 +192,6 @@ namespace OpenRA.Mods.Common.Widgets
 				ButtonWidget.DrawBackground(Button, upButtonRect, upDisabled, upPressed, upHover, false);
 				ButtonWidget.DrawBackground(Button, downButtonRect, downDisabled, downPressed, downHover, false);
 
-
 				if (thumbHeight > 0)
 					ButtonWidget.DrawBackground(Button, thumbRect, false, HasMouseFocus && thumbHover, thumbHover, false);
 

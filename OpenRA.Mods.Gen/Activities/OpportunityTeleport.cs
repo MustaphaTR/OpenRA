@@ -29,7 +29,7 @@ namespace OpenRA.Mods.Yupgi_alert.Activities
 		// i.e., Move.
 		public OpportunityTeleport(Actor self, PortableChronoInfo pchronoInfo, CPos targetCell, Activity moveToDest)
 		{
-			this.PChronoInfo = pchronoInfo;
+			PChronoInfo = pchronoInfo;
 			PChrono = self.Trait<PortableChrono>();
 			this.targetCell = targetCell;
 			QueueChild(moveToDest);

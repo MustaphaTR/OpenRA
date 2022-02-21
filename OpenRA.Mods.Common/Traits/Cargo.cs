@@ -559,7 +559,7 @@ namespace OpenRA.Mods.Common.Traits
 		{
 			init.Add(new RuntimeCargoInit(Passengers.ToArray()));
 		}
-		
+
 		int DamageVersus(Actor victim, Dictionary<string, int> versus)
 		{
 			// If no Versus values are defined, DamageVersus would return 100 anyway, so we might as well do that early.

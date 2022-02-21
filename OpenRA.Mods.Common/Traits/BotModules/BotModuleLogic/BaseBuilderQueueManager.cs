@@ -206,7 +206,7 @@ namespace OpenRA.Mods.Common.Traits
 			return playerPower == null || (actorInfo.TraitInfos<PowerInfo>().Where(i => i.EnabledByDefault)
 				.Sum(p => p.Amount) + playerPower.ExcessPower) >= baseBuilder.Info.MinimumExcessPower;
 		}
-		
+
 		ActorInfo ChooseBuildingToBuild(ProductionQueue queue)
 		{
 			var buildableThings = queue.BuildableItems();
@@ -268,7 +268,7 @@ namespace OpenRA.Mods.Common.Traits
 
 			// Only consider building this if there is enough water inside the base perimeter and there are close enough adjacent buildings
 			if (waterState == WaterCheck.EnoughWater && baseBuilder.Info.NewProductionCashThreshold > 0
-				&& baseBuilder.Info.ConstructionMinimumCash <= playerResources.Cash 
+				&& baseBuilder.Info.ConstructionMinimumCash <= playerResources.Cash
 				&& playerResources.Resources > baseBuilder.Info.NewProductionCashThreshold
 				&& AIUtils.IsAreaAvailable<GivesBuildableArea>(world, player, world.Map, baseBuilder.Info.CheckForWaterRadius, baseBuilder.Info.WaterTerrainTypes))
 			{
@@ -337,18 +337,18 @@ namespace OpenRA.Mods.Common.Traits
 				if (playerResources != null && playerResources.Cash <= baseBuilder.Info.ConstructionMinimumCash && !baseBuilder.Info.CashGeneratorTypes.Contains(name))
 					continue;
 
-				// Core logic should be implemented as a seperate module, commenting this out for now.
+				/* Core logic should be implemented as a seperate module, commenting this out for now.
 				// Can we build this structure?
-				//if (!buildableThings.Any(b => b.Name == name))
-				//{
-				//	// Check if it is defined in the core and buildable.
-				//	if (ai.Info.CoreDefinitions == null || !ai.Info.CoreDefinitions.ContainsKey(name))
-				//		//// Not even indirectly buildable with a "core".
-				//		continue;
-				//	if (!buildableThings.Any(b => b.Name == ai.Info.CoreDefinitions[name]))
-				//		//// Indirectly buildable, but that core is not currently buildable.
-				//		continue;
-				//}
+				if (!buildableThings.Any(b => b.Name == name))
+				{
+					// Check if it is defined in the core and buildable.
+					if (ai.Info.CoreDefinitions == null || !ai.Info.CoreDefinitions.ContainsKey(name))
+						//// Not even indirectly buildable with a "core".
+						continue;
+					if (!buildableThings.Any(b => b.Name == ai.Info.CoreDefinitions[name]))
+						//// Indirectly buildable, but that core is not currently buildable.
+						continue;
+				} */
 
 				// Do we want to build this structure?
 				var producers = world.Actors.Where(a => a.Owner == queue.Actor.Owner && a.TraitsImplementing<ProductionQueue>().Any());
@@ -381,13 +381,13 @@ namespace OpenRA.Mods.Common.Traits
 				var actor = world.Map.Rules.Actors[name];
 				if (playerResources != null)
 				{
-					var nonICDQueues = productionQueues.Where(pq => !pq.Info.InstantCashDrain);
-					if (!nonICDQueues.Any())
+					var nonInstantCashQueues = productionQueues.Where(pq => !pq.Info.InstantCashDrain);
+					if (!nonInstantCashQueues.Any())
 					{
-						var ICDQueues = productionQueues.Where(pq => pq.Info.InstantCashDrain);
-						if (ICDQueues.Any())
+						var instantCashQueues = productionQueues.Where(pq => pq.Info.InstantCashDrain);
+						if (instantCashQueues.Any())
 						{
-							var cost = ICDQueues.Min(q => q.GetProductionCost(actor));
+							var cost = instantCashQueues.Min(q => q.GetProductionCost(actor));
 							if (playerResources.Cash < cost)
 								continue;
 						}
@@ -413,12 +413,12 @@ namespace OpenRA.Mods.Common.Traits
 				AIUtils.BotDebug("{0} decided to build {1}: Desired is {2} ({3} / {4}); current is {5} / {4}",
 					queue.Actor.Owner, name, frac.Value, frac.Value * playerBuildings.Length, playerBuildings.Length, count);
 
-				// Core logic should be implemented as a seperate module, commenting this out for now.
-				//// If a core actor, return the core instead.
-				//if (ai.Info.CoreDefinitions != null && ai.Info.CoreDefinitions.ContainsKey(name))
-				//	return world.Map.Rules.Actors[ai.Info.CoreDefinitions[name]];
-				//else
-				//	return actor;
+				/* Core logic should be implemented as a seperate module, commenting this out for now.
+				// If a core actor, return the core instead.
+				if (ai.Info.CoreDefinitions != null && ai.Info.CoreDefinitions.ContainsKey(name))
+					return world.Map.Rules.Actors[ai.Info.CoreDefinitions[name]];
+				else
+					return actor; */
 
 				return actor;
 			}

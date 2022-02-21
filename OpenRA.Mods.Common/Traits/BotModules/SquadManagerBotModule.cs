@@ -116,7 +116,6 @@ namespace OpenRA.Mods.Common.Traits
 
 		readonly Predicate<Actor> unitCannotBeOrdered;
 
-
 		public List<Squad> Squads = new List<Squad>();
 
 		IBot bot;

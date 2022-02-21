@@ -62,7 +62,7 @@ namespace OpenRA.Mods.Common.Traits
 		[GrantedConditionReference]
 		[Desc("The condition to grant to self while cloaked.")]
 		public readonly string CloakedCondition = null;
-		
+
 		[Desc("This units uncloaks if only units of the player are cloakable.")]
 		public readonly bool UncloakWhenAlone = true;
 

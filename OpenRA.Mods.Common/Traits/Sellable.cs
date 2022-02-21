@@ -86,8 +86,8 @@ namespace OpenRA.Mods.Common.Traits
 			var makeAnimations = self.TraitsImplementing<WithMakeAnimation>();
 			if (!makeAnimations.Any())
 			{
-			// Let the sell happen even without WithMakeAnimation trait.
-			self.QueueActivity(false, new Sell(self, info.ShowTicks));
+				// Let the sell happen even without WithMakeAnimation trait.
+				self.QueueActivity(false, new Sell(self, info.ShowTicks));
 				return;
 			}
 

@@ -45,10 +45,11 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 		// TODO: add more activities for aircrafts
 		public bool IsMoving { get { return self.CurrentActivity is Move; } }
 
-		public MobSpawnerSlave(ActorInitializer init, MobSpawnerSlaveInfo info) : base(init, info)
+		public MobSpawnerSlave(ActorInitializer init, MobSpawnerSlaveInfo info)
+			: base(init, info)
 		{
 			// this.info = info;
-			this.self = init.Self;
+			self = init.Self;
 		}
 
 		public override void Created(Actor self)

@@ -38,7 +38,8 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 		bool cachedDisabled = true;
 		private Actor self;
 
-		public DelayedWeaponDetector(Actor self, DelayedWeaponDetectorInfo info) : base(info)
+		public DelayedWeaponDetector(Actor self, DelayedWeaponDetectorInfo info)
+			: base(info)
 		{
 			this.self = self;
 			cachedRange = info.Range;

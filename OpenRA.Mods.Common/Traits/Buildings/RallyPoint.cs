@@ -50,6 +50,7 @@ namespace OpenRA.Mods.Common.Traits
 	public class RallyPoint : IIssueOrder, IResolveOrder, ISync, INotifyOwnerChanged, INotifyCreated
 	{
 		const string OrderID = "SetRallyPoint";
+		const uint ForceSet = 1;
 
 		[Sync]
 		public CPos Location;
@@ -59,8 +60,6 @@ namespace OpenRA.Mods.Common.Traits
 
 		// Keep track of rally pointed acceptor actors
 		bool dirty = true;
-
-		const uint ForceSet = 1;
 
 		Actor cachedResult = null;
 

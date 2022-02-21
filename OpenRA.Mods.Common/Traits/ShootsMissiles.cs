@@ -37,7 +37,8 @@ namespace OpenRA.Mods.Common.Traits
 
 		public Stance DeflectionStances { get { return info.ShootStances; } }
 
-		public ShootsMissiles(Actor self, ShootsMissilesInfo info) : base(info)
+		public ShootsMissiles(Actor self, ShootsMissilesInfo info)
+			: base(info)
 		{
 			this.info = info;
 			armament = self.TraitsImplementing<Armament>().First(a => a.Info.Name == info.Armament);

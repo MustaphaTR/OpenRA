@@ -77,7 +77,7 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 		public DetonateWeaponPower(Actor self, DetonateWeaponPowerInfo info)
 			: base(self, info)
 		{
-			this.Info = info;
+			Info = info;
 		}
 
 		public override void Activate(Actor self, Order order, SupportPowerManager manager)
@@ -192,7 +192,7 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 		}
 
 		protected override IEnumerable<IRenderable> Render(WorldRenderer wr, World world) { yield break; }
-		protected override IEnumerable<IRenderable> RenderAboveShroud(WorldRenderer wr, World world)  { yield break; }
+		protected override IEnumerable<IRenderable> RenderAboveShroud(WorldRenderer wr, World world) { yield break; }
 
 		protected override IEnumerable<IRenderable> RenderAnnotations(WorldRenderer wr, World world)
 		{

@@ -106,7 +106,6 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 					? body.LocalToWorld(info.LocalOffset.Rotate(body.QuantizeOrientation(self, self.Orientation)))
 					: info.LocalOffset;
 
-
 				weapon.Impact(Target.FromPos(self.CenterPosition + localoffset), self,
 					self.TraitsImplementing<IFirepowerModifier>().Select(a => a.GetFirepowerModifier(info.WeaponName)).ToArray());
 

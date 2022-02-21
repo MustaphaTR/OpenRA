@@ -1,6 +1,6 @@
 ﻿#region Copyright & License Information
 /*
- * Copyright 2007-2018 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -9,7 +9,6 @@
  */
 #endregion
 
-using OpenRA.Traits;
 using System.Collections.Generic;
 using System.Linq;
 using OpenRA.Activities;
@@ -20,21 +19,22 @@ using OpenRA.Mods.Common.Traits;
 using OpenRA.Mods.Yupgi_alert.Activities;
 using OpenRA.Mods.Yupgi_alert.Orders;
 using OpenRA.Primitives;
+using OpenRA.Traits;
 
 namespace OpenRA.Mods.Yupgi_alert.Traits
 {
-    public class SupplyCollectorInfo : ITraitInfo
-    {
+	public class SupplyCollectorInfo : ITraitInfo
+	{
 		public readonly HashSet<string> SupplyTypes = new HashSet<string> { "supply" };
 
 		public readonly Stance DeliveryStances = Stance.Ally;
 		public readonly Stance CollectionStances = Stance.Ally | Stance.Neutral;
 
 		[Desc("How long (in ticks) to wait until (re-)checking for a nearby available TradeActors if not yet linked to one.")]
-        public readonly int SearchForCollectionBuildingDelay = 125;
+		public readonly int SearchForCollectionBuildingDelay = 125;
 
-        [Desc("How long (in ticks) to wait until (re-)checking for a nearby available DeliveryBuilding if not yet linked to one.")]
-        public readonly int SearchForDeliveryBuildingDelay = 125;
+		[Desc("How long (in ticks) to wait until (re-)checking for a nearby available DeliveryBuilding if not yet linked to one.")]
+		public readonly int SearchForDeliveryBuildingDelay = 125;
 
 		[Desc("How long (in ticks) does it take to collect supplies.")]
 		public readonly int CollectionDelay = 25;
@@ -43,10 +43,10 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 		public readonly int DeliveryDelay = 25;
 
 		[Desc("Automatically scan for trade building when created.")]
-        public readonly bool SearchOnCreation = true;
+		public readonly bool SearchOnCreation = true;
 
-        [Desc("How much cash can this actor can carry.")]
-        public readonly int Capacity = 300;
+		[Desc("How much cash can this actor can carry.")]
+		public readonly int Capacity = 300;
 
 		[Desc("How many squares to show the fill level.")]
 		public readonly int PipCount = 7;
@@ -74,33 +74,40 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 		[GrantedConditionReference]
 		public IEnumerable<string> LinterFullnessConditions { get { return FullnessConditions.Values; } }
 
-		[VoiceReference] public readonly string CollectVoice = null;
-		[VoiceReference] public readonly string DeliverVoice = null;
+		[VoiceReference]
+		public readonly string CollectVoice = null;
+
+		[VoiceReference]
+		public readonly string DeliverVoice = null;
 
 		public object Create(ActorInitializer init) { return new SupplyCollector(init.Self, this); }
-    }
-    public class SupplyCollector : IIssueOrder, IResolveOrder, IOrderVoice, IPips, ISync, INotifyCreated, INotifyIdle, INotifyBlockingMove
-    {
+	}
+
+	public class SupplyCollector : IIssueOrder, IResolveOrder, IOrderVoice, IPips, ISync, INotifyCreated, INotifyIdle, INotifyBlockingMove
+	{
 		public readonly SupplyCollectorInfo Info;
-        readonly Mobile mobile;
-        readonly Actor self;
+		readonly Mobile mobile;
+		readonly Actor self;
 
 		public int Amount;
 
-        bool idleSmart = true;
+		bool idleSmart = true;
 		public bool Waiting = false;
 		public bool DeliveryAnimPlayed = false;
 		public HarvesterResourceMultiplier[] ResourceMultipliers;
 
-		[Sync] public Actor deliveryBuilding = null;
-        [Sync] public Actor collectionBuilding = null;
+		[Sync]
+		public Actor DeliveryBuilding = null;
+
+		[Sync]
+		public Actor CollectionBuilding = null;
 
 		ConditionManager conditionManager;
 		readonly Dictionary<int, int> fullnessTokens = new Dictionary<int, int>();
 
 		public SupplyCollector(Actor self, SupplyCollectorInfo info)
 		{
-            this.self = self;
+			this.self = self;
 			Info = info;
 			mobile = self.TraitOrDefault<Mobile>();
 			ResourceMultipliers = self.TraitsImplementing<HarvesterResourceMultiplier>().ToArray();
@@ -108,80 +115,80 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 			Amount = 0;
 		}
 
-        public void Created(Actor self)
-        {
-            if (Info.SearchOnCreation)
-                self.QueueActivity(new FindGoods(self, Color.Green));
+		public void Created(Actor self)
+		{
+			if (Info.SearchOnCreation)
+				self.QueueActivity(new FindGoods(self, Color.Green));
 
 			conditionManager = self.TraitOrDefault<ConditionManager>();
 			CheckConditions(self);
 		}
 
-        public void OnNotifyBlockingMove(Actor self, Actor blocking)
-        {
-            // If I'm just waiting around then get out of the way:
-            if (self.IsIdle)
-            {
-                self.CancelActivity();
+		public void OnNotifyBlockingMove(Actor self, Actor blocking)
+		{
+			// If I'm just waiting around then get out of the way:
+			if (self.IsIdle)
+			{
+				self.CancelActivity();
 
-                var cell = self.Location;
-                var moveTo = mobile.NearestMoveableCell(cell, 2, 5);
-                self.QueueActivity(mobile.MoveTo(moveTo, 0, Color.Green));
+				var cell = self.Location;
+				var moveTo = mobile.NearestMoveableCell(cell, 2, 5);
+				self.QueueActivity(mobile.MoveTo(moveTo, 0, Color.Green));
 				self.ShowTargetLines();
 
-                if (IsEmpty)
+				if (IsEmpty)
 				{
 					self.QueueActivity(new FindGoods(self, Color.Green));
-                }
-                else
+				}
+				else
 				{
 					self.QueueActivity(new DeliverGoods(self, Color.Green));
 				}
-            }
-        }
+			}
+		}
 
-        public void TickIdle(Actor self)
-        {
-            // Should we be intelligent while idle?
-            if (!idleSmart) return;
+		public void TickIdle(Actor self)
+		{
+			// Should we be intelligent while idle?
+			if (!idleSmart) return;
 
-            if (IsEmpty)
+			if (IsEmpty)
 			{
 				self.QueueActivity(new FindGoods(self, Color.Green));
-            }
-            else
+			}
+			else
 			{
 				self.QueueActivity(new DeliverGoods(self, Color.Green));
 			}
-        }
+		}
 
 		public bool IsFull { get { return Amount == Info.Capacity; } }
 		public bool IsEmpty { get { return Amount == 0; } }
 		public int Fullness { get { return Amount * 100 / Info.Capacity; } }
 
 		public IEnumerable<IOrderTargeter> Orders
-        {
-            get
-            {
-                yield return new GenericTargeter<BuildingInfo>("Collect", 5,
-                    a => IsEmpty && a.TraitOrDefault<SupplyDock>() != null && Info.SupplyTypes.Overlaps(a.Trait<SupplyDock>().Info.SupplyTypes) && !a.Trait<SupplyDock>().IsEmpty && (Info.CollectionStances.HasStance(self.Owner.Stances[a.Owner])),
-                    a => "enter");
-                yield return new GenericTargeter<BuildingInfo>("Deliver", 5,
-                    a => !IsEmpty && a.TraitOrDefault<SupplyCenter>() != null && Info.SupplyTypes.Overlaps(a.Trait<SupplyCenter>().Info.SupplyTypes) && (Info.DeliveryStances.HasStance(self.Owner.Stances[a.Owner])),
-                    a => "enter");
-            }
-        }
+		{
+			get
+			{
+				yield return new GenericTargeter<BuildingInfo>("Collect", 5,
+					a => IsEmpty && a.TraitOrDefault<SupplyDock>() != null && Info.SupplyTypes.Overlaps(a.Trait<SupplyDock>().Info.SupplyTypes) && !a.Trait<SupplyDock>().IsEmpty && (Info.CollectionStances.HasStance(self.Owner.Stances[a.Owner])),
+					a => "enter");
+				yield return new GenericTargeter<BuildingInfo>("Deliver", 5,
+					a => !IsEmpty && a.TraitOrDefault<SupplyCenter>() != null && Info.SupplyTypes.Overlaps(a.Trait<SupplyCenter>().Info.SupplyTypes) && (Info.DeliveryStances.HasStance(self.Owner.Stances[a.Owner])),
+					a => "enter");
+			}
+		}
 
-        public Order IssueOrder(Actor self, IOrderTargeter order, Target target, bool queued)
-        {
-            if (order.OrderID == "Collect")
-                return new Order(order.OrderID, self, target, queued);
+		public Order IssueOrder(Actor self, IOrderTargeter order, Target target, bool queued)
+		{
+			if (order.OrderID == "Collect")
+				return new Order(order.OrderID, self, target, queued);
 
-            if (order.OrderID == "Deliver")
-                return new Order(order.OrderID, self, target, queued);
+			if (order.OrderID == "Deliver")
+				return new Order(order.OrderID, self, target, queued);
 
-            return null;
-        }
+			return null;
+		}
 
 		string IOrderVoice.VoicePhraseForOrder(Actor self, Order order)
 		{
@@ -202,53 +209,53 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 
 			var targetActor = order.Target.Actor;
 			if (order.OrderString == "Collect")
-            {
-                var dock = targetActor.TraitOrDefault<SupplyDock>();
-                if (dock == null || !Info.SupplyTypes.Overlaps(dock.Info.SupplyTypes))
-                    return;
+			{
+				var dock = targetActor.TraitOrDefault<SupplyDock>();
+				if (dock == null || !Info.SupplyTypes.Overlaps(dock.Info.SupplyTypes))
+					return;
 
-                if (IsFull)
-                    return;
+				if (IsFull)
+					return;
 
-                if (targetActor != collectionBuilding)
-                    collectionBuilding = targetActor;
+				if (targetActor != CollectionBuilding)
+					CollectionBuilding = targetActor;
 
-                idleSmart = true;
+				idleSmart = true;
 				Waiting = false;
 				DeliveryAnimPlayed = false;
 
-                var next = new FindGoods(self, Color.Green);
-                self.QueueActivity(order.Queued, next);
+				var next = new FindGoods(self, Color.Green);
+				self.QueueActivity(order.Queued, next);
 				self.ShowTargetLines();
-            }
-            else if (order.OrderString == "Deliver")
-            {
-                var center = targetActor.TraitOrDefault<SupplyCenter>();
-                if (center == null || !Info.SupplyTypes.Overlaps(center.Info.SupplyTypes))
-                    return;
+			}
+			else if (order.OrderString == "Deliver")
+			{
+				var center = targetActor.TraitOrDefault<SupplyCenter>();
+				if (center == null || !Info.SupplyTypes.Overlaps(center.Info.SupplyTypes))
+					return;
 
-                if (IsEmpty)
-                    return;
+				if (IsEmpty)
+					return;
 
-                if (targetActor != deliveryBuilding)
-                    deliveryBuilding = targetActor;
+				if (targetActor != DeliveryBuilding)
+					DeliveryBuilding = targetActor;
 
-                idleSmart = true;
+				idleSmart = true;
 				Waiting = false;
 				DeliveryAnimPlayed = false;
 
-                var next = new DeliverGoods(self, Color.Green);
-                self.QueueActivity(order.Queued, next);
+				var next = new DeliverGoods(self, Color.Green);
+				self.QueueActivity(order.Queued, next);
 				self.ShowTargetLines();
-            }
-            else if (order.OrderString == "Stop" || order.OrderString == "Move")
-            {
-                // Turn off idle smarts to obey the stop/move:
-                idleSmart = false;
+			}
+			else if (order.OrderString == "Stop" || order.OrderString == "Move")
+			{
+				// Turn off idle smarts to obey the stop/move:
+				idleSmart = false;
 				Waiting = false;
 				DeliveryAnimPlayed = false;
 			}
-        }
+		}
 
 		public void CheckConditions(Actor self)
 		{
@@ -270,15 +277,16 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 		}
 
 		public Actor ClosestTradeBuilding(Actor self)
-        {
+		{
 			// Find all docks
 			var docks = (
 				from a in self.World.ActorsWithTrait<SupplyDock>()
 				where (Info.SupplyTypes.Overlaps(a.Actor.Trait<SupplyDock>().Info.SupplyTypes)) && (!a.Actor.Trait<SupplyDock>().IsEmpty) && (Info.CollectionStances.HasStance(self.Owner.Stances[a.Actor.Owner]))
-				select new {
+				select new
+				{
 					Location = a.Actor.Location,
 					Actor = a.Actor,
-					Occupancy = self.World.ActorsHavingTrait<SupplyCollector>(t => t.collectionBuilding == a.Actor && (t.Info.IsAircraft == Info.IsAircraft || !t.collectionBuilding.Trait<SupplyDock>().Info.AircraftCollectionOffsets.Any())).Count()
+					Occupancy = self.World.ActorsHavingTrait<SupplyCollector>(t => t.CollectionBuilding == a.Actor && (t.Info.IsAircraft == Info.IsAircraft || !t.CollectionBuilding.Trait<SupplyDock>().Info.AircraftCollectionOffsets.Any())).Count()
 				})
 				.ToDictionary(a => a.Location);
 
@@ -319,16 +327,17 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 			return null;
 		}
 
-        public Actor ClosestDeliveryBuilding(Actor self)
-        {
+		public Actor ClosestDeliveryBuilding(Actor self)
+		{
 			// Find all supply centers
 			var centers = (
 				from a in self.World.ActorsWithTrait<SupplyCenter>()
 				where (Info.SupplyTypes.Overlaps(a.Actor.Trait<SupplyCenter>().Info.SupplyTypes)) && (self.Owner == a.Actor.Owner)
-				select new {
+				select new
+				{
 					Location = a.Actor.Location,
 					Actor = a.Actor,
-					Occupancy = self.World.ActorsHavingTrait<SupplyCollector>(t => t.deliveryBuilding == a.Actor).Count()
+					Occupancy = self.World.ActorsHavingTrait<SupplyCollector>(t => t.DeliveryBuilding == a.Actor).Count()
 				})
 				.ToDictionary(a => a.Location);
 
@@ -336,7 +345,7 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 			{
 				if (!centers.Any())
 					return null;
-				
+
 				return centers.Values
 					.Where(r => r.Occupancy < Info.MaxDeliveryQueue)
 					.Select(r => r.Actor)

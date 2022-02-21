@@ -91,7 +91,8 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 		Aircraft aircraft;
 		Health health;
 
-		public MobSpawnerMaster(ActorInitializer init, MobSpawnerMasterInfo info) : base(init, info)
+		public MobSpawnerMaster(ActorInitializer init, MobSpawnerMasterInfo info)
+			: base(init, info)
 		{
 			Info = info;
 		}

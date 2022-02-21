@@ -4,7 +4,7 @@
  * This one I made from scratch xD
  * As an OpenRA module, this module follows GPLv3 license:
  *
- * Copyright 2007-2018 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -88,7 +88,7 @@ namespace OpenRA.Mods.Yupgi_alert.Graphics
 			var pos = map.CenterOfCell(uv.ToCPos(map));
 			var screen = corners.Select(c => wr.Screen3DPxPosition(pos + c)).ToArray();
 
-			int level = this.Level.Clamp(0, layer.Info.MaxLevel); // Saturate the visualization to MaxLevel
+			int level = Level.Clamp(0, layer.Info.MaxLevel); // Saturate the visualization to MaxLevel
 			if (level == 0)
 				return; // don't visualize 0 cells. They show up before cells get removed.
 
@@ -127,9 +127,7 @@ namespace OpenRA.Mods.Yupgi_alert.Graphics
 		public void RenderDebugGeometry(WorldRenderer wr) { }
 		public Rectangle ScreenBounds(WorldRenderer wr) { return Rectangle.Empty; }
 
-		public void Tick(World world)
-		{
-		}
+		public void Tick(World world) { }
 
 		// Returns true when "dirty" (RA value changed)
 		public bool Decay(int updateDelay)
@@ -157,8 +155,7 @@ namespace OpenRA.Mods.Yupgi_alert.Graphics
 		{
 			Ticks = updateDelay;
 
-			/// The code below may look odd but consider that each weapon may have a different max_level.
-
+			// The code below may look odd but consider that each weapon may have a different max_level.
 			var new_level = Level + level;
 			if (new_level > max_level)
 				new_level = max_level;

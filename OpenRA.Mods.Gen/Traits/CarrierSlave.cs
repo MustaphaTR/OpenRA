@@ -1,6 +1,6 @@
 ﻿#region Copyright & License Information
 /*
- * Copyright 2007-2018 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -34,7 +34,8 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 
 		CarrierMaster spawnerMaster;
 
-		public CarrierSlave(ActorInitializer init, CarrierSlaveInfo info) : base(init, info)
+		public CarrierSlave(ActorInitializer init, CarrierSlaveInfo info)
+			: base(init, info)
 		{
 			Info = info;
 			ammoPools = init.Self.TraitsImplementing<AmmoPool>().ToArray();
@@ -55,12 +56,12 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 
 			var target = Target.FromActor(Master);
 
-            var aircraft = self.TraitOrDefault<Aircraft>();
-            if (self.TraitOrDefault<AttackAircraft>() != null) // Let attack planes approach me first, before landing.
+			var aircraft = self.TraitOrDefault<Aircraft>();
+			if (self.TraitOrDefault<AttackAircraft>() != null) // Let attack planes approach me first, before landing.
 				self.QueueActivity(new Fly(self, target, WDist.Zero, Info.LandingDistance));
 
-            self.QueueActivity(new EnterCarrierMaster(self, Master, spawnerMaster, EnterBehaviour.Exit));
-        }
+			self.QueueActivity(new EnterCarrierMaster(self, Master, spawnerMaster, EnterBehaviour.Exit));
+		}
 
 		public override void LinkMaster(Actor self, Actor master, BaseSpawnerMaster spawnerMaster)
 		{
@@ -74,13 +75,14 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 			if (ammoPools.Length == 0)
 				return false;
 
-            return ammoPools.All(x => !x.HasAmmo());
-            // AutoReloads seems to be removed and i dunno how exactly to implement this check now.
-            // Doesn't seem like we actually need it for RA2.
-            // return ammoPools.All(x => !x.AutoReloads && !x.HasAmmo());
-        }
+			return ammoPools.All(x => !x.HasAmmo());
 
-        public virtual void OnBecomingIdle(Actor self)
+			// AutoReloads seems to be removed and i dunno how exactly to implement this check now.
+			// Doesn't seem like we actually need it for RA2.
+			// return ammoPools.All(x => !x.AutoReloads && !x.HasAmmo());
+		}
+
+		public virtual void OnBecomingIdle(Actor self)
 		{
 			EnterSpawner(self);
 		}

@@ -101,7 +101,7 @@ namespace OpenRA.Mods.Common.Traits
 		IEnumerable<LobbyOption> ILobbyOptions.LobbyOptions(Ruleset rules)
 		{
 			yield return new LobbyBooleanOption("crates", CratesCheckboxLabel, CratesCheckboxDescription,
-				CratesCheckboxVisible,CratesCheckboxDisplayOrder, CratesCheckboxEnabled, CratesCheckboxLocked);
+				CratesCheckboxVisible, CratesCheckboxDisplayOrder, CratesCheckboxEnabled, CratesCheckboxLocked);
 
 			yield return new LobbyBooleanOption("shortgame", ShortGameCheckboxLabel, ShortGameCheckboxDescription,
 				ShortGameCheckboxVisible, ShortGameCheckboxDisplayOrder, ShortGameCheckboxEnabled, ShortGameCheckboxLocked);

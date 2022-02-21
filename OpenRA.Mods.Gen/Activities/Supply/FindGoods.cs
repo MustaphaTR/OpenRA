@@ -24,9 +24,9 @@ using OpenRA.Traits;
 
 namespace OpenRA.Mods.Yupgi_alert.Activities
 {
-    public class FindGoods : Activity
-    {
-        readonly SupplyCollector collector;
+	public class FindGoods : Activity
+	{
+		readonly SupplyCollector collector;
 		readonly SupplyCollectorInfo collectorInfo;
 		readonly IMove move;
 		readonly Mobile mobile;
@@ -36,29 +36,29 @@ namespace OpenRA.Mods.Yupgi_alert.Activities
 		{
 			collector = self.Trait<SupplyCollector>();
 			collectorInfo = self.Info.TraitInfo<SupplyCollectorInfo>();
-            move = self.Trait<IMove>();
+			move = self.Trait<IMove>();
 			mobile = self.TraitOrDefault<Mobile>();
 			this.targetLineColor = targetLineColor;
 		}
 
-        public override bool Tick(Actor self)
-        {
-            if (IsCanceling)
-                return true;
+		public override bool Tick(Actor self)
+		{
+			if (IsCanceling)
+				return true;
 
-            if (collector.collectionBuilding == null || !collector.collectionBuilding.IsInWorld || !collectorInfo.CollectionStances.HasStance(self.Owner.Stances[collector.collectionBuilding.Owner]) || collector.collectionBuilding.Trait<SupplyDock>().IsEmpty)
-            {
-				collector.collectionBuilding = collector.ClosestTradeBuilding(self);
-            }
+			if (collector.CollectionBuilding == null || !collector.CollectionBuilding.IsInWorld || !collectorInfo.CollectionStances.HasStance(self.Owner.Stances[collector.CollectionBuilding.Owner]) || collector.CollectionBuilding.Trait<SupplyDock>().IsEmpty)
+			{
+				collector.CollectionBuilding = collector.ClosestTradeBuilding(self);
+			}
 
-            if (collector.collectionBuilding == null || !collector.collectionBuilding.IsInWorld)
-            {
-                QueueChild(new Wait(collectorInfo.SearchForCollectionBuildingDelay));
+			if (collector.CollectionBuilding == null || !collector.CollectionBuilding.IsInWorld)
+			{
+				QueueChild(new Wait(collectorInfo.SearchForCollectionBuildingDelay));
 				return false;
-            }
+			}
 
-			var dock = collector.collectionBuilding;
-			var center = collector.deliveryBuilding;
+			var dock = collector.CollectionBuilding;
+			var center = collector.DeliveryBuilding;
 
 			CPos cell;
 			var dockTrait = dock.Trait<SupplyDock>();
@@ -72,9 +72,9 @@ namespace OpenRA.Mods.Yupgi_alert.Activities
 
 			if (!offsets.Select(c => dock.Location + c).Where(c => centerTrait == null || !deliveryOffsets.Select(d => center.Location + d).Contains(c)).Contains(self.Location))
 			{
-                QueueChild(move.MoveTo(cell, 2));
+				QueueChild(move.MoveTo(cell, 2));
 				return false;
-            }
+			}
 
 			if (self.TraitOrDefault<IFacing>() != null)
 			{
@@ -125,12 +125,12 @@ namespace OpenRA.Mods.Yupgi_alert.Activities
 
 			self.QueueActivity(new DeliverGoods(self));
 			return true;
-        }
+		}
 
 		public override IEnumerable<TargetLineNode> TargetLineNodes(Actor self)
 		{
-			if (targetLineColor != null && collector.collectionBuilding != null)
-				yield return new TargetLineNode(Target.FromActor(collector.collectionBuilding), targetLineColor.Value);
+			if (targetLineColor != null && collector.CollectionBuilding != null)
+				yield return new TargetLineNode(Target.FromActor(collector.CollectionBuilding), targetLineColor.Value);
 		}
-    }
+	}
 }

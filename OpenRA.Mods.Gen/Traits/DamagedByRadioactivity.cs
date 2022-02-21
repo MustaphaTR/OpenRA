@@ -3,7 +3,7 @@
  * Almost identical to DamageByTerrain trait by OpenRA devs.
  * Modded by Boolbada of OP Mod.
  *
- * Copyright 2007-2018 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -28,8 +28,9 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 	{
 		// Considering that 1% of level 500 is 5, it is quite tough to have percent. We use per mille here.
 		// 5 damage is much larger than Mods.cnc's tiberium damage.
+		[FieldLoader.Require]
 		[Desc("Damage received per radioactivity level, in per mille, per DamageInterval. (Damage = DamageCoeff * RadioactivityLevel / 1000")]
-		[FieldLoader.Require] public readonly int DamageCoeff = 0;
+		public readonly int DamageCoeff = 0;
 
 		[Desc("Delay (in ticks) between receiving damage.")]
 		public readonly int DamageInterval = 16;
@@ -47,9 +48,11 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 	{
 		readonly RadioactivityLayer raLayer;
 
-		[Sync] int damageTicks;
+		[Sync]
+		int damageTicks;
 
-		public DamagedByRadioactivity(Actor self, DamagedByRadioactivityInfo info) : base(info)
+		public DamagedByRadioactivity(Actor self, DamagedByRadioactivityInfo info)
+			: base(info)
 		{
 			var layers = self.World.WorldActor.TraitsImplementing<RadioactivityLayer>()
 				.Where(l => l.Info.Name == info.RadioactivityLayerName);

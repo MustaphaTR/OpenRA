@@ -15,6 +15,10 @@
     "Tiberian Sun": {
       "commandName": "Project",
       "commandLineArgs": "Game.Mod=ts"
+    },
+    "Generals Alpha": {
+      "commandName": "Project",
+      "commandLineArgs": "Game.Mod=gen"
     }
   }
 }

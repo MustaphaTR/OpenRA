@@ -212,7 +212,7 @@ namespace OpenRA.Mods.Common.Traits
 		public void CacheProducibles(Actor playerActor)
 		{
 			foreach (var a in self.World.Map.Rules.Actors.Values)
-			{ 
+			{
 				if (!self.Info.TraitInfos<ConditionPrerequisiteInfo>().Where(t => t.Queue.Contains(Info.Type) && t.Actor == a.Name).Any())
 					Producible.Remove(a);
 			}

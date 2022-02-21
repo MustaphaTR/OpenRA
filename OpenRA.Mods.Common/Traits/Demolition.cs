@@ -53,7 +53,8 @@ namespace OpenRA.Mods.Common.Traits
 	{
 		readonly DemolitionInfo info;
 
-		public Demolition(DemolitionInfo info) : base(info)
+		public Demolition(DemolitionInfo info)
+			: base(info)
 		{
 			this.info = info;
 		}

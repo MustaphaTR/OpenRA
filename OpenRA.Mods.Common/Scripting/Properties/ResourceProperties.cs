@@ -40,10 +40,16 @@ namespace OpenRA.Mods.Common.Scripting
 		[Desc("The amount of cash held by the player.")]
 		public int Cash
 		{
-			get { return pr.Cash; }
+			get
+			{
+				return pr.Cash;
+			}
 
 			[ScriptContext(ScriptContextType.Mission)]
-			set { pr.Cash = Math.Max(0, value); }
+			set
+			{
+				pr.Cash = Math.Max(0, value);
+			}
 		}
 	}
 }

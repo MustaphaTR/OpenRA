@@ -32,9 +32,9 @@ namespace OpenRA.Mods.Common.Traits
 
 		void RemoveIntelligence(Actor self)
 		{
-			foreach (var a in self.World.ActorsWithTrait<RevealsShroudToIntelligenceOwner>().Where(rs => rs.Trait.info.Types.Overlaps(Info.Types) && !rs.Actor.Owner.NonCombatant))
+			foreach (var a in self.World.ActorsWithTrait<RevealsShroudToIntelligenceOwner>().Where(rs => rs.Trait.Info.Types.Overlaps(Info.Types) && !rs.Actor.Owner.NonCombatant))
 			{
-				if (!self.World.ActorsWithTrait<GivesIntelligence>().Where(gi => gi.Actor != self && gi.Actor.Owner == self.Owner && gi.Trait.Info.Types.Overlaps(a.Trait.info.Types)).Any())
+				if (!self.World.ActorsWithTrait<GivesIntelligence>().Where(gi => gi.Actor != self && gi.Actor.Owner == self.Owner && gi.Trait.Info.Types.Overlaps(a.Trait.Info.Types)).Any())
 				{
 					a.Trait.RemoveCellsFromPlayerShroud(a.Actor, self.Owner);
 					a.Trait.IntelOwners.Remove(self.Owner);
@@ -44,7 +44,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		protected override void TraitEnabled(Actor self)
 		{
-			foreach (var a in self.World.ActorsWithTrait<RevealsShroudToIntelligenceOwner>().Where(rs => rs.Trait.info.Types.Overlaps(Info.Types) && !rs.Actor.Owner.NonCombatant))
+			foreach (var a in self.World.ActorsWithTrait<RevealsShroudToIntelligenceOwner>().Where(rs => rs.Trait.Info.Types.Overlaps(Info.Types) && !rs.Actor.Owner.NonCombatant))
 			{
 				if (!a.Actor.IsInWorld)
 					return;
