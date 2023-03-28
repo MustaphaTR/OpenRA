@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -57,7 +57,7 @@ namespace OpenRA.Mods.Common.Traits
 		public object Create(ActorInitializer init) { return new Parachutable(init.Self, this); }
 	}
 
-	class Parachutable : INotifyCreated, INotifyParachute
+	public class Parachutable : INotifyCreated, INotifyParachute
 	{
 		readonly ParachutableInfo info;
 		readonly IPositionable positionable;
@@ -86,6 +86,8 @@ namespace OpenRA.Mods.Common.Traits
 
 			if (conditionManager != null && parachutingToken == ConditionManager.InvalidConditionToken && !string.IsNullOrEmpty(info.ParachutingCondition))
 				parachutingToken = conditionManager.GrantCondition(self, info.ParachutingCondition);
+
+			self.NotifyBlocker(self.Location);
 		}
 
 		void INotifyParachute.OnLanded(Actor self)
@@ -102,11 +104,11 @@ namespace OpenRA.Mods.Common.Traits
 			if (positionable.CanEnterCell(cell, self))
 				return;
 
-			if (IgnoreActor != null && self.World.ActorMap.GetActorsAt(cell).Any(a => a != IgnoreActor))
+			if (IgnoreActor != null && !self.World.ActorMap.GetActorsAt(cell)
+				.Any(a => a != IgnoreActor && a != self && self.World.Map.DistanceAboveTerrain(a.CenterPosition) == WDist.Zero))
 				return;
 
 			var onWater = info.WaterTerrainTypes.Contains(self.World.Map.GetTerrainInfo(cell).Type);
-
 			var sound = onWater ? info.WaterImpactSound : info.GroundImpactSound;
 			Game.Sound.Play(SoundType.World, sound, self.CenterPosition);
 

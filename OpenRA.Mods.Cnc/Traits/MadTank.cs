@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -32,12 +32,6 @@ namespace OpenRA.Mods.Cnc.Traits
 
 		[WeaponReference]
 		public readonly string ThumpDamageWeapon = "MADTankThump";
-
-		public readonly int ThumpShakeIntensity = 3;
-
-		public readonly float2 ThumpShakeMultiplier = new float2(1, 0);
-
-		public readonly int ThumpShakeTime = 10;
 
 		[Desc("Measured in ticks.")]
 		public readonly int ChargeDelay = 96;
@@ -127,7 +121,7 @@ namespace OpenRA.Mods.Cnc.Traits
 			return new Order("Detonate", self, queued);
 		}
 
-		bool IIssueDeployOrder.CanIssueDeployOrder(Actor self) { return true; }
+		bool IIssueDeployOrder.CanIssueDeployOrder(Actor self, bool queued) { return true; }
 
 		string IOrderVoice.VoicePhraseForOrder(Actor self, Order order)
 		{
@@ -217,10 +211,8 @@ namespace OpenRA.Mods.Cnc.Traits
 					if (mad.info.ThumpDamageWeapon != null)
 					{
 						// Use .FromPos since this weapon needs to affect more than just the MadTank actor
-						mad.info.ThumpDamageWeaponInfo.Impact(Target.FromPos(self.CenterPosition), self, Enumerable.Empty<int>());
+						mad.info.ThumpDamageWeaponInfo.Impact(Target.FromPos(self.CenterPosition), self);
 					}
-
-					screenShaker.AddEffect(mad.info.ThumpShakeTime, self.CenterPosition, mad.info.ThumpShakeIntensity, mad.info.ThumpShakeMultiplier);
 				}
 
 				if (ticks == mad.info.ChargeDelay)
@@ -241,7 +233,7 @@ namespace OpenRA.Mods.Cnc.Traits
 					if (mad.info.DetonationWeapon != null)
 					{
 						// Use .FromPos since this actor is killed. Cannot use Target.FromActor
-						mad.info.DetonationWeaponInfo.Impact(Target.FromPos(self.CenterPosition), self, Enumerable.Empty<int>());
+						mad.info.DetonationWeaponInfo.Impact(Target.FromPos(self.CenterPosition), self);
 					}
 
 					self.Kill(self, mad.info.DamageTypes);

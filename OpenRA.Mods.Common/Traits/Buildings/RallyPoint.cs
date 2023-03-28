@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -42,18 +42,22 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Custom palette is a player palette BaseName")]
 		public readonly bool IsPlayerPalette = true;
 
-		public readonly CVec Offset = new CVec(1, 3);
+		[Desc("A list of 0 or more offsets defining the initial rally point path.")]
+		public readonly CVec[] Path = { };
+
+		[NotificationReference("Speech")]
+		[Desc("The speech notification to play when setting a new rallypoint.")]
+		public readonly string Notification = null;
 
 		public object Create(ActorInitializer init) { return new RallyPoint(init.Self, this); }
 	}
 
-	public class RallyPoint : IIssueOrder, IResolveOrder, ISync, INotifyOwnerChanged, INotifyCreated
+	public class RallyPoint : IIssueOrder, IResolveOrder, INotifyOwnerChanged, INotifyCreated
 	{
 		const string OrderID = "SetRallyPoint";
 		const uint ForceSet = 1;
 
-		[Sync]
-		public CPos Location;
+		public List<CPos> Path;
 
 		public RallyPointInfo Info;
 		public string PaletteName { get; private set; }
@@ -63,22 +67,28 @@ namespace OpenRA.Mods.Common.Traits
 
 		Actor cachedResult = null;
 
-		public void ResetLocation(Actor self)
+		public void ResetPath(Actor self)
 		{
 			dirty = true;
-			Location = self.Location + Info.Offset;
+			Path = Info.Path.Select(p => self.Location + p).ToList();
 		}
 
 		public RallyPoint(Actor self, RallyPointInfo info)
 		{
 			Info = info;
-			ResetLocation(self);
+			ResetPath(self);
 			PaletteName = info.IsPlayerPalette ? info.Palette + self.Owner.InternalName : info.Palette;
 		}
 
 		void INotifyCreated.Created(Actor self)
 		{
-			self.World.Add(new RallyPointIndicator(self, this, self.Info.TraitInfos<ExitInfo>().ToArray()));
+			// Display only the first level of priority
+			var priorityExits = self.Info.TraitInfos<ExitInfo>()
+				.GroupBy(e => e.Priority)
+				.FirstOrDefault();
+
+			var exits = priorityExits != null ? priorityExits.ToArray() : new ExitInfo[0];
+			self.World.Add(new RallyPointIndicator(self, this, exits));
 			dirty = true;
 		}
 
@@ -87,7 +97,7 @@ namespace OpenRA.Mods.Common.Traits
 			if (Info.IsPlayerPalette)
 				PaletteName = Info.Palette + newOwner.InternalName;
 
-			ResetLocation(self);
+			ResetPath(self);
 		}
 
 		public IEnumerable<IOrderTargeter> Orders
@@ -99,7 +109,9 @@ namespace OpenRA.Mods.Common.Traits
 		{
 			if (order.OrderID == OrderID)
 			{
-				return new Order(order.OrderID, self, target, false)
+				Game.Sound.PlayNotification(self.World.Map.Rules, self.Owner, "Speech", Info.Notification, self.Owner.Faction.InternalName);
+
+				return new Order(order.OrderID, self, target, queued)
 				{
 					SuppressVisualFeedback = true,
 					ExtraData = ((RallyPointOrderTargeter)order).ForceSet ? ForceSet : 0
@@ -111,11 +123,13 @@ namespace OpenRA.Mods.Common.Traits
 
 		public void ResolveOrder(Actor self, Order order)
 		{
-			if (order.OrderString == OrderID)
-			{
-				Location = self.World.Map.CellContaining(order.Target.CenterPosition);
-				dirty = true;
-			}
+			if (order.OrderString != OrderID)
+				return;
+
+			if (!order.Queued)
+				Path.Clear();
+
+			Path.Add(self.World.Map.CellContaining(order.Target.CenterPosition));
 		}
 
 		Actor GetRallyAcceptor(Actor self, CPos location)
@@ -129,7 +143,7 @@ namespace OpenRA.Mods.Common.Traits
 					return cachedResult;
 			}
 
-			var actors = self.World.ActorMap.GetActorsAt(Location).Where(
+			var actors = self.World.ActorMap.GetActorsAt(location).Where(
 				a => a.TraitsImplementing<IAcceptsRallyPoint>().Count() > 0);
 
 			dirty = false;
@@ -152,23 +166,26 @@ namespace OpenRA.Mods.Common.Traits
 			if (unit.TraitOrDefault<IMove>() == null)
 				throw new InvalidOperationException("How come rally point mover not have IMove trait? Actor: " + unit.ToString());
 
-			var rallyAcceptor = GetRallyAcceptor(self, Location);
-			if (rallyAcceptor == null)
+			foreach (var location in rallyPoint.Path)
 			{
-				unit.QueueActivity(new AttackMoveActivity(unit, () => unit.Trait<IMove>().MoveTo(Location, 1, targetLineColor: Color.OrangeRed)));
-				return;
+				var rallyAcceptor = GetRallyAcceptor(self, location);
+				if (rallyAcceptor == null)
+				{
+					unit.QueueActivity(new AttackMoveActivity(unit, () => unit.Trait<IMove>().MoveTo(location, 1, evaluateNearestMovableCell: true, targetLineColor: Color.OrangeRed)));
+					return;
+				}
+
+				var ars = rallyAcceptor.TraitsImplementing<IAcceptsRallyPoint>();
+				if (ars.Count() > 1)
+					throw new InvalidOperationException(
+						"Actor {0} has multiple traits implementing IAcceptsRallyPoint!".F(rallyAcceptor.ToString()));
+
+				var ar = ars.First();
+				if (ar.IsAcceptableActor(unit, rallyAcceptor))
+					unit.QueueActivity(ar.RallyActivities(unit, rallyAcceptor));
+				else
+					unit.QueueActivity(new AttackMoveActivity(unit, () => unit.Trait<IMove>().MoveTo(location, 1, evaluateNearestMovableCell: true, targetLineColor: Color.OrangeRed)));
 			}
-
-			var ars = rallyAcceptor.TraitsImplementing<IAcceptsRallyPoint>();
-			if (ars.Count() > 1)
-				throw new InvalidOperationException(
-					"Actor {0} has multiple traits implementing IAcceptsRallyPoint!".F(rallyAcceptor.ToString()));
-
-			var ar = ars.First();
-			if (ar.IsAcceptableActor(unit, rallyAcceptor))
-				unit.QueueActivity(ar.RallyActivities(unit, rallyAcceptor));
-			else
-				unit.QueueActivity(new AttackMoveActivity(unit, () => unit.Trait<IMove>().MoveTo(Location, 1, targetLineColor: Color.OrangeRed)));
 		}
 
 		public static bool IsForceSet(Order order)
@@ -189,11 +206,14 @@ namespace OpenRA.Mods.Common.Traits
 			public int OrderPriority { get { return 0; } }
 			public bool TargetOverridesSelection(Actor self, Target target, List<Actor> actorsAt, CPos xy, TargetModifiers modifiers) { return true; }
 			public bool ForceSet { get; private set; }
+			public bool IsQueued { get; protected set; }
 
 			public bool CanTarget(Actor self, Target target, List<Actor> othersAtTarget, ref TargetModifiers modifiers, ref string cursor)
 			{
 				if (target.Type != TargetType.Terrain)
 					return false;
+
+				IsQueued = modifiers.HasModifier(TargetModifiers.ForceQueue);
 
 				var location = self.World.Map.CellContaining(target.CenterPosition);
 				if (self.World.Map.Contains(location))
@@ -213,8 +233,6 @@ namespace OpenRA.Mods.Common.Traits
 
 				return false;
 			}
-
-			public bool IsQueued { get { return false; } } // unused
 		}
 	}
 }

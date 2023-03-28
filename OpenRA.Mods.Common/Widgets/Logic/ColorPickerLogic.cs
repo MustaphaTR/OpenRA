@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -60,9 +60,10 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 					var hue = (byte)Game.CosmeticRandom.Next(255);
 					var sat = (byte)Game.CosmeticRandom.Next(70, 255);
 					var lum = (byte)Game.CosmeticRandom.Next(70, 255);
+					var color = Color.FromAhsl(hue, sat, lum);
 
-					mixer.Set(Color.FromAhsl(hue, sat, lum));
-					hueSlider.Value = hue / 255f;
+					mixer.Set(color);
+					hueSlider.Value = HueFromColor(color);
 				};
 			}
 
@@ -70,9 +71,15 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			var validator = modData.Manifest.Get<ColorValidator>();
 			mixer.SetPaletteRange(validator.HsvSaturationRange[0], validator.HsvSaturationRange[1], validator.HsvValueRange[0], validator.HsvValueRange[1]);
 			mixer.Set(initialColor);
+			hueSlider.Value = HueFromColor(initialColor);
 
-			hueSlider.Value = initialColor.GetHue() / 360f;
-			onChange(mixer.Color);
+			// HACK: the value returned from the color mixer will generally not
+			// be equal to the given initialColor due to its internal RGB -> HSL -> RGB
+			// conversion. This conversion can sometimes convert a valid initial value
+			// into an invalid (too close to terrain / another player) color.
+			// We use the original colour here instead of the mixer color to make sure
+			// that we keep the player's previous colour value if they don't change anything
+			onChange(initialColor);
 
 			// Setup tab controls
 			var mixerTab = widget.Get("MIXER_TAB");
@@ -126,6 +133,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 					newSwatch.OnMouseUp = m =>
 					{
 						mixer.Set(color);
+						hueSlider.Value = HueFromColor(color);
 						onChange(color);
 					};
 
@@ -148,6 +156,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 					{
 						var color = Game.Settings.Player.CustomColors[colorIndex];
 						mixer.Set(color);
+						hueSlider.Value = HueFromColor(color);
 						onChange(color);
 					};
 
@@ -177,6 +186,14 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 						paletteTabHighlighted = 4;
 				};
 			}
+		}
+
+		static float HueFromColor(Color c)
+		{
+			float h, s, v;
+			int a;
+			c.ToAhsv(out a, out h, out s, out v);
+			return h;
 		}
 
 		public static void ShowColorDropDown(DropDownButtonWidget color, ColorPreviewManagerWidget preview, World world)

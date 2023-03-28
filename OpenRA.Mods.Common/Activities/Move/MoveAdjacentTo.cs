@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -9,6 +9,7 @@
  */
 #endregion
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using OpenRA.Activities;
@@ -77,7 +78,8 @@ namespace OpenRA.Mods.Common.Activities
 
 		protected virtual IEnumerable<CPos> CandidateMovementCells(Actor self)
 		{
-			return Util.AdjacentCells(self.World, Target);
+			return Util.AdjacentCells(self.World, Target)
+				.Where(c => Mobile.CanStayInCell(c));
 		}
 
 		protected override void OnFirstRun(Actor self)
@@ -119,15 +121,23 @@ namespace OpenRA.Mods.Common.Activities
 			return TickChild(self);
 		}
 
+		List<CPos> searchCells = new List<CPos>();
+		int searchCellsTick = -1;
+
 		List<CPos> CalculatePathToTarget(Actor self, BlockedByActor check)
 		{
-			var targetCells = CandidateMovementCells(self);
-			var searchCells = new List<CPos>();
 			var loc = self.Location;
 
-			foreach (var cell in targetCells)
-				if (domainIndex.IsPassable(loc, cell, Mobile.Info.LocomotorInfo) && Mobile.CanEnterCell(cell))
-					searchCells.Add(cell);
+			// PERF: Assume that CandidateMovementCells doesn't change within a tick to avoid repeated queries
+			// when Move enumerates different BlockedByActor values
+			if (searchCellsTick != self.World.WorldTick)
+			{
+				searchCells.Clear();
+				searchCellsTick = self.World.WorldTick;
+				foreach (var cell in CandidateMovementCells(self))
+					if (domainIndex.IsPassable(loc, cell, Mobile.Info.LocomotorInfo) && Mobile.CanEnterCell(cell))
+						searchCells.Add(cell);
+			}
 
 			if (!searchCells.Any())
 				return NoPath;

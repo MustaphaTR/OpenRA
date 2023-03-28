@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -55,7 +55,7 @@ namespace OpenRA.Mods.Common
 			return true;
 		}
 
-		public bool IsValid(Color askedColor, out Color forbiddenColor, IEnumerable<Color> terrainColors, IEnumerable<Color> playerColors, Action<string> onError)
+		public bool IsValid(Color askedColor, out Color forbiddenColor, IEnumerable<Color> terrainColors, IEnumerable<Color> playerColors, HashSet<string> errorMessages = null)
 		{
 			// Validate color against HSV
 			float h, s, v;
@@ -64,7 +64,8 @@ namespace OpenRA.Mods.Common
 			askedColor.ToAhsv(out a, out h, out s, out v);
 			if (s < HsvSaturationRange[0] || s > HsvSaturationRange[1] || v < HsvValueRange[0] || v > HsvValueRange[1])
 			{
-				onError("Color was adjusted to be inside the allowed range.");
+				if (errorMessages != null)
+					errorMessages.Add("Color was adjusted to be inside the allowed range.");
 				forbiddenColor = askedColor;
 				return false;
 			}
@@ -72,14 +73,16 @@ namespace OpenRA.Mods.Common
 			// Validate color against the current map tileset
 			if (!IsValid(askedColor, terrainColors, out forbiddenColor))
 			{
-				onError("Color was adjusted to be less similar to the terrain.");
+				if (errorMessages != null)
+					errorMessages.Add("Color was adjusted to be less similar to the terrain.");
 				return false;
 			}
 
 			// Validate color against other clients
 			if (!IsValid(askedColor, playerColors, out forbiddenColor))
 			{
-				onError("Color was adjusted to be less similar to another player.");
+				if (errorMessages != null)
+					errorMessages.Add("Color was adjusted to be less similar to another player.");
 				return false;
 			}
 
@@ -94,9 +97,8 @@ namespace OpenRA.Mods.Common
 			if (TeamColorPresets.Any())
 			{
 				Color forbidden;
-				Action<string> ignoreError = _ => { };
 				foreach (var c in TeamColorPresets.Shuffle(random))
-					if (IsValid(c, out forbidden, terrainColors, playerColors, ignoreError))
+					if (IsValid(c, out forbidden, terrainColors, playerColors))
 						return c;
 			}
 
@@ -107,7 +109,6 @@ namespace OpenRA.Mods.Common
 		{
 			Color color;
 			Color forbidden;
-			Action<string> ignoreError = _ => { };
 			do
 			{
 				var h = random.Next(255) / 255f;
@@ -115,15 +116,17 @@ namespace OpenRA.Mods.Common
 				var v = float2.Lerp(HsvValueRange[0], HsvValueRange[1], random.NextFloat());
 				color = Color.FromAhsv(h, s, v);
 			}
-			while (!IsValid(color, out forbidden, terrainColors, playerColors, ignoreError));
+			while (!IsValid(color, out forbidden, terrainColors, playerColors));
 
 			return color;
 		}
 
 		public Color MakeValid(Color askedColor, MersenneTwister random, IEnumerable<Color> terrainColors, IEnumerable<Color> playerColors, Action<string> onError)
 		{
+			var errorMessages = new HashSet<string>();
+
 			Color forbiddenColor;
-			if (IsValid(askedColor, out forbiddenColor, terrainColors, playerColors, onError))
+			if (IsValid(askedColor, out forbiddenColor, terrainColors, playerColors, errorMessages))
 				return askedColor;
 
 			// Vector between the 2 colors
@@ -137,7 +140,14 @@ namespace OpenRA.Mods.Common
 			// Reduce vector by it's biggest value (more calculations, but more accuracy too)
 			var vectorMax = vector.Max(vv => Math.Abs(vv));
 			if (vectorMax == 0)
-				vectorMax = 1;	// Avoid division by 0
+			{
+				vectorMax = 1;  // Avoid division by 0
+
+				// Create a tiny vector to make the while loop maths work
+				vector[0] = 1;
+				vector[1] = 1;
+				vector[2] = 1;
+			}
 
 			vector[0] /= vectorMax;
 			vector[1] /= vectorMax;
@@ -153,7 +163,6 @@ namespace OpenRA.Mods.Common
 			};
 
 			var attempt = 1;
-			var allForbidden = terrainColors.Concat(playerColors);
 			Color color;
 			do
 			{
@@ -161,6 +170,7 @@ namespace OpenRA.Mods.Common
 				if (attempt >= 255)
 				{
 					color = RandomPresetColor(random, terrainColors, playerColors);
+					errorMessages.Add("Color could not be adjusted enough, a new color has been picked.");
 					break;
 				}
 
@@ -174,7 +184,10 @@ namespace OpenRA.Mods.Common
 
 				attempt++;
 			}
-			while (!IsValid(color, allForbidden, out forbiddenColor));
+			while (!IsValid(color, out forbiddenColor, terrainColors, playerColors, errorMessages));
+
+			// Coalesce the error messages to only print one of each type despite up to 255 iterations
+			errorMessages.Do(onError);
 
 			return color;
 		}

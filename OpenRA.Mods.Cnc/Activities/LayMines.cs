@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -66,7 +66,7 @@ namespace OpenRA.Mods.Cnc.Activities
 
 			if ((minefield == null || minefield.Contains(self.Location)) && CanLayMine(self, self.Location))
 			{
-				if (rearmableInfo != null && ammoPools.Any(p => p.Info.Name == minelayer.Info.AmmoPoolName && !p.HasAmmo()))
+				if (rearmableInfo != null && ammoPools.Any(p => p.Info.Name == minelayer.Info.AmmoPoolName && !p.HasAmmo))
 				{
 					// Rearm (and possibly repair) at rearm building, then back out here to refill the minefield some more
 					rearmTarget = self.World.Actors.Where(a => self.Owner.Stances[a.Owner] == Stance.Ally && rearmableInfo.RearmActors.Contains(a.Info.Name))
@@ -77,7 +77,7 @@ namespace OpenRA.Mods.Cnc.Activities
 
 					// Add a CloseEnough range of 512 to the Rearm/Repair activities in order to ensure that we're at the host actor
 					QueueChild(new MoveAdjacentTo(self, Target.FromActor(rearmTarget)));
-					QueueChild(movement.MoveTo(self.World.Map.CellContaining(rearmTarget.CenterPosition), rearmTarget));
+					QueueChild(movement.MoveTo(self.World.Map.CellContaining(rearmTarget.CenterPosition), ignoreActor: rearmTarget));
 					QueueChild(new Resupply(self, rearmTarget, new WDist(512)));
 					returnToBase = true;
 					return false;
@@ -100,12 +100,19 @@ namespace OpenRA.Mods.Cnc.Activities
 			return true;
 		}
 
-		public void CleanPlacedMines(Actor self)
+		public void CleanMineField(Actor self)
 		{
 			// Remove cells that have already been mined
+			// or that are revealed to be unmineable.
 			if (minefield != null)
+			{
+				var positionable = (IPositionable)movement;
+				var mobile = positionable as Mobile;
 				minefield.RemoveAll(c => self.World.ActorMap.GetActorsAt(c)
-					.Any(a => a.Info.Name == minelayer.Info.Mine.ToLowerInvariant()));
+					.Any(a => a.Info.Name == minelayer.Info.Mine.ToLowerInvariant() && a.CanBeViewedByPlayer(self.Owner)) ||
+						((!positionable.CanEnterCell(c, null, BlockedByActor.Immovable) || (mobile != null && !mobile.CanStayInCell(c)))
+						&& self.Owner.Shroud.IsVisible(c)));
+			}
 		}
 
 		public override IEnumerable<TargetLineNode> TargetLineNodes(Actor self)
@@ -137,6 +144,7 @@ namespace OpenRA.Mods.Cnc.Activities
 				var pool = ammoPools.FirstOrDefault(x => x.Info.Name == minelayer.Info.AmmoPoolName);
 				if (pool == null)
 					return;
+
 				pool.TakeAmmo(self, 1);
 			}
 

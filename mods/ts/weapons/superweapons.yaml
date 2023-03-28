@@ -53,6 +53,10 @@ ClusterMissile:
 		RandomClusterCount: 10
 		Dimensions: 7,7
 		Footprint: __xxx__ _xxxxx_ xxxxxxx xxxxxxx xxxxxxx _xxxxx_ __xxx__
+	Warhead@Shake: ShakeScreen
+		Duration: 20
+		Intensity: 5
+		Multiplier: 1,1
 
 SuicideBomb:
 	Range: 0c512
@@ -119,14 +123,14 @@ EMPulseCannon:
 		Speed: 425
 		Blockable: false
 		Shadow: true
-		LaunchAngle: 62
+		LaunchAngle: 96
 		Image: pulsball
 	Warhead@1Eff: CreateEffect
 		Explosions: pulse_explosion
 		ExplosionPalette: effect-ignore-lighting-alpha75
 		ImpactActors: false
 	Warhead@emp: GrantExternalCondition
-		Range: 4c0
+		Range: 6c0
 		Duration: 250
 		Condition: empdisable
-		ValidTargets: Ground, Water, Underground
+		ValidTargets: Ground, Water, Air, Underground

@@ -96,13 +96,47 @@ GAPILE:
 		Range: 5c0
 		MaxHeightDelta: 3
 	RallyPoint:
-		Offset: 2,3
 		Palette: mouse
 		IsPlayerPalette: false
 		LineWidth: 2
 	Exit@1:
-		SpawnOffset: -256,1024,0
+		SpawnOffset: -512,768,0
+		ExitCell: 1,2
+		Priority: 2
+	Exit@2:
+		SpawnOffset: -512,768,0
+		ExitCell: 0,2
+		Priority: 2
+	Exit@fallback1:
+		SpawnOffset: 0,724,0
 		ExitCell: 2,2
+	Exit@fallback2:
+		SpawnOffset: 0,724,0
+		ExitCell: 2,1
+	Exit@fallback3:
+		SpawnOffset: 724,0,0
+		ExitCell: 2,0
+	Exit@fallback4:
+		SpawnOffset: 724,0,0
+		ExitCell: 2,-1
+	Exit@fallback5:
+		SpawnOffset: 724,0,0
+		ExitCell: 1,-1
+	Exit@fallback6:
+		SpawnOffset: 0,-724,0
+		ExitCell: 0,-1
+	Exit@fallback7:
+		SpawnOffset: 0,-724,0
+		ExitCell: -1,-1
+	Exit@fallback8:
+		SpawnOffset: 0,-724,0
+		ExitCell: -1,0
+	Exit@fallback9:
+		SpawnOffset: -724,0,0
+		ExitCell: -1,1
+	Exit@fallback10:
+		SpawnOffset: -724,0,0
+		ExitCell: -1,2
 	ExitsDebugOverlay:
 	Production:
 		Produces: Infantry
@@ -148,7 +182,7 @@ GAWEAP:
 		Prerequisites: proc, ~structures.gdi, ~techlevel.low
 		Description: Produces vehicles.
 	Building:
-		Footprint: xxX= xxX= xxX=
+		Footprint: xxX+ xxX+ xxX+
 		Dimensions: 4,3
 	Selectable:
 		Bounds: 154, 96, -2, -12
@@ -161,7 +195,6 @@ GAWEAP:
 	Armor:
 		Type: Heavy
 	RallyPoint:
-		Offset: 4,1
 		Palette: mouse
 		IsPlayerPalette: false
 		LineWidth: 2
@@ -285,7 +318,7 @@ GADEPT:
 		Queue: Building
 		Description: Repairs vehicles.
 	Building:
-		Footprint: =x= xxx =x=
+		Footprint: =+= x++ x+=
 		Dimensions: 3,3
 	Selectable:
 		Bounds: 96, 64, -6, -6

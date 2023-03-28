@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -26,16 +26,12 @@ namespace OpenRA
 		readonly Dictionary<string, Manifest> mods;
 		readonly SheetBuilder sheetBuilder;
 
-		readonly Dictionary<string, Sprite> icons = new Dictionary<string, Sprite>();
-		public readonly IReadOnlyDictionary<string, Sprite> Icons;
-
 		/// <summary>Initializes the collection of locally installed mods.</summary>
 		/// <param name="searchPaths">Filesystem paths to search for mod packages.</param>
 		/// <param name="explicitPaths">Filesystem paths to additional mod packages.</param>
 		public InstalledMods(IEnumerable<string> searchPaths, IEnumerable<string> explicitPaths)
 		{
 			sheetBuilder = new SheetBuilder(SheetType.BGRA, 256);
-			Icons = new ReadOnlyDictionary<string, Sprite>(icons);
 			mods = GetInstalledMods(searchPaths, explicitPaths);
 		}
 
@@ -76,20 +72,7 @@ namespace OpenRA
 
 				package = new Folder(path);
 				if (package.Contains("mod.yaml"))
-				{
-					var manifest = new Manifest(id, package);
-
-					if (package.Contains("icon.png"))
-					{
-						using (var stream = package.GetStream("icon.png"))
-							if (stream != null)
-								icons[id] = sheetBuilder.Add(new Png(stream));
-					}
-					else if (!manifest.Metadata.Hidden)
-						Log.Write("debug", "Mod '{0}' is missing 'icon.png'.".F(path));
-
-					return manifest;
-				}
+					return new Manifest(id, package);
 			}
 			catch (Exception e)
 			{

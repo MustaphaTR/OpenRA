@@ -7,7 +7,7 @@ command -v python >/dev/null 2>&1 || { echo >&2 "Linux packaging requires python
 command -v tar >/dev/null 2>&1 || { echo >&2 "Linux packaging requires tar."; exit 1; }
 command -v curl >/dev/null 2>&1 || command -v wget > /dev/null 2>&1 || { echo >&2 "Linux packaging requires curl or wget."; exit 1; }
 
-DEPENDENCIES_TAG="20191004"
+DEPENDENCIES_TAG="20200222"
 
 if [ $# -eq "0" ]; then
 	echo "Usage: $(basename "$0") version [outputdir]"
@@ -49,7 +49,7 @@ pushd "${SRCDIR}" > /dev/null || exit 1
 make clean
 
 # linux-dependencies target will trigger the lua detection script, which we don't want during packaging
-make cli-dependencies geoip-dependencies
+make cli-dependencies
 sed "s/@LIBLUA51@/liblua5.1.so.0/" thirdparty/Eluant.dll.config.in > Eluant.dll.config
 
 make core

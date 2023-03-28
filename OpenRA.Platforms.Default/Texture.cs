@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -75,7 +75,7 @@ namespace OpenRA.Platforms.Default
 		void SetData(IntPtr data, int width, int height)
 		{
 			PrepareTexture();
-			var glInternalFormat = OpenGL.Features.HasFlag(OpenGL.GLFeatures.GLES) ? OpenGL.GL_BGRA : OpenGL.GL_RGBA8;
+			var glInternalFormat = OpenGL.Profile == GLProfile.Embedded ? OpenGL.GL_BGRA : OpenGL.GL_RGBA8;
 			OpenGL.glTexImage2D(OpenGL.GL_TEXTURE_2D, 0, glInternalFormat, width, height,
 				0, OpenGL.GL_BGRA, OpenGL.GL_UNSIGNED_BYTE, data);
 			OpenGL.CheckGLError();
@@ -119,7 +119,7 @@ namespace OpenRA.Platforms.Default
 			var data = new byte[4 * Size.Width * Size.Height];
 
 			// GLES doesn't support glGetTexImage so data must be read back via a frame buffer
-			if (OpenGL.Features.HasFlag(OpenGL.GLFeatures.GLES))
+			if (OpenGL.Profile == GLProfile.Embedded)
 			{
 				// Query the active framebuffer so we can restore it afterwards
 				int lastFramebuffer;
@@ -133,13 +133,28 @@ namespace OpenRA.Platforms.Default
 				OpenGL.glFramebufferTexture2D(OpenGL.GL_FRAMEBUFFER, OpenGL.GL_COLOR_ATTACHMENT0, OpenGL.GL_TEXTURE_2D, texture, 0);
 				OpenGL.CheckGLError();
 
+				var canReadBGRA = OpenGL.Features.HasFlag(OpenGL.GLFeatures.ESReadFormatBGRA);
+
 				unsafe
 				{
 					fixed (byte* ptr = &data[0])
 					{
-						var intPtr = new IntPtr((void*)ptr);
-						OpenGL.glReadPixels(0, 0, Size.Width, Size.Height, OpenGL.GL_BGRA, OpenGL.GL_UNSIGNED_BYTE, intPtr);
+						var intPtr = new IntPtr(ptr);
+
+						var format = canReadBGRA ? OpenGL.GL_BGRA : OpenGL.GL_RGBA;
+						OpenGL.glReadPixels(0, 0, Size.Width, Size.Height, format, OpenGL.GL_UNSIGNED_BYTE, intPtr);
 						OpenGL.CheckGLError();
+					}
+				}
+
+				// Convert RGBA to BGRA
+				if (!canReadBGRA)
+				{
+					for (var i = 0; i < 4 * Size.Width * Size.Height; i += 4)
+					{
+						var temp = data[i];
+						data[i] = data[i + 2];
+						data[i + 2] = temp;
 					}
 				}
 

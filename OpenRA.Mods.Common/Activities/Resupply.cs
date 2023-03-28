@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -69,7 +69,7 @@ namespace OpenRA.Mods.Common.Activities
 				wasRepaired = true;
 			}
 
-			var cannotRearmAtHost = rearmable == null || !rearmable.Info.RearmActors.Contains(host.Info.Name) || rearmable.RearmableAmmoPools.All(p => p.FullAmmo());
+			var cannotRearmAtHost = rearmable == null || !rearmable.Info.RearmActors.Contains(host.Info.Name) || rearmable.RearmableAmmoPools.All(p => p.HasFullAmmo);
 			if (!cannotRearmAtHost)
 				activeResupplyTypes |= ResupplyType.Rearm;
 		}
@@ -127,7 +127,7 @@ namespace OpenRA.Mods.Common.Activities
 				// HACK: Repairable needs the actor to move to host center.
 				// TODO: Get rid of this or at least replace it with something less hacky.
 				if (repairableNear == null)
-					QueueChild(move.MoveTo(targetCell, host.Actor));
+					QueueChild(move.MoveTo(targetCell));
 
 				var delta = (self.CenterPosition - host.CenterPosition).LengthSquared;
 				var transport = transportCallers.FirstOrDefault(t => t.MinimumDistance.LengthSquared < delta);
@@ -165,6 +165,12 @@ namespace OpenRA.Mods.Common.Activities
 
 		public override void Cancel(Actor self, bool keepQueue = false)
 		{
+			// HACK: force move activities to ignore the transit-only cells when cancelling
+			// The idle handler will take over and move them into a safe cell
+			if (ChildActivity != null)
+				foreach (var c in ChildActivity.ActivitiesImplementing<Move>())
+					c.Cancel(self, false, true);
+
 			foreach (var t in transportCallers)
 				t.MovementCancelled(self);
 
@@ -187,8 +193,9 @@ namespace OpenRA.Mods.Common.Activities
 			{
 				if (wasRepaired || isHostInvalid || (!stayOnResupplier && aircraft.Info.TakeOffOnResupply))
 				{
-					if (self.CurrentActivity.NextActivity == null && rp != null)
-						QueueChild(move.MoveTo(rp.Location, repairableNear != null ? null : host.Actor, targetLineColor: Color.Green));
+					if (self.CurrentActivity.NextActivity == null && rp != null && rp.Path.Count > 0)
+						foreach (var cell in rp.Path)
+							QueueChild(move.MoveTo(cell, 1, ignoreActor: repairableNear != null ? null : host.Actor, targetLineColor: Color.Green));
 					else
 						QueueChild(new TakeOff(self));
 
@@ -207,8 +214,9 @@ namespace OpenRA.Mods.Common.Activities
 				// If there's a next activity and we're not RepairableNear, first leave host if the next activity is not a Move.
 				if (self.CurrentActivity.NextActivity == null)
 				{
-					if (rp != null)
-						QueueChild(move.MoveTo(rp.Location, repairableNear != null ? null : host.Actor));
+					if (rp != null && rp.Path.Count > 0)
+						foreach (var cell in rp.Path)
+							QueueChild(move.MoveTo(cell, 1, repairableNear != null ? null : host.Actor, true));
 					else if (repairableNear == null)
 						QueueChild(move.MoveToTarget(self, host));
 				}
@@ -277,7 +285,7 @@ namespace OpenRA.Mods.Common.Activities
 			var rearmComplete = true;
 			foreach (var ammoPool in rearmable.RearmableAmmoPools)
 			{
-				if (!ammoPool.FullAmmo())
+				if (!ammoPool.HasFullAmmo)
 				{
 					if (--ammoPool.RemainingTicks <= 0)
 					{

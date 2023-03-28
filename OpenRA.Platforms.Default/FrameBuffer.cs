@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -23,6 +23,7 @@ namespace OpenRA.Platforms.Default
 		readonly Color clearColor;
 		uint framebuffer, depth;
 		bool disposed;
+		bool scissored;
 
 		public FrameBuffer(Size size, ITextureInternal texture, Color clearColor)
 		{
@@ -49,7 +50,7 @@ namespace OpenRA.Platforms.Default
 			OpenGL.glBindRenderbuffer(OpenGL.GL_RENDERBUFFER, depth);
 			OpenGL.CheckGLError();
 
-			var glDepth = OpenGL.Features.HasFlag(OpenGL.GLFeatures.GLES) ? OpenGL.GL_DEPTH_COMPONENT16 : OpenGL.GL_DEPTH_COMPONENT;
+			var glDepth = OpenGL.Profile == GLProfile.Embedded ? OpenGL.GL_DEPTH_COMPONENT16 : OpenGL.GL_DEPTH_COMPONENT;
 			OpenGL.glRenderbufferStorage(OpenGL.GL_RENDERBUFFER, glDepth, size.Width, size.Height);
 			OpenGL.CheckGLError();
 
@@ -100,6 +101,9 @@ namespace OpenRA.Platforms.Default
 
 		public void Unbind()
 		{
+			if (scissored)
+				throw new InvalidOperationException("Attempting to unbind FrameBuffer with an active scissor region.");
+
 			VerifyThreadAffinity();
 			OpenGL.glFlush();
 			OpenGL.CheckGLError();
@@ -107,6 +111,25 @@ namespace OpenRA.Platforms.Default
 			OpenGL.CheckGLError();
 			OpenGL.glViewport(cv[0], cv[1], cv[2], cv[3]);
 			OpenGL.CheckGLError();
+		}
+
+		public void EnableScissor(Rectangle rect)
+		{
+			VerifyThreadAffinity();
+
+			OpenGL.glScissor(rect.X, rect.Y, Math.Max(rect.Width, 0), Math.Max(rect.Height, 0));
+			OpenGL.CheckGLError();
+			OpenGL.glEnable(OpenGL.GL_SCISSOR_TEST);
+			OpenGL.CheckGLError();
+			scissored = true;
+		}
+
+		public void DisableScissor()
+		{
+			VerifyThreadAffinity();
+			OpenGL.glDisable(OpenGL.GL_SCISSOR_TEST);
+			OpenGL.CheckGLError();
+			scissored = false;
 		}
 
 		public ITexture Texture

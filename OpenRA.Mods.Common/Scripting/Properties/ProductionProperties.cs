@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -34,19 +34,22 @@ namespace OpenRA.Mods.Common.Scripting
 
 		[ScriptActorPropertyActivity]
 		[Desc("Build a unit, ignoring the production queue. The activity will wait if the exit is blocked.",
-			"If productionType is nil or unavailable, then an exit will be selected based on Buildable info.")]
+			"If productionType is nil or unavailable, then an exit will be selected based on 'Buildable.BuildAtProductionType'.",
+			"If 'Buildable.BuildAtProductionType' is not set either, a random exit will be selected.")]
 		public void Produce(string actorType, string factionVariant = null, string productionType = null)
 		{
 			ActorInfo actorInfo;
 			if (!Self.World.Map.Rules.Actors.TryGetValue(actorType, out actorInfo))
 				throw new LuaException("Unknown actor type '{0}'".F(actorType));
 
+			var bi = actorInfo.TraitInfo<BuildableInfo>();
 			Self.QueueActivity(new WaitFor(() =>
 			{
 				// Go through all available traits and see which one successfully produces
 				foreach (var p in productionTraits)
 				{
-					if (!string.IsNullOrEmpty(productionType) && !p.Info.Produces.Contains(productionType))
+					var type = productionType ?? bi.BuildAtProductionType;
+					if (!string.IsNullOrEmpty(type) && !p.Info.Produces.Contains(type))
 						continue;
 
 					var inits = new TypeDictionary
@@ -55,7 +58,7 @@ namespace OpenRA.Mods.Common.Scripting
 						new FactionInit(factionVariant ?? BuildableInfo.GetInitialFaction(actorInfo, p.Faction))
 					};
 
-					if (p.Produce(Self, actorInfo, productionType, inits))
+					if (p.Produce(Self, actorInfo, type, inits))
 						return true;
 				}
 
@@ -79,8 +82,21 @@ namespace OpenRA.Mods.Common.Scripting
 		[Desc("Query or set a factory's rally point.")]
 		public CPos RallyPoint
 		{
-			get { return rp.Location; }
-			set { rp.Location = value; }
+			get
+			{
+				if (rp.Path.Count > 0)
+					return rp.Path.Last();
+
+				var exit = Self.FirstExitOrDefault();
+				if (exit != null)
+					return Self.Location + exit.Info.ExitCell;
+
+				return Self.Location;
+			}
+			set
+			{
+				rp.Path = new List<CPos> { value };
+			}
 		}
 	}
 

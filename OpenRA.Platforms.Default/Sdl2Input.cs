@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -44,8 +44,19 @@ namespace OpenRA.Platforms.Default
 		{
 			// On Windows and Linux (X11) events are given in surface coordinates
 			// These must be scaled to our effective window coordinates
-			if (Platform.CurrentPlatform != PlatformType.OSX && device.WindowSize != device.SurfaceSize)
-				return new int2((int)(x / device.WindowScale), (int)(y / device.WindowScale));
+			// Round fractional components up to avoid rounding small deltas to 0
+			if (Platform.CurrentPlatform != PlatformType.OSX && device.EffectiveWindowSize != device.SurfaceSize)
+			{
+				var s = 1 / device.EffectiveWindowScale;
+				return new int2((int)(Math.Sign(x) / 2f + x * s), (int)(Math.Sign(x) / 2f + y * s));
+			}
+
+			// On macOS we must still account for the user-requested scale modifier
+			if (Platform.CurrentPlatform == PlatformType.OSX && device.EffectiveWindowScale != device.NativeWindowScale)
+			{
+				var s = device.NativeWindowScale / device.EffectiveWindowScale;
+				return new int2((int)(Math.Sign(x) / 2f + x * s), (int)(Math.Sign(x) / 2f + y * s));
+			}
 
 			return new int2(x, y);
 		}
@@ -148,7 +159,9 @@ namespace OpenRA.Platforms.Default
 						{
 							int x, y;
 							SDL.SDL_GetMouseState(out x, out y);
-							inputHandler.OnMouseInput(new MouseInput(MouseInputEvent.Scroll, MouseButton.None, new int2(x, y), new int2(0, e.wheel.y), mods, 0));
+
+							var pos = EventPosition(device, x, y);
+							inputHandler.OnMouseInput(new MouseInput(MouseInputEvent.Scroll, MouseButton.None, pos, new int2(0, e.wheel.y), mods, 0));
 
 							break;
 						}

@@ -1,6 +1,6 @@
-﻿#region Copyright & License Information
+#region Copyright & License Information
 /*
- * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -20,22 +20,27 @@ namespace OpenRA.Mods.Common.Widgets
 
 		Sprite sprite;
 		readonly WorldRenderer worldRenderer;
+		readonly GraphicSettings graphicSettings;
 		string palette;
 		int2 location;
 
 		[ObjectCreator.UseCtor]
-		public MouseAttachmentWidget(WorldRenderer worldRenderer)
+		public MouseAttachmentWidget(ModData modData, WorldRenderer worldRenderer)
 		{
 			this.worldRenderer = worldRenderer;
+			graphicSettings = Game.Settings.Graphics;
 		}
 
 		public override void Draw()
 		{
 			if (sprite != null && palette != null)
 			{
-				var scale = Game.Cursor is SoftwareCursor && CursorProvider.CursorViewportZoomed ? 2 : 1;
 				var directionPalette = worldRenderer.Palette(palette);
-				WidgetUtils.DrawSHPCentered(sprite, ChildOrigin, directionPalette, scale);
+
+				// Cursor is rendered in native window coordinates
+				// Apply same scaling rules as hardware cursors
+				var scale = (graphicSettings.CursorDouble ? 2 : 1) * (Game.Renderer.NativeWindowScale > 1.5f ? 2 : 1);
+				WidgetUtils.DrawSHPCentered(sprite, ChildOrigin, directionPalette, scale / Game.Renderer.WindowScale);
 			}
 		}
 

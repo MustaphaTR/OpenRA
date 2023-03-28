@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -47,12 +47,9 @@ namespace OpenRA.Mods.Cnc.Traits
 		bool IOccupySpaceInfo.SharesCell { get { return false; } }
 
 		// Used to determine if actor can spawn
-		public bool CanEnterCell(World world, Actor self, CPos cell, Actor ignoreActor = null, BlockedByActor check = BlockedByActor.All)
+		public bool CanEnterCell(World world, Actor self, CPos cell, SubCell subCell = SubCell.FullCell, Actor ignoreActor = null, BlockedByActor check = BlockedByActor.All)
 		{
-			if (!world.Map.Contains(cell))
-				return false;
-
-			return true;
+			return world.Map.Contains(cell);
 		}
 	}
 
@@ -63,6 +60,7 @@ namespace OpenRA.Mods.Cnc.Traits
 		readonly Actor self;
 
 		IEnumerable<int> speedModifiers;
+		INotifyVisualPositionChanged[] notifyVisualPositionChanged;
 
 		[Sync]
 		public int Facing { get; set; }
@@ -99,6 +97,7 @@ namespace OpenRA.Mods.Cnc.Traits
 		{
 			speedModifiers = self.TraitsImplementing<ISpeedModifier>().ToArray().Select(sm => sm.GetSpeedModifier());
 			cachedLocation = self.Location;
+			notifyVisualPositionChanged = self.TraitsImplementing<INotifyVisualPositionChanged>().ToArray();
 		}
 
 		void INotifyAddedToWorld.AddedToWorld(Actor self)
@@ -181,10 +180,15 @@ namespace OpenRA.Mods.Cnc.Traits
 				return;
 
 			self.World.UpdateMaps(self, this);
+
+			// This can be called from the constructor before notifyVisualPositionChanged is assigned.
+			if (notifyVisualPositionChanged != null)
+				foreach (var n in notifyVisualPositionChanged)
+					n.VisualPositionChanged(self, 0, 0);
 		}
 
-		public Activity MoveTo(CPos cell, int nearEnough, Color? targetLineColor = null) { return null; }
-		public Activity MoveTo(CPos cell, Actor ignoreActor, Color? targetLineColor = null) { return null; }
+		public Activity MoveTo(CPos cell, int nearEnough = 0, Actor ignoreActor = null,
+			bool evaluateNearestMovableCell = false, Color? targetLineColor = null) { return null; }
 		public Activity MoveWithinRange(Target target, WDist range,
 			WPos? initialTargetPosition = null, Color? targetLineColor = null) { return null; }
 		public Activity MoveWithinRange(Target target, WDist minRange, WDist maxRange,

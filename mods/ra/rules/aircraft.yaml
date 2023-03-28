@@ -95,8 +95,9 @@ MIG:
 	UpdatesPlayerStatistics:
 		AddToArmyValue: true
 	Health:
-		HP: 7500
+		HP: 10000
 	RevealsShroud:
+		MinRange: 11c0
 		Range: 13c0
 		Type: GroundPosition
 		RevealGeneratedShroud: False
@@ -111,7 +112,7 @@ MIG:
 	AttackAircraft:
 		FacingTolerance: 20
 		PersistentTargeting: false
-		AttackTurnDelay: 30
+		OpportunityFire: False
 	Aircraft:
 		CruiseAltitude: 2560
 		InitialFacing: 192
@@ -161,6 +162,7 @@ YAK:
 	Health:
 		HP: 6000
 	RevealsShroud:
+		MinRange: 9c0
 		Range: 11c0
 		Type: GroundPosition
 		RevealGeneratedShroud: False
@@ -181,6 +183,7 @@ YAK:
 	AttackAircraft:
 		FacingTolerance: 20
 		PersistentTargeting: false
+		OpportunityFire: False
 	Aircraft:
 		CruiseAltitude: 2560
 		InitialFacing: 192
@@ -227,8 +230,9 @@ TRAN:
 	UpdatesPlayerStatistics:
 		AddToArmyValue: true
 	Health:
-		HP: 14000
+		HP: 20000
 	RevealsShroud:
+		MinRange: 6c0
 		Range: 8c0
 		Type: GroundPosition
 		RevealGeneratedShroud: False
@@ -284,6 +288,7 @@ HELI:
 	Health:
 		HP: 12000
 	RevealsShroud:
+		MinRange: 10c0
 		Range: 12c0
 		Type: GroundPosition
 		RevealGeneratedShroud: False
@@ -302,6 +307,7 @@ HELI:
 		FacingTolerance: 20
 		PersistentTargeting: false
 		AttackType: Hover
+		OpportunityFire: False
 	Aircraft:
 		TurnSpeed: 4
 		Speed: 149
@@ -349,6 +355,7 @@ HIND:
 	Health:
 		HP: 10000
 	RevealsShroud:
+		MinRange: 8c0
 		Range: 10c0
 		Type: GroundPosition
 		RevealGeneratedShroud: False
@@ -370,6 +377,7 @@ HIND:
 		FacingTolerance: 20
 		PersistentTargeting: false
 		AttackType: Hover
+		OpportunityFire: False
 	Aircraft:
 		TurnSpeed: 4
 		Speed: 112
@@ -449,6 +457,7 @@ MH60:
 	Health:
 		HP: 10000
 	RevealsShroud:
+		MinRange: 8c0
 		Range: 10c0
 		Type: GroundPosition
 		RevealGeneratedShroud: False

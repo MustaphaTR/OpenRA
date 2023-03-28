@@ -36,8 +36,7 @@ Background@BUTTON_TOOLTIP:
 			VAlign: Top
 
 Background@BUTTON_WITH_DESC_HIGHLIGHT_TOOLTIP:
-	Logic: ButtonTooltipWithDescHighlightLogic
-		Highlight: FFFF00
+	Logic: ButtonTooltipLogic
 	Background: dialog4
 	Height: 29
 	Children:
@@ -52,7 +51,7 @@ Background@BUTTON_WITH_DESC_HIGHLIGHT_TOOLTIP:
 			TextColor: FFFF00
 			Height: 23
 			Font: Bold
-		Label@DESC:
+		LabelWithHighlight@DESC:
 			X: 7
 			Y: 27
 			Height: 12
@@ -133,7 +132,7 @@ Background@LATENCY_TOOLTIP:
 Background@ANONYMOUS_PLAYER_TOOLTIP:
 	Logic: AnonymousProfileTooltipLogic
 	Background: dialog4
-	Height: 56
+	Height: 30
 	Width: 200
 	Children:
 		Label@NAME:
@@ -144,29 +143,31 @@ Background@ANONYMOUS_PLAYER_TOOLTIP:
 			Font: MediumBold
 		Label@LOCATION:
 			X: 7
-			Y: 24
+			Y: 25
 			Height: 12
+			Visible: False
 			Font: TinyBold
 		Label@IP:
 			X: 7
-			Y: 37
+			Y: 25
 			Height: 12
+			Visible: False
 			Font: TinyBold
 		Container@GAME_ADMIN:
 			X: 7
-			Y: 49
+			Y: 25
 			Height: 12
 			Visible: False
 			Children:
 				Image@ICON:
-					Y: 5
+					X: 1
+					Y: 4
 					Width: 7
 					Height: 5
 					ImageCollection: lobby-bits
 					ImageName: admin
 				Label@LABEL:
-					X: 9
-					Y: 1
+					X: 10
 					Height: 12
 					Text: Game Admin
 					Font: TinyBold
@@ -316,5 +317,23 @@ Background@SUPPORT_POWER_TOOLTIP:
 		Label@DESC:
 			X: 7
 			Y: 24
+			Font: TinyBold
+			VAlign: Top
+
+Background@ARMY_TOOLTIP:
+	Logic: ArmyTooltipLogic
+	Background: dialog4
+	Width: 200
+	Height: 65
+	Children:
+		Label@NAME:
+			X: 7
+			Y: 3
+			Height: 23
+			Font: Bold
+		Label@DESC:
+			X: 7
+			Y: 27
+			Height: 2
 			Font: TinyBold
 			VAlign: Top

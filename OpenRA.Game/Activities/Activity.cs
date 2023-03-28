@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -50,13 +50,40 @@ namespace OpenRA.Activities
 	{
 		public ActivityState State { get; private set; }
 
-		protected Activity ChildActivity { get; private set; }
-		public Activity NextActivity { get; private set; }
+		Activity childActivity;
+		protected Activity ChildActivity
+		{
+			get { return SkipDoneActivities(childActivity); }
+			private set { childActivity = value; }
+		}
+
+		Activity nextActivity;
+		public Activity NextActivity
+		{
+			get { return SkipDoneActivities(nextActivity); }
+			private set { nextActivity = value; }
+		}
+
+		internal static Activity SkipDoneActivities(Activity first)
+		{
+			// If first.Cancel() was called while it was queued (i.e. before it first ticked), its state will be Done
+			// rather than Queued (the activity system guarantees that it cannot be Active or Canceling).
+			// An unknown number of ticks may have elapsed between the Cancel() call and now,
+			// so we cannot make any assumptions on the value of first.NextActivity.
+			// We must not return first (ticking it would be bogus), but returning null would potentially
+			// drop valid activities queued after it. Walk the queue until we find a valid activity or
+			// (more likely) run out of activities.
+			while (first != null && first.State == ActivityState.Done)
+				first = first.NextActivity;
+
+			return first;
+		}
 
 		public bool IsInterruptible { get; protected set; }
 		public bool ChildHasPriority { get; protected set; }
 		public bool IsCanceling { get { return State == ActivityState.Canceling; } }
 		bool finishing;
+		bool firstRunCompleted;
 		bool lastRun;
 
 		public Activity()
@@ -73,8 +100,12 @@ namespace OpenRA.Activities
 			if (State == ActivityState.Queued)
 			{
 				OnFirstRun(self);
+				firstRunCompleted = true;
 				State = ActivityState.Active;
 			}
+
+			if (!firstRunCompleted)
+				throw new InvalidOperationException("Actor {0} attempted to tick activity {1} before running its OnFirstRun method.".F(self, GetType()));
 
 			// Only run the parent tick when the child is done.
 			// We must always let the child finish on its own before continuing.
@@ -171,7 +202,8 @@ namespace OpenRA.Activities
 			if (ChildActivity != null)
 				ChildActivity.Cancel(self);
 
-			State = ActivityState.Canceling;
+			// Directly mark activities that are queued and therefore didn't run yet as done
+			State = State == ActivityState.Queued ? ActivityState.Done : ActivityState.Canceling;
 		}
 
 		public void Queue(Activity activity)

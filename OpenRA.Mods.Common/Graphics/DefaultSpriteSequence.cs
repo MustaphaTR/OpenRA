@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -180,16 +180,17 @@ namespace OpenRA.Mods.Common.Graphics
 				{
 					MiniYaml length;
 					if (d.TryGetValue("Length", out length) && length.Value == "*")
-						Length = frameCount - Start;
+						Length = Frames != null ? Frames.Length : frameCount - Start;
 					else
 						Length = LoadField(d, "Length", 1);
 
 					// Plays the animation forwards, and then in reverse
 					if (LoadField(d, "Reverses", false))
 					{
-						var frames = Frames ?? Exts.MakeArray(Length, i => Start + i);
-						Frames = frames.Concat(frames.Skip(1).Take(frames.Length - 2).Reverse()).ToArray();
+						var frames = Frames != null ? Frames.Skip(Start).Take(Length).ToArray() : Exts.MakeArray(Length, i => Start + i);
+						Frames = frames.Concat(frames.Skip(1).Take(Length - 2).Reverse()).ToArray();
 						Length = 2 * Length - 2;
+						Start = 0;
 					}
 
 					Stride = LoadField(d, "Stride", Length);
@@ -204,13 +205,26 @@ namespace OpenRA.Mods.Common.Graphics
 							"{0}: Sequence {1}.{2}: Length must be <= Frames.Length"
 							.F(info.Nodes[0].Location, sequence, animation));
 
-					if (Start < 0 || Start + (Facings - 1) * Stride + Length > frameCount)
+					var end = Start + (Facings - 1) * Stride + Length - 1;
+					if (Frames != null)
+					{
+						foreach (var f in Frames)
+							if (f < 0 || f >= frameCount)
+								throw new InvalidOperationException(
+									"{5}: Sequence {0}.{1} defines a Frames override that references frame {4}, but only [{2}..{3}] actually exist"
+										.F(sequence, animation, Start, end, f, info.Nodes[0].Location));
+
+						if (Start < 0 || end >= Frames.Length)
+							throw new InvalidOperationException(
+								"{5}: Sequence {0}.{1} uses indices [{2}..{3}] of the Frames list, but only {4} frames are defined"
+									.F(sequence, animation, Start, end, Frames.Length, info.Nodes[0].Location));
+					}
+					else if (Start < 0 || end >= frameCount)
 						throw new InvalidOperationException(
 							"{5}: Sequence {0}.{1} uses frames [{2}..{3}], but only 0..{4} actually exist"
-							.F(sequence, animation, Start, Start + (Facings - 1) * Stride + Length - 1, frameCount - 1,
-								info.Nodes[0].Location));
+								.F(sequence, animation, Start, end, frameCount - 1, info.Nodes[0].Location));
 
-					if (ShadowStart + (Facings - 1) * Stride + Length > frameCount)
+					if (ShadowStart >= 0 && ShadowStart + (Facings - 1) * Stride + Length > frameCount)
 						throw new InvalidOperationException(
 							"{5}: Sequence {0}.{1}'s shadow frames use frames [{2}..{3}], but only [0..{4}] actually exist"
 							.F(sequence, animation, ShadowStart, ShadowStart + (Facings - 1) * Stride + Length - 1, frameCount - 1,
@@ -247,17 +261,18 @@ namespace OpenRA.Mods.Common.Graphics
 						var subOffset = LoadField(sd, "Offset", float3.Zero);
 						var subFlipX = LoadField(sd, "FlipX", false);
 						var subFlipY = LoadField(sd, "FlipY", false);
+						var subFrames = LoadField<int[]>(sd, "Frames", null);
 						var subLength = 0;
 
 						Func<int, IEnumerable<int>> subGetUsedFrames = subFrameCount =>
 						{
 							MiniYaml subLengthYaml;
 							if (sd.TryGetValue("Length", out subLengthYaml) && subLengthYaml.Value == "*")
-								subLength = subFrameCount - subStart;
+								subLength = subFrames != null ? subFrames.Length : subFrameCount - subStart;
 							else
 								subLength = LoadField(sd, "Length", 1);
 
-							return Enumerable.Range(subStart, subLength);
+							return subFrames != null ? subFrames.Skip(subStart).Take(subLength) : Enumerable.Range(subStart, subLength);
 						};
 
 						var subSrc = GetSpriteSrc(modData, tileSet, sequence, animation, sub.Key, sd);
@@ -265,9 +280,10 @@ namespace OpenRA.Mods.Common.Graphics
 							s => s != null ? new Sprite(s.Sheet,
 								FlipRectangle(s.Bounds, subFlipX, subFlipY), ZRamp,
 								new float3(subFlipX ? -s.Offset.X : s.Offset.X, subFlipY ? -s.Offset.Y : s.Offset.Y, s.Offset.Z) + subOffset + offset,
-								s.Channel, blendMode) : null);
+								s.Channel, blendMode) : null).ToList();
 
-						combined = combined.Concat(subSprites.Skip(subStart).Take(subLength));
+						var frames = subFrames != null ? subFrames.Skip(subStart).Take(subLength).ToArray() : Exts.MakeArray(subLength, i => subStart + i);
+						combined = combined.Concat(frames.Select(i => subSprites[i]));
 					}
 
 					sprites = combined.ToArray();

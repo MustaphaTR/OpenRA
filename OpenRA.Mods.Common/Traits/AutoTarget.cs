@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -39,6 +39,9 @@ namespace OpenRA.Mods.Common.Traits
 
 		[Desc("It will try to pivot to face the enemy if stance is not HoldFire.")]
 		public readonly bool AllowTurning = true;
+
+		[Desc("Scan for new targets when idle.")]
+		public readonly bool ScanOnIdle = true;
 
 		[Desc("Set to a value >1 to override weapons maximum range for this.")]
 		public readonly int ScanRadius = -1;
@@ -269,7 +272,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		void INotifyIdle.TickIdle(Actor self)
 		{
-			if (IsTraitDisabled || Stance < UnitStance.Defend)
+			if (IsTraitDisabled || !Info.ScanOnIdle || Stance < UnitStance.Defend)
 				return;
 
 			var allowMove = allowMovement && Stance > UnitStance.Defend;
@@ -290,11 +293,11 @@ namespace OpenRA.Mods.Common.Traits
 		{
 			if (nextScanTime <= 0 && ActiveAttackBases.Any())
 			{
-				nextScanTime = self.World.SharedRandom.Next(Info.MinimumScanTimeInterval, Info.MaximumScanTimeInterval);
-
 				foreach (var dat in disableAutoTarget)
 					if (dat.DisableAutoTarget(self))
 						return Target.Invalid;
+
+				nextScanTime = self.World.SharedRandom.Next(Info.MinimumScanTimeInterval, Info.MaximumScanTimeInterval);
 
 				foreach (var ab in ActiveAttackBases)
 				{
@@ -321,12 +324,12 @@ namespace OpenRA.Mods.Common.Traits
 		void Attack(Actor self, Target target, bool allowMove)
 		{
 			foreach (var ab in ActiveAttackBases)
-				ab.AttackTarget(target, false, allowMove);
+				ab.AttackTarget(target, AttackSource.AutoTarget, false, allowMove);
 		}
 
 		public bool HasValidTargetPriority(Actor self, Player owner, BitSet<TargetableType> targetTypes)
 		{
-			if (Stance <= UnitStance.ReturnFire)
+			if (owner == null || Stance <= UnitStance.ReturnFire)
 				return false;
 
 			return activeTargetPriorities.Any(ati =>

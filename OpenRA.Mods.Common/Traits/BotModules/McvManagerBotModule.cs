@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -72,9 +72,6 @@ namespace OpenRA.Mods.Common.Traits
 		int scanInterval;
 		bool firstTick = true;
 
-		// MCVs that the bot already knows about. Any MCV not on this list needs to be given an order.
-		List<Actor> activeMCVs = new List<Actor>();
-
 		public McvManagerBotModule(Actor self, McvManagerBotModuleInfo info)
 			: base(info)
 		{
@@ -83,11 +80,18 @@ namespace OpenRA.Mods.Common.Traits
 			unitCannotBeOrdered = a => a.Owner != player || a.IsDead || !a.IsInWorld;
 		}
 
+		protected override void Created(Actor self)
+		{
+			// Special case handling is required for the Player actor.
+			// Created is called before Player.PlayerActor is assigned,
+			// so we must query player traits from self, which refers
+			// for bot modules always to the Player actor.
+			notifyPositionsUpdated = self.TraitsImplementing<IBotPositionsUpdated>().ToArray();
+			requestUnitProduction = self.TraitsImplementing<IBotRequestUnitProduction>().ToArray();
+		}
+
 		protected override void TraitEnabled(Actor self)
 		{
-			notifyPositionsUpdated = player.PlayerActor.TraitsImplementing<IBotPositionsUpdated>().ToArray();
-			requestUnitProduction = player.PlayerActor.TraitsImplementing<IBotRequestUnitProduction>().ToArray();
-
 			// Avoid all AIs reevaluating assignments on the same tick, randomize their initial evaluation delay.
 			scanInterval = world.LocalRandom.Next(Info.ScanForNewMcvInterval, Info.ScanForNewMcvInterval * 2);
 		}
@@ -140,18 +144,10 @@ namespace OpenRA.Mods.Common.Traits
 
 		void DeployMcvs(IBot bot, bool chooseLocation)
 		{
-			activeMCVs.RemoveAll(unitCannotBeOrdered);
-
 			var newMCVs = world.ActorsHavingTrait<Transforms>()
-				.Where(a => a.Owner == player &&
-					a.IsIdle &&
-					Info.McvTypes.Contains(a.Info.Name) &&
-					!activeMCVs.Contains(a));
+				.Where(a => a.Owner == player && a.IsIdle && Info.McvTypes.Contains(a.Info.Name));
 
-			foreach (var a in newMCVs)
-				activeMCVs.Add(a);
-
-			foreach (var mcv in activeMCVs)
+			foreach (var mcv in newMCVs)
 				DeployMcv(bot, mcv, chooseLocation);
 		}
 
@@ -221,11 +217,7 @@ namespace OpenRA.Mods.Common.Traits
 
 			return new List<MiniYamlNode>()
 			{
-				new MiniYamlNode("InitialBaseCenter", FieldSaver.FormatValue(initialBaseCenter)),
-				new MiniYamlNode("ActiveMCVs", FieldSaver.FormatValue(activeMCVs
-					.Where(a => !unitCannotBeOrdered(a))
-					.Select(a => a.ActorID)
-					.ToArray()))
+				new MiniYamlNode("InitialBaseCenter", FieldSaver.FormatValue(initialBaseCenter))
 			};
 		}
 
@@ -237,14 +229,6 @@ namespace OpenRA.Mods.Common.Traits
 			var initialBaseCenterNode = data.FirstOrDefault(n => n.Key == "InitialBaseCenter");
 			if (initialBaseCenterNode != null)
 				initialBaseCenter = FieldLoader.GetValue<CPos>("InitialBaseCenter", initialBaseCenterNode.Value.Value);
-
-			var activeMCVsNode = data.FirstOrDefault(n => n.Key == "ActiveMCVs");
-			if (activeMCVsNode != null)
-			{
-				activeMCVs.Clear();
-				activeMCVs.AddRange(FieldLoader.GetValue<uint[]>("ActiveMCVs", activeMCVsNode.Value.Value)
-					.Select(a => world.GetActorById(a)).Where(a => a != null));
-			}
 		}
 	}
 }

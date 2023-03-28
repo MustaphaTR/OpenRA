@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -38,7 +38,7 @@ namespace OpenRA.Mods.Common.Warheads
 
 				var closestActiveShape = victim.TraitsImplementing<HitShape>()
 					.Where(Exts.IsTraitEnabled)
-					.Select(s => Pair.New(s, s.Info.Type.DistanceFromEdge(pos, victim)))
+					.Select(s => Pair.New(s, s.DistanceFromEdge(victim, pos)))
 					.MinByOrDefault(s => s.Second);
 
 				// Cannot be damaged without an active HitShape or if HitShape is outside Spread

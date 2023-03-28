@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -22,8 +22,6 @@ namespace OpenRA.Mods.Common.Scripting
 	public class ConditionProperties : ScriptActorProperties, Requires<ExternalConditionInfo>
 	{
 		readonly ExternalCondition[] externalConditions;
-
-		readonly Dictionary<string, Stack<int>> legacyShim = new Dictionary<string, Stack<int>>();
 
 		public ConditionProperties(ScriptContext context, Actor self)
 			: base(context, self)
@@ -60,41 +58,6 @@ namespace OpenRA.Mods.Common.Scripting
 		{
 			return externalConditions
 				.Any(t => t.Info.Condition == condition && t.CanGrantCondition(Self, this));
-		}
-
-		[ScriptContext(ScriptContextType.Mission)]
-		[Desc("Grant an upgrade to this actor. DEPRECATED! Will be removed.")]
-		public void GrantUpgrade(string upgrade)
-		{
-			Game.Debug("GrantUpgrade is deprecated. Use GrantCondition instead.");
-			legacyShim.GetOrAdd(upgrade).Push(GrantCondition(upgrade));
-		}
-
-		[ScriptContext(ScriptContextType.Mission)]
-		[Desc("Revoke an upgrade that was previously granted using GrantUpgrade. DEPRECATED! Will be removed.")]
-		public void RevokeUpgrade(string upgrade)
-		{
-			Game.Debug("RevokeUpgrade is deprecated. Use RevokeCondition instead.");
-			Stack<int> tokens;
-			if (!legacyShim.TryGetValue(upgrade, out tokens) || !tokens.Any())
-				throw new InvalidDataException("Attempting to revoke upgrade `{0}` that has not been granted.".F(upgrade));
-
-			RevokeCondition(tokens.Pop());
-		}
-
-		[ScriptContext(ScriptContextType.Mission)]
-		[Desc("Grant a limited-time upgrade to this actor. DEPRECATED! Will be removed.")]
-		public void GrantTimedUpgrade(string upgrade, int duration)
-		{
-			Game.Debug("GrantTimedUpgrade is deprecated. Use GrantCondition instead.");
-			GrantCondition(upgrade, duration);
-		}
-
-		[Desc("Check whether this actor accepts a specific upgrade. DEPRECATED! Will be removed.")]
-		public bool AcceptsUpgrade(string upgrade)
-		{
-			Game.Debug("AcceptsUpgrade is deprecated. Use AcceptsCondition instead.");
-			return AcceptsCondition(upgrade);
 		}
 	}
 }

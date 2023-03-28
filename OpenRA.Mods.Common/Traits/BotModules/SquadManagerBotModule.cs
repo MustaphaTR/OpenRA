@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -149,11 +149,18 @@ namespace OpenRA.Mods.Common.Traits
 				&& !a.GetEnabledTargetTypes().IsEmpty;
 		}
 
+		protected override void Created(Actor self)
+		{
+			// Special case handling is required for the Player actor.
+			// Created is called before Player.PlayerActor is assigned,
+			// so we must query player traits from self, which refers
+			// for bot modules always to the Player actor.
+			notifyPositionsUpdated = self.TraitsImplementing<IBotPositionsUpdated>().ToArray();
+			notifyIdleBaseUnits = self.TraitsImplementing<IBotNotifyIdleBaseUnits>().ToArray();
+		}
+
 		protected override void TraitEnabled(Actor self)
 		{
-			notifyPositionsUpdated = Player.PlayerActor.TraitsImplementing<IBotPositionsUpdated>().ToArray();
-			notifyIdleBaseUnits = Player.PlayerActor.TraitsImplementing<IBotNotifyIdleBaseUnits>().ToArray();
-
 			// Avoid all AIs trying to rush in the same tick, randomize their initial rush a little.
 			var smallFractionOfRushInterval = Info.RushInterval / 20;
 			rushTicks = World.LocalRandom.Next(Info.RushInterval - smallFractionOfRushInterval, Info.RushInterval + smallFractionOfRushInterval);

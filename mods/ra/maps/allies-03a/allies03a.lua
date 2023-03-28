@@ -1,5 +1,5 @@
 --[[
-   Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
+   Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
    This file is part of OpenRA, which is free software. It is made
    available to you under the terms of the GNU General Public License
    as published by the Free Software Foundation, either version 3 of
@@ -72,14 +72,19 @@ end
 
 SendUSSRParadrops = function()
 	local powerproxy = Actor.Create("powerproxy.paratroopers", false, { Owner = ussr })
-	local unitsA = powerproxy.SendParatroopers(ParadropLZ.CenterPosition, false, 128 + 32)
-	local unitsB = powerproxy.SendParatroopers(ParadropLZ.CenterPosition, false, 128 - 32)
 
-	Utils.Do(unitsA, function(unit)
-		IdleHunt(unit)
+	local aircraftA = powerproxy.ActivateParatroopers(ParadropLZ.CenterPosition, 128 + 32)
+	Utils.Do(aircraftA, function(a)
+		Trigger.OnPassengerExited(a, function(t, p)
+			IdleHunt(p)
+		end)
 	end)
-	Utils.Do(unitsB, function(unit)
-		IdleHunt(unit)
+
+	local aircraftB = powerproxy.ActivateParatroopers(ParadropLZ.CenterPosition, 128 - 32)
+	Utils.Do(aircraftB, function(a)
+		Trigger.OnPassengerExited(a, function(t, p)
+			IdleHunt(p)
+		end)
 	end)
 
 	powerproxy.Destroy()

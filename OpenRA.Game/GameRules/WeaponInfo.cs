@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -31,6 +31,27 @@ namespace OpenRA.GameRules
 		public Actor SourceActor;
 		public WPos PassiveTarget;
 		public Target GuidedTarget;
+	}
+
+	public class WarheadArgs
+	{
+		public WeaponInfo Weapon;
+		public int[] DamageModifiers = { };
+		public WPos? Source;
+		public Actor SourceActor;
+		public Target WeaponTarget;
+
+		public WarheadArgs(ProjectileArgs args)
+		{
+			Weapon = args.Weapon;
+			DamageModifiers = args.DamageModifiers;
+			Source = args.Source;
+			SourceActor = args.SourceActor;
+			WeaponTarget = args.GuidedTarget;
+		}
+
+		// Default empty constructor for callers that want to initialize fields themselves
+		public WarheadArgs() { }
 	}
 
 	public interface IProjectile : IEffect { }
@@ -182,17 +203,33 @@ namespace OpenRA.GameRules
 		}
 
 		/// <summary>Applies all the weapon's warheads to the target.</summary>
-		public void Impact(Target target, Actor firedBy, IEnumerable<int> damageModifiers)
+		public void Impact(Target target, WarheadArgs args)
 		{
+			var world = args.SourceActor.World;
 			foreach (var warhead in Warheads)
 			{
-				var wh = warhead; // force the closure to bind to the current warhead
-
-				if (wh.Delay > 0)
-					firedBy.World.AddFrameEndTask(w => w.Add(new DelayedImpact(wh.Delay, wh, target, firedBy, damageModifiers)));
+				if (warhead.Delay > 0)
+					world.AddFrameEndTask(w => w.Add(new DelayedImpact(warhead.Delay, warhead, target, args)));
 				else
-					wh.DoImpact(target, firedBy, damageModifiers);
+					warhead.DoImpact(target, args);
 			}
+		}
+
+		/// <summary>Applies all the weapon's warheads to the target. Only use for projectile-less, special-case impacts.</summary>
+		public void Impact(Target target, Actor firedBy)
+		{
+			// The impact will happen immediately at target.CenterPosition.
+			var args = new WarheadArgs
+			{
+				Weapon = this,
+				SourceActor = firedBy,
+				WeaponTarget = target
+			};
+
+			if (firedBy.OccupiesSpace != null)
+				args.Source = firedBy.CenterPosition;
+
+			Impact(target, args);
 		}
 	}
 }

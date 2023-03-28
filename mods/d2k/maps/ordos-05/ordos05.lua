@@ -1,5 +1,5 @@
 --[[
-   Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
+   Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
    This file is part of OpenRA, which is free software. It is made
    available to you under the terms of the GNU General Public License
    as published by the Free Software Foundation, either version 3 of
@@ -201,10 +201,10 @@ WorldLoaded = function()
 
 		Reinforcements.ReinforceWithTransport(player, "frigate", { "mcv" }, { OrdosStarportEntry.Location, AStarport.Location + CVec.New(1, 1) }, { OrdosStarportExit.Location })
 
-		if APower8.Owner ~= player then
+		if APower8.Owner ~= player and not APower8.IsDead then
 			APower8.Sell()
 		end
-		if APower9.Owner ~= player then
+		if APower9.Owner ~= player and not APower9.IsDead then
 			APower9.Sell()
 		end
 	end)

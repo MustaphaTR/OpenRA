@@ -1,5 +1,5 @@
 --[[
-   Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
+   Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
    This file is part of OpenRA, which is free software. It is made
    available to you under the terms of the GNU General Public License
    as published by the Free Software Foundation, either version 3 of
@@ -182,14 +182,19 @@ FinishTimer = function()
 	Trigger.AfterDelay(DateTime.Seconds(10), function() UserInterface.SetMissionText("") end)
 end
 
-SendSovietParadrops = function(table)
-	local units = powerproxy.SendParatroopers(table[2].CenterPosition, false, table[1])
+IdleHunt = function(unit)
+	Trigger.OnIdle(unit, function(a)
+		if a.IsInWorld then
+			a.Hunt()
+		end
+	end)
+end
 
-	Utils.Do(units, function(unit)
-		Trigger.OnIdle(unit, function(a)
-			if a.IsInWorld then
-				a.Hunt()
-			end
+SendSovietParadrops = function(table)
+	local aircraft = powerproxy.ActivateParatroopers(table[2].CenterPosition, table[1])
+	Utils.Do(aircraft, function(a)
+		Trigger.OnPassengerExited(a, function(t, p)
+			IdleHunt(p)
 		end)
 	end)
 end
@@ -285,7 +290,7 @@ end
 
 DropAlliedArtillery = function(facing, dropzone)
 	local proxy = Actor.Create("powerproxy.allied", true, { Owner = allies })
-	proxy.SendParatroopers(dropzone, false, facing)
+	proxy.ActivateParatroopers(dropzone, facing)
 	proxy.Destroy()
 end
 

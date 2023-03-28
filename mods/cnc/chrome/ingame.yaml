@@ -10,13 +10,14 @@ Container@INGAME_ROOT:
 				TakeScreenshotKey: TakeScreenshot
 				MuteAudioKey: ToggleMute
 		LogicKeyListener@WORLD_KEYHANDLER:
-			Logic: CycleBasesHotkeyLogic, CycleProductionActorsHotkeyLogic, JumpToLastEventHotkeyLogic, JumpToSelectedActorsHotkeyLogic, TogglePixelDoubleHotkeyLogic, TogglePlayerStanceColorHotkeyLogic, CycleStatusBarsHotkeyLogic, PauseHotkeyLogic, RemoveFromControlGroupHotkeyLogic
+			Logic: CycleBasesHotkeyLogic, CycleProductionActorsHotkeyLogic, CycleHarvestersHotkeyLogic, JumpToLastEventHotkeyLogic, JumpToSelectedActorsHotkeyLogic, ResetZoomHotkeyLogic, TogglePlayerStanceColorHotkeyLogic, CycleStatusBarsHotkeyLogic, PauseHotkeyLogic, RemoveFromControlGroupHotkeyLogic
 				RemoveFromControlGroupKey: RemoveFromControlGroup
 				CycleBasesKey: CycleBase
 				CycleProductionActorsKey: CycleProductionBuildings
+				CycleHarvestersKey: CycleHarvesters
 				JumpToLastEventKey: ToLastEvent
 				JumpToSelectedActorsKey: ToSelection
-				TogglePixelDoubleKey: TogglePixelDouble
+				ResetZoomKey: ResetZoom
 				TogglePlayerStanceColorKey: TogglePlayerStanceColor
 				CycleStatusBarsKey: CycleStatusBars
 				PauseKey: Pause
@@ -77,6 +78,8 @@ Container@OBSERVER_WIDGETS:
 			Width: WINDOW_RIGHT
 			Height: WINDOW_BOTTOM
 			TooltipContainer: TOOLTIP_CONTAINER
+			ZoomInKey: ZoomIn
+			ZoomOutKey: ZoomOut
 			ScrollUpKey: MapScrollUp
 			ScrollDownKey: MapScrollDown
 			ScrollLeftKey: MapScrollLeft
@@ -108,6 +111,26 @@ Container@OBSERVER_WIDGETS:
 					Height: 15
 					Align: Center
 					Font: Bold
+					Contrast: true
+		Container@MUTE_INDICATOR:
+			Logic: MuteIndicatorLogic
+			X: WINDOW_RIGHT - WIDTH - 295
+			Y: 5
+			Width: 200
+			Height: 25
+			Children:
+				Image@ICON:
+					X: PARENT_RIGHT - WIDTH
+					Y: 1
+					Width: 24
+					Height: 24
+					ImageCollection: sidebar-bits
+					ImageName: indicator-muted
+				Label@LABEL:
+					Width: PARENT_RIGHT - 30
+					Height: 25
+					Align: Right
+					Text: Audio Muted
 					Contrast: true
 		LogicKeyListener@OBSERVER_KEY_LISTENER:
 		MenuButton@OPTIONS_BUTTON:
@@ -264,6 +287,7 @@ Container@OBSERVER_WIDGETS:
 				StatisticsProductionKey: StatisticsProduction
 				StatisticsSupportPowersKey: StatisticsSupportPowers
 				StatisticsCombatKey: StatisticsCombat
+				StatisticsArmyKey: StatisticsArmy
 				StatisticsGraphKey: StatisticsGraph
 				StatisticsArmyGraphKey: StatisticsArmyGraph
 			X: 5
@@ -538,6 +562,42 @@ Container@OBSERVER_WIDGETS:
 									Height: PARENT_BOTTOM
 									Font: Bold
 									Text: Support Powers
+									Shadow: True
+						Container@ARMY_HEADERS:
+							X: 0
+							Y: 0
+							Width: 400
+							Height: PARENT_BOTTOM
+							Children:
+								ColorBlock@HEADER_COLOR:
+									X: 0
+									Y: 0
+									Color: 00000090
+									Width: PARENT_RIGHT - 200
+									Height: PARENT_BOTTOM
+								GradientColorBlock@HEADER_GRADIENT:
+									X: PARENT_RIGHT - 200
+									Y: 0
+									TopLeftColor: 00000090
+									BottomLeftColor: 00000090
+									Width: 200
+									Height: PARENT_BOTTOM
+								Label@PLAYER_HEADER:
+									X: 40
+									Y: 0
+									Width: 120
+									Height: PARENT_BOTTOM
+									Font: Bold
+									Text: Player
+									Align: Left
+									Shadow: True
+								Label@ARMY_HEADER:
+									X: 160
+									Y: 0
+									Width: 100
+									Height: PARENT_BOTTOM
+									Font: Bold
+									Text: Army
 									Shadow: True
 						Container@COMBAT_STATS_HEADERS:
 							X: 0
@@ -908,6 +968,43 @@ Container@OBSERVER_WIDGETS:
 									Width: 0
 									Height: PARENT_BOTTOM
 									TooltipContainer: TOOLTIP_CONTAINER
+						ScrollItem@ARMY_PLAYER_TEMPLATE:
+							X: 0
+							Y: 0
+							Width: 400
+							Height: 24
+							BaseName: scrollitem-nohover
+							Children:
+								ColorBlock@PLAYER_COLOR:
+									X: 0
+									Y: 0
+									Width: PARENT_RIGHT - 200
+									Height: PARENT_BOTTOM
+								GradientColorBlock@PLAYER_GRADIENT:
+									X: PARENT_RIGHT - 200
+									Y: 0
+									Width: 200
+									Height: PARENT_BOTTOM 
+								Image@FLAG:
+									X: 5
+									Y: 4
+									Width: 35
+									Height: PARENT_BOTTOM - 4
+									ImageName: random
+									ImageCollection: flags
+								Label@PLAYER:
+									X: 40
+									Y: 0
+									Width: 120
+									Height: PARENT_BOTTOM
+									Font: Bold
+									Shadow: True
+								ObserverArmyIcons@ARMY_ICONS:
+									X: 160
+									Y: 0
+									Width: 0
+									Height: PARENT_BOTTOM
+									TooltipContainer: TOOLTIP_CONTAINER
 						ScrollItem@COMBAT_PLAYER_TEMPLATE:
 							X: 0
 							Y: 0
@@ -1048,6 +1145,8 @@ Container@PLAYER_WIDGETS:
 			Height: WINDOW_BOTTOM
 			TooltipTemplate: WORLD_TOOLTIP_FACTIONSUFFIX
 			TooltipContainer: TOOLTIP_CONTAINER
+			ZoomInKey: ZoomIn
+			ZoomOutKey: ZoomOut
 			ScrollUpKey: MapScrollUp
 			ScrollDownKey: MapScrollDown
 			ScrollLeftKey: MapScrollLeft
@@ -1400,6 +1499,26 @@ Container@PLAYER_WIDGETS:
 							Y: 5
 							ImageCollection: stance-icons
 							ImageName: hold-fire
+		Container@MUTE_INDICATOR:
+			Logic: MuteIndicatorLogic
+			X: WINDOW_RIGHT - WIDTH - 240
+			Y: 5
+			Width: 200
+			Height: 25
+			Children:
+				Image@ICON:
+					X: PARENT_RIGHT - WIDTH
+					Y: 1
+					Width: 24
+					Height: 24
+					ImageCollection: sidebar-bits
+					ImageName: indicator-muted
+				Label@LABEL:
+					Width: PARENT_RIGHT - 30
+					Height: 25
+					Align: Right
+					Text: Audio Muted
+					Contrast: true
 		Image@SIDEBAR_BACKGROUND:
 			X: WINDOW_RIGHT - WIDTH - 5
 			Y: 5
@@ -1525,7 +1644,7 @@ Container@PLAYER_WIDGETS:
 					Height: 190
 					Children:
 						ResourceBar@POWERBAR:
-							Width: 10
+							Width: 9
 							Height: PARENT_BOTTOM - 2
 							TooltipContainer: TOOLTIP_CONTAINER
 							TooltipTemplate: SIMPLE_TOOLTIP_FACTIONSUFFIX
@@ -1535,13 +1654,14 @@ Container@PLAYER_WIDGETS:
 							ImageName: power
 				Container@SILOBAR_PANEL:
 					Logic: IngameSiloBarLogic
-					X: 220
+					X: 219
 					Y: 51
 					Width: 10
 					Height: 190
 					Children:
 						ResourceBar@SILOBAR:
-							Width: 10
+							X: 1
+							Width: 9
 							Height: PARENT_BOTTOM - 2
 							TooltipContainer: TOOLTIP_CONTAINER
 							TooltipTemplate: SIMPLE_TOOLTIP_FACTIONSUFFIX
@@ -1718,6 +1838,7 @@ Container@PLAYER_WIDGETS:
 			HoldText: On Hold
 			HotkeyPrefix: Production
 			HotkeyCount: 24
+			SelectProductionBuildingHotkey: SelectProductionBuilding
 		ProductionTabs@PRODUCTION_TABS:
 			Logic: AddFactionSuffixLogic, ProductionTabsLogic
 			PaletteWidget: PRODUCTION_PALETTE

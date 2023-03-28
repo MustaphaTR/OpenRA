@@ -86,12 +86,14 @@ FCOM:
 		Description: Capture to give buildable area.
 		ValidStances: Neutral, Enemy
 	RevealsShroud:
+		MinRange: 4c0
 		Range: 5c0
 		RevealGeneratedShroud: False
 	RevealsShroud@GAPGEN:
 		Range: 4c0
 	WithBuildingBib:
 	CaptureManager:
+		BeingCapturedCondition: being-captured
 	Capturable:
 		Types: building
 	CapturableProgressBar:
@@ -99,6 +101,7 @@ FCOM:
 	GivesBuildableArea:
 		AreaTypes: building
 	BaseProvider:
+		PauseOnCondition: being-captured
 		Range: 8c0
 	EngineerRepairable:
 	Power:
@@ -399,6 +402,7 @@ MISS:
 	Health:
 		HP: 60000
 	RevealsShroud:
+		MinRange: 6c0
 		Range: 10c0
 		RevealGeneratedShroud: False
 	RevealsShroud@GAPGEN:

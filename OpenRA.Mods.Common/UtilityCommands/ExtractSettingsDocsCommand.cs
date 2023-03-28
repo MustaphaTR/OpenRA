@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -40,8 +40,14 @@ namespace OpenRA.Mods.Common.UtilityCommands
 			Console.WriteLine("All settings can be changed by starting the game via a command-line parameter like `Game.Mod=ra`.");
 			Console.WriteLine();
 			Console.WriteLine("## Location");
-			Console.WriteLine("* Windows: `My Documents\\OpenRA\\settings.yaml`");
+			Console.WriteLine("* Windows: `%APPDATA%\\OpenRA\\settings.yaml`");
 			Console.WriteLine("* Mac OS X: `~/Library/Application Support/OpenRA/settings.yaml`");
+			Console.WriteLine("* Linux `~/.config/openra/settings.yaml`");
+			Console.WriteLine();
+			Console.WriteLine(
+				"Older releases (before playtest-20190825) used different locations, " +
+				"which newer versions may continue to use in some circumstances:");
+			Console.WriteLine("* Windows: `%USERPROFILE%\\Documents\\OpenRA\\settings.yaml`");
 			Console.WriteLine("* Linux `~/.openra/settings.yaml`");
 			Console.WriteLine();
 			Console.WriteLine(

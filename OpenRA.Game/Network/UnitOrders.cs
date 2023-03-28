@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -21,7 +21,6 @@ namespace OpenRA.Network
 	public static class UnitOrders
 	{
 		public const int ChatMessageMaxLength = 2500;
-		const string ServerChatName = "Battlefield Control";
 
 		static Player FindPlayerByClient(this World world, Session.Client c)
 		{
@@ -41,7 +40,7 @@ namespace OpenRA.Network
 			{
 				// Server message
 				case "Message":
-					Game.AddSystemLine(ServerChatName, order.TargetString);
+					Game.AddSystemLine(order.TargetString);
 					break;
 
 				// Reports that the target player disconnected
@@ -88,14 +87,12 @@ namespace OpenRA.Network
 							break;
 						}
 
-						if (orderManager.LocalClient == null)
-							break;
-
 						var player = world.FindPlayerByClient(client);
-						var localClientIsObserver = orderManager.LocalClient.IsObserver || (world.LocalPlayer != null && world.LocalPlayer.WinState != WinState.Undefined);
+						var localClientIsObserver = world.IsReplay || (orderManager.LocalClient != null && orderManager.LocalClient.IsObserver)
+							|| (world.LocalPlayer != null && world.LocalPlayer.WinState != WinState.Undefined);
 
 						// ExtraData gives us the team number, uint.MaxValue means Spectators
-						if (order.ExtraData == uint.MaxValue && (localClientIsObserver || world.IsReplay))
+						if (order.ExtraData == uint.MaxValue && localClientIsObserver)
 						{
 							// Validate before adding the line
 							if (client.IsObserver || (player != null && player.WinState != WinState.Undefined))
@@ -105,8 +102,8 @@ namespace OpenRA.Network
 						}
 
 						var valid = client.Team == order.ExtraData && player != null && player.WinState == WinState.Undefined;
-						var isSameTeam = order.ExtraData == orderManager.LocalClient.Team && world.LocalPlayer != null
-							&& world.LocalPlayer.WinState == WinState.Undefined;
+						var isSameTeam = orderManager.LocalClient != null && order.ExtraData == orderManager.LocalClient.Team
+							&& world.LocalPlayer != null && world.LocalPlayer.WinState == WinState.Undefined;
 
 						if (valid && (isSameTeam || world.IsReplay))
 							Game.AddChatLine("[Team" + (world.IsReplay ? " " + order.ExtraData : "") + "] " + client.Name, client.Color, message);
@@ -139,7 +136,7 @@ namespace OpenRA.Network
 									FieldLoader.GetValue<int>("SaveSyncFrame", saveSyncFrame.Value.Value);
 						}
 						else
-							Game.AddSystemLine(ServerChatName, "The game has started.");
+							Game.AddSystemLine("The game has started.");
 
 						Game.StartGame(orderManager.LobbyInfo.GlobalSettings.Map, WorldType.Regular);
 						break;
@@ -158,7 +155,7 @@ namespace OpenRA.Network
 
 				case "GameSaved":
 					if (!orderManager.World.IsReplay)
-						Game.AddSystemLine(ServerChatName, "Game saved");
+						Game.AddSystemLine("Game saved");
 
 					foreach (var nsr in orderManager.World.WorldActor.TraitsImplementing<INotifyGameSaved>())
 						nsr.GameSaved(orderManager.World);
@@ -178,7 +175,7 @@ namespace OpenRA.Network
 							if (orderManager.World.Paused != pause && world != null && world.LobbyInfo.NonBotClients.Count() > 1)
 							{
 								var pausetext = "The game is {0} by {1}".F(pause ? "paused" : "un-paused", client.Name);
-								Game.AddSystemLine(ServerChatName, pausetext);
+								Game.AddSystemLine(pausetext);
 							}
 
 							orderManager.World.Paused = pause;
@@ -340,13 +337,17 @@ namespace OpenRA.Network
 
 				default:
 					{
-						if (order.Subject != null && !order.Subject.IsDead)
-							foreach (var t in order.Subject.TraitsImplementing<IResolveOrder>())
-								t.ResolveOrder(order.Subject, order);
-
+						ResolveOrder(order);
 						break;
 					}
 			}
+		}
+
+		static void ResolveOrder(Order order)
+		{
+			if (order.Subject != null && !order.Subject.IsDead)
+				foreach (var t in order.Subject.TraitsImplementing<IResolveOrder>())
+					t.ResolveOrder(order.Subject, order);
 		}
 
 		static void SetOrderLag(OrderManager o)

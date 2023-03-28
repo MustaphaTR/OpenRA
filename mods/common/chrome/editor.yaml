@@ -173,8 +173,10 @@ Background@SAVE_MAP_PANEL:
 			Key: escape
 
 ScrollPanel@MAP_SAVE_VISIBILITY_PANEL:
+	TopBottomSpacing: 5
+	ItemSpacing: 5
 	Width: 220
-	Height: 64
+	Height: 55
 	Children:
 		Checkbox@VISIBILITY_TEMPLATE:
 			X: 5
@@ -193,13 +195,15 @@ Container@EDITOR_ROOT:
 				NextMusicKey: NextMusic
 				TakeScreenshotKey: TakeScreenshot
 				MuteAudioKey: ToggleMute
+		LogicKeyListener@WORLD_KEYHANDLER:
+			Logic: ResetZoomHotkeyLogic
+				ResetZoomKey: ResetZoom
 		Container@WORLD_ROOT:
 		Container@MENU_ROOT:
 		TooltipContainer@TOOLTIP_CONTAINER:
 
 Container@EDITOR_WORLD_ROOT:
 	Logic: LoadIngamePerfLogic, MapEditorLogic, ActorEditLogic
-		ChangeZoomKey: TogglePixelDouble
 		EditPanelPadding: 14
 	Children:
 		Container@PERF_ROOT:
@@ -209,12 +213,6 @@ Container@EDITOR_WORLD_ROOT:
 			TooltipContainer: TOOLTIP_CONTAINER
 			TooltipTemplate: SIMPLE_TOOLTIP
 			Children:
-				ActorPreview@DRAG_ACTOR_PREVIEW:
-					Visible: false
-				TerrainTemplatePreview@DRAG_TILE_PREVIEW:
-					Visible: false
-				Sprite@DRAG_LAYER_PREVIEW:
-					Visible: false
 				Background@ACTOR_EDIT_PANEL:
 					X: 32
 					Y: 32
@@ -316,6 +314,8 @@ Container@EDITOR_WORLD_ROOT:
 			Width: WINDOW_RIGHT
 			Height: WINDOW_BOTTOM
 			IgnoreMouseOver: True
+			ZoomInKey: ZoomIn
+			ZoomOutKey: ZoomOut
 			ScrollUpKey: MapScrollUp
 			ScrollDownKey: MapScrollDown
 			ScrollLeftKey: MapScrollLeft
@@ -584,25 +584,8 @@ Container@EDITOR_WORLD_ROOT:
 			TooltipContainer: TOOLTIP_CONTAINER
 			Font: Bold
 			Key: f1
-		Label@ZOOM_LABEL:
-			X: 495
-			Width: 50
-			Height: 25
-			Text: Zoom:
-			Align: Right
-			Font: Bold
-			Contrast: true
-		DropDownButton@ZOOM_BUTTON:
-			X: 550
-			Width: 70
-			Height: 25
-			Font: Bold
-			Key: TogglePixelDouble
-			TooltipTemplate: BUTTON_TOOLTIP
-			TooltipText: Zoom
-			TooltipContainer: TOOLTIP_CONTAINER
 		Button@UNDO_BUTTON:
-			X: 630
+			X: 500
 			Height: 25
 			Width: 90
 			Text: Undo
@@ -612,7 +595,7 @@ Container@EDITOR_WORLD_ROOT:
 			TooltipText: Undo last step
 			TooltipContainer: TOOLTIP_CONTAINER
 		Button@REDO_BUTTON:
-			X: 730
+			X: 600
 			Height: 25
 			Width: 90
 			Text: Redo
@@ -637,29 +620,30 @@ Container@EDITOR_WORLD_ROOT:
 			Contrast: true
 
 ScrollPanel@CATEGORY_FILTER_PANEL:
-	Width: 170
+	Width: 240
+	TopBottomSpacing: 5
+	ItemSpacing: 5
 	Children:
 		Container@SELECT_CATEGORIES_BUTTONS:
 			Width: PARENT_RIGHT
-			Height: 29
+			Height: 25
 			Children:
 				Button@SELECT_ALL:
 					X: 10
-					Y: 2
-					Width: 60
+					Y: 0 - 5
+					Width: 93
 					Height: 25
 					Text: All
 					Font: Bold
 				Button@SELECT_NONE:
-					X: PARENT_RIGHT - WIDTH - 34
-					Y: 2
-					Width: 60
+					X: 10 + 93 + 10
+					Y: 0 - 5
+					Width: 93
 					Height: 25
 					Text: None
 					Font: Bold
 		Checkbox@CATEGORY_TEMPLATE:
 			X: 5
-			Y: 5
 			Width: PARENT_RIGHT - 29
 			Height: 20
 			Visible: false

@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -27,6 +27,10 @@ namespace OpenRA.Mods.Common.Widgets
 
 		protected readonly World World;
 		readonly WorldRenderer worldRenderer;
+		readonly Color normalSelectionColor;
+		readonly Color altSelectionColor;
+		readonly Color ctrlSelectionColor;
+
 		int2 dragStart, mousePos;
 		bool isDragging = false;
 
@@ -43,6 +47,14 @@ namespace OpenRA.Mods.Common.Widgets
 		{
 			World = world;
 			this.worldRenderer = worldRenderer;
+			if (!ChromeMetrics.TryGet("AltSelectionColor", out altSelectionColor))
+				altSelectionColor = Color.White;
+
+			if (!ChromeMetrics.TryGet("CtrlSelectionColor", out ctrlSelectionColor))
+				ctrlSelectionColor = Color.White;
+
+			if (!ChromeMetrics.TryGet("NormalSelectionColor", out normalSelectionColor))
+				normalSelectionColor = Color.White;
 		}
 
 		void DrawRollover(Actor unit)
@@ -61,7 +73,14 @@ namespace OpenRA.Mods.Common.Widgets
 			{
 				var a = worldRenderer.Viewport.WorldToViewPx(dragStart);
 				var b = worldRenderer.Viewport.WorldToViewPx(mousePos);
-				Game.Renderer.RgbaColorRenderer.DrawRect(a, b, 1, Color.White);
+
+				var color = normalSelectionColor;
+				if (modifiers.HasFlag(Modifiers.Alt) && !modifiers.HasFlag(Modifiers.Ctrl))
+					color = altSelectionColor;
+				else if (modifiers.HasFlag(Modifiers.Ctrl) && !modifiers.HasFlag(Modifiers.Alt))
+					color = ctrlSelectionColor;
+
+				Game.Renderer.RgbaColorRenderer.DrawRect(a, b, 1, color);
 
 				// Render actors in the dragbox
 				foreach (var u in SelectActorsInBoxWithDeadzone(World, dragStart, mousePos, modifiers))
@@ -105,19 +124,13 @@ namespace OpenRA.Mods.Common.Widgets
 			{
 				if (useClassicMouseStyle && HasMouseFocus)
 				{
-					if (!IsValidDragbox && World.Selection.Actors.Any() && !multiClick)
+					if (!IsValidDragbox && World.Selection.Actors.Any() && !multiClick && uog.InputOverridesSelection(World, mousePos, mi))
 					{
-						var selectableActor = World.ScreenMap.ActorsAtMouse(mousePos).Select(a => a.Actor).Any(x =>
-							x.Info.HasTraitInfo<SelectableInfo>() && (x.Owner.IsAlliedWith(World.RenderPlayer) || !World.FogObscures(x)));
-
-						if (!selectableActor || uog.InputOverridesSelection(World, mousePos, mi))
-						{
-							// Order units instead of selecting
-							ApplyOrders(World, mi);
-							isDragging = false;
-							YieldMouseFocus(mi);
-							return true;
-						}
+						// Order units instead of selecting
+						ApplyOrders(World, mi);
+						isDragging = false;
+						YieldMouseFocus(mi);
+						return true;
 					}
 				}
 
@@ -194,9 +207,8 @@ namespace OpenRA.Mods.Common.Widgets
 			world.PlayVoiceForOrders(orders);
 
 			var flashed = false;
-			foreach (var order in orders)
+			foreach (var o in orders)
 			{
-				var o = order;
 				if (o == null)
 					continue;
 
@@ -263,12 +275,12 @@ namespace OpenRA.Mods.Common.Widgets
 
 					// Check if selecting actors on the screen has selected new units
 					if (ownUnitsOnScreen.Count > World.Selection.Actors.Count())
-						Game.AddSystemLine("Battlefield Control", "Selected across screen");
+						Game.AddSystemLine("Selected across screen");
 					else
 					{
 						// Select actors in the world that have highest selection priority
 						ownUnitsOnScreen = SelectActorsInWorld(World, null, eligiblePlayers).SubsetWithHighestSelectionPriority(e.Modifiers).ToList();
-						Game.AddSystemLine("Battlefield Control", "Selected across map");
+						Game.AddSystemLine("Selected across map");
 					}
 
 					World.Selection.Combine(World, ownUnitsOnScreen, false, false);
@@ -295,12 +307,12 @@ namespace OpenRA.Mods.Common.Widgets
 
 					// Check if selecting actors on the screen has selected new units
 					if (newSelection.Count > World.Selection.Actors.Count())
-						Game.AddSystemLine("Battlefield Control", "Selected across screen");
+						Game.AddSystemLine("Selected across screen");
 					else
 					{
 						// Select actors in the world that have the same selection class as one of the already selected actors
 						newSelection = SelectActorsInWorld(World, selectedClasses, eligiblePlayers).ToList();
-						Game.AddSystemLine("Battlefield Control", "Selected across map");
+						Game.AddSystemLine("Selected across map");
 					}
 
 					World.Selection.Combine(World, newSelection, true, false);

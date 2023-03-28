@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -270,7 +270,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 
 			// Negotiate the label length that the tooltip will allow
 			var maxLabelWidth = 0;
-			var templateIcon = badgeTemplate.Get<SpriteWidget>("ICON");
+			var templateIcon = badgeTemplate.Get("ICON");
 			var templateLabel = badgeTemplate.Get<LabelWidget>("LABEL");
 			var templateLabelFont = Game.Renderer.Fonts[templateLabel.Font];
 			foreach (var badge in profile.Badges)
@@ -285,8 +285,8 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			foreach (var badge in profile.Badges)
 			{
 				var b = badgeTemplate.Clone();
-				var icon = b.Get<SpriteWidget>("ICON");
-				icon.GetSprite = () => badge.Icon24;
+				var icon = b.Get<BadgeWidget>("ICON");
+				icon.Badge = badge;
 
 				var label = b.Get<LabelWidget>("LABEL");
 				var labelFont = Game.Renderer.Fonts[label.Font];
@@ -312,24 +312,37 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 		[ObjectCreator.UseCtor]
 		public AnonymousProfileTooltipLogic(Widget widget, OrderManager orderManager, Session.Client client)
 		{
-			var address = LobbyUtils.GetExternalIP(client, orderManager);
-			var cachedDescriptiveIP = address ?? "Unknown IP";
-
 			var nameLabel = widget.Get<LabelWidget>("NAME");
 			var nameFont = Game.Renderer.Fonts[nameLabel.Font];
 			widget.Bounds.Width = nameFont.Measure(nameLabel.Text).X + 2 * nameLabel.Bounds.Left;
 
-			var ipLabel = widget.Get<LabelWidget>("IP");
-			ipLabel.GetText = () => cachedDescriptiveIP;
-
 			var locationLabel = widget.Get<LabelWidget>("LOCATION");
-			var cachedCountryLookup = GeoIP.LookupCountry(address);
-			locationLabel.GetText = () => cachedCountryLookup;
+			var ipLabel = widget.Get<LabelWidget>("IP");
+			var adminLabel = widget.Get("GAME_ADMIN");
+
+			if (client.Location != null)
+			{
+				var locationFont = Game.Renderer.Fonts[locationLabel.Font];
+				var locationWidth = widget.Bounds.Width - 2 * locationLabel.Bounds.X;
+				var location = WidgetUtils.TruncateText(client.Location, locationWidth, locationFont);
+				locationLabel.IsVisible = () => true;
+				locationLabel.GetText = () => location;
+				widget.Bounds.Height += locationLabel.Bounds.Height;
+				ipLabel.Bounds.Y += locationLabel.Bounds.Height;
+				adminLabel.Bounds.Y += locationLabel.Bounds.Height;
+			}
+
+			if (client.AnonymizedIPAddress != null)
+			{
+				ipLabel.IsVisible = () => true;
+				ipLabel.GetText = () => client.AnonymizedIPAddress;
+				widget.Bounds.Height += ipLabel.Bounds.Height;
+				adminLabel.Bounds.Y += locationLabel.Bounds.Height;
+			}
 
 			if (client.IsAdmin)
 			{
-				var adminLabel = widget.Get("GAME_ADMIN");
-				adminLabel.IsVisible = () => client.IsAdmin;
+				adminLabel.IsVisible = () => true;
 				widget.Bounds.Height += adminLabel.Bounds.Height;
 			}
 		}

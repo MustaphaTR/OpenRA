@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -21,6 +21,7 @@ namespace OpenRA.Mods.Common.Widgets
 	{
 		public readonly string SeparatorCollection = "dropdown";
 		public readonly string SeparatorImage = "separator";
+		public readonly TextAlign PanelAlign = TextAlign.Left;
 
 		Widget panel;
 		MaskWidget fullscreenMask;
@@ -47,10 +48,10 @@ namespace OpenRA.Mods.Common.Widgets
 			var image = ChromeProvider.GetImage("scrollbar", IsDisabled() ? "down_pressed" : "down_arrow");
 			var rb = RenderBounds;
 
-			WidgetUtils.DrawRGBA(image, stateOffset + new float2(rb.Right - rb.Height + 4, rb.Top + (rb.Height - image.Bounds.Height) / 2));
+			WidgetUtils.DrawRGBA(image, stateOffset + new float2(rb.Right - (int)((rb.Height + image.Size.X) / 2), rb.Top + (int)((rb.Height - image.Size.Y) / 2)));
 
 			var separator = ChromeProvider.GetImage(SeparatorCollection, SeparatorImage);
-			WidgetUtils.DrawRGBA(separator, new float2(-3, 0) + new float2(rb.Right - rb.Height + 4, rb.Top + (rb.Height - separator.Bounds.Height) / 2));
+			WidgetUtils.DrawRGBA(separator, stateOffset + new float2(-3, 0) + new float2(rb.Right - rb.Height + 4, rb.Top + (rb.Height - separator.Size.Y) / 2));
 		}
 
 		public override Widget Clone() { return new DropDownButtonWidget(this); }
@@ -101,12 +102,18 @@ namespace OpenRA.Mods.Common.Widgets
 			panelRoot.AddChild(fullscreenMask);
 
 			var oldBounds = panel.Bounds;
+			var panelX = RenderOrigin.X - panelRoot.RenderOrigin.X;
+			if (PanelAlign == TextAlign.Right)
+				panelX += Bounds.Width - oldBounds.Width;
+			else if (PanelAlign == TextAlign.Center)
+				panelX += (Bounds.Width - oldBounds.Width) / 2;
+
 			var panelY = RenderOrigin.Y + Bounds.Height - panelRoot.RenderOrigin.Y;
 			if (panelY + oldBounds.Height > Game.Renderer.Resolution.Height)
 				panelY -= (Bounds.Height + oldBounds.Height);
 
 			panel.Bounds = new Rectangle(
-				RenderOrigin.X - panelRoot.RenderOrigin.X,
+				panelX,
 				panelY,
 				oldBounds.Width,
 				oldBounds.Height);

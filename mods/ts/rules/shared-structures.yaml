@@ -53,6 +53,8 @@ GACNST:
 		CargoType: Vehicle
 		Voice: Move
 		RequiresForceMove: true
+	TransformsIntoTransforms:
+		RequiresCondition: factundeploy && build-incomplete
 	GrantConditionOnPrerequisite@GLOBALFACTUNDEPLOY:
 		Condition: factundeploy
 		Prerequisites: global-factundeploy
@@ -97,7 +99,7 @@ PROC:
 		Prerequisites: anypower, ~techlevel.low
 		Description: Processes raw Tiberium\ninto useable resources.
 	Building:
-		Footprint: xxX= xx== xxX=
+		Footprint: xxX+ xx++ xxX+
 		Dimensions: 4,3
 	Selectable:
 		Bounds: 134, 96, 0, -12

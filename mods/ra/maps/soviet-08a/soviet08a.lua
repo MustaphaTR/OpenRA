@@ -1,5 +1,5 @@
 --[[
-   Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
+   Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
    This file is part of OpenRA, which is free software. It is made
    available to you under the terms of the GNU General Public License
    as published by the Free Software Foundation, either version 3 of
@@ -53,7 +53,7 @@ end
 AddParadropReinforcementTrigger = function()
 	Trigger.AfterDelay(DateTime.Seconds(90), function()
 		Media.PlaySpeechNotification(ussr, "ReinforcementsArrived")
-		scripteddrop.SendParatroopers(ScriptedParadrop.CenterPosition, false, 10)
+		scripteddrop.ActivateParatroopers(ScriptedParadrop.CenterPosition, 10)
 	end)
 end
 

@@ -106,10 +106,50 @@ NAHAND:
 		MaxHeightDelta: 3
 	Exit@1:
 		SpawnOffset: 384,768,0
+		ExitCell: 2,2
+		Priority: 2
+	Exit@2:
+		SpawnOffset: 384,768,0
 		ExitCell: 3,2
+		Priority: 2
+	Exit@fallback1:
+		SpawnOffset: 384,768,0
+		ExitCell: 1,2
+	Exit@fallback2:
+		SpawnOffset: 384,768,0
+		ExitCell: 3,1
+	Exit@fallback3:
+		SpawnOffset: 1086,362,0
+		ExitCell: 3,0
+	Exit@fallback4:
+		SpawnOffset: 1086,362,0
+		ExitCell: 3,-1
+	Exit@fallback5:
+		SpawnOffset: 1086,362,0
+		ExitCell: 2,-1
+	Exit@fallback6:
+		SpawnOffset: 362,-362,0
+		ExitCell: 1,-1
+	Exit@fallback7:
+		SpawnOffset: -362,-1086,0
+		ExitCell: 0,-1
+	Exit@fallback8:
+		SpawnOffset: -362,-1086,0
+		ExitCell: -1,-1
+	Exit@fallback9:
+		SpawnOffset: -362,-1086,0
+		ExitCell: -1,0
+	Exit@fallback10:
+		SpawnOffset: -1086,-362,0
+		ExitCell: -1,1
+	Exit@fallback11:
+		SpawnOffset: -1086,-362,0
+		ExitCell: -1,2
+	Exit@fallback12:
+		SpawnOffset: -1086,-362,0
+		ExitCell: 0,2
 	ExitsDebugOverlay:
 	RallyPoint:
-		Offset: 3,3
 		Palette: mouse
 		IsPlayerPalette: false
 		LineWidth: 2
@@ -154,7 +194,7 @@ NAWEAP:
 		Prerequisites: proc, ~structures.nod, ~techlevel.low
 		Description: Produces vehicles.
 	Building:
-		Footprint: xxX= xxX= xxX=
+		Footprint: xxX+ xxX+ xxX+
 		Dimensions: 4,3
 	Selectable:
 		Bounds: 149, 80, -3, -10
@@ -167,7 +207,6 @@ NAWEAP:
 		Range: 4c0
 		MaxHeightDelta: 3
 	RallyPoint:
-		Offset: 4,1
 		Palette: mouse
 		IsPlayerPalette: false
 		LineWidth: 2

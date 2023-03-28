@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -13,7 +13,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using OpenRA.Graphics;
 using OpenRA.Primitives;
 using OpenRA.Traits;
 
@@ -33,6 +32,8 @@ namespace OpenRA
 		Started = 8,
 		Incompatible = 16
 	}
+
+	public enum WorldViewport { Native, Close, Medium, Far }
 
 	public class ServerSettings
 	{
@@ -80,6 +81,12 @@ namespace OpenRA
 
 		[Desc("Sets the timestamp format. Defaults to the ISO 8601 standard.")]
 		public string TimestampFormat = "yyyy-MM-ddTHH:mm:ss";
+
+		[Desc("Allow clients to see anonymised IPs for other clients.")]
+		public bool ShareAnonymizedIPs = true;
+
+		[Desc("Allow clients to see the country of other clients.")]
+		public bool EnableGeoIP = true;
 
 		public ServerSettings Clone()
 		{
@@ -137,31 +144,42 @@ namespace OpenRA
 		[Desc("This can be set to Windowed, Fullscreen or PseudoFullscreen.")]
 		public WindowMode Mode = WindowMode.PseudoFullscreen;
 
+		[Desc("Enable VSync.")]
+		public bool VSync = true;
+
 		[Desc("Screen resolution in fullscreen mode.")]
 		public int2 FullscreenSize = new int2(0, 0);
 
 		[Desc("Screen resolution in windowed mode.")]
 		public int2 WindowedSize = new int2(1024, 768);
 
-		public bool HardwareCursors = true;
-
-		public bool PixelDouble = false;
 		public bool CursorDouble = false;
+		public WorldViewport ViewportDistance = WorldViewport.Medium;
+		public float UIScale = 1;
 
-		[Desc("Add a frame rate limiter. It is recommended to not disable this.")]
-		public bool CapFramerate = true;
+		[Desc("Add a frame rate limiter.")]
+		public bool CapFramerate = false;
 
 		[Desc("At which frames per second to cap the framerate.")]
 		public int MaxFramerate = 60;
 
-		[Desc("Disable high resolution DPI scaling on Windows operating systems.")]
-		public bool DisableWindowsDPIScaling = true;
-
 		[Desc("Disable separate OpenGL render thread on Windows operating systems.")]
 		public bool DisableWindowsRenderThread = true;
 
-		[Desc("Use OpenGL ES if both ES and regular OpenGL are available.")]
-		public bool PreferGLES = false;
+		[Desc("Disable the OpenGL debug message callback feature.")]
+		public bool DisableGLDebugMessageCallback = false;
+
+		[Desc("Disable operating-system provided cursor rendering.")]
+		public bool DisableHardwareCursors = false;
+
+		[Desc("Display index to use in a multi-monitor fullscreen setup.")]
+		public int VideoDisplay = 0;
+
+		[Desc("Preferred OpenGL profile to use.",
+			"Modern: OpenGL Core Profile 3.2 or greater.",
+			"Embedded: OpenGL ES 3.0 or greater.",
+			"Legacy: OpenGL 2.1 with framebuffer_object extension.")]
+		public GLProfile GLProfile = GLProfile.Modern;
 
 		public int BatchSize = 8192;
 		public int SheetSize = 2048;
@@ -183,13 +201,14 @@ namespace OpenRA
 
 		public bool CashTicks = true;
 		public bool Mute = false;
+		public bool MuteBackgroundMusic = false;
 	}
 
 	public class PlayerSettings
 	{
-		[Desc("Sets the player nickname for in-game and IRC chat.")]
-		public string Name = "Newbie";
-		public Color Color = Color.FromAhsl(75, 255, 180);
+		[Desc("Sets the player nickname.")]
+		public string Name = "Commander";
+		public Color Color = Color.FromArgb(200, 32, 32);
 		public string LastServer = "localhost:1234";
 		public Color[] CustomColors = { };
 	}
@@ -202,15 +221,17 @@ namespace OpenRA
 		public int ViewportEdgeScrollMargin = 5;
 
 		public bool LockMouseWindow = false;
-		public MouseScrollType MiddleMouseScroll = MouseScrollType.Standard;
-		public MouseScrollType RightMouseScroll = MouseScrollType.Disabled;
+		public MouseScrollType MouseScroll = MouseScrollType.Joystick;
 		public MouseButtonPreference MouseButtonPreference = new MouseButtonPreference();
 		public float ViewportEdgeScrollStep = 30f;
 		public float UIScrollSpeed = 50f;
+		public float ZoomSpeed = 0.04f;
 		public int SelectionDeadzone = 24;
 		public int MouseScrollDeadzone = 8;
 
 		public bool UseClassicMouseStyle = false;
+		public bool UseAlternateScrollButton = false;
+
 		public StatusBarsType StatusBars = StatusBarsType.Standard;
 		public TargetLinesType TargetLines = TargetLinesType.Manual;
 		public bool UsePlayerStanceColors = false;
@@ -220,10 +241,12 @@ namespace OpenRA
 		[Desc("Filename of the authentication profile to use.")]
 		public string AuthProfile = "player.oraid";
 
-		public bool AllowZoom = true;
-		public Modifiers ZoomModifier = Modifiers.Ctrl;
+		public Modifiers ZoomModifier = Modifiers.None;
 
 		public bool FetchNews = true;
+
+		[Desc("Version of introduction prompt that the player last viewed.")]
+		public int IntroductionPromptVersion = 0;
 
 		public MPGameFilters MPGameFilters = MPGameFilters.Waiting | MPGameFilters.Empty | MPGameFilters.Protected | MPGameFilters.Started;
 	}

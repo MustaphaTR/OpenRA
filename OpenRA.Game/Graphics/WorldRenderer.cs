@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -228,13 +228,11 @@ namespace OpenRA.Graphics
 				if (a.Actor.IsInWorld && !a.Actor.Disposed)
 					a.Trait.RenderAboveWorld(a.Actor, this);
 
-			var renderShroud = World.RenderPlayer != null ? World.RenderPlayer.Shroud : null;
-
 			if (enableDepthBuffer)
 				Game.Renderer.ClearDepthBuffer();
 
 			foreach (var a in World.ActorsWithTrait<IRenderShroud>())
-				a.Trait.RenderShroud(renderShroud, this);
+				a.Trait.RenderShroud(this);
 
 			if (enableDepthBuffer)
 				Game.Renderer.Context.DisableDepthBuffer();
@@ -248,10 +246,16 @@ namespace OpenRA.Graphics
 					r.Render(this);
 
 			Game.Renderer.Flush();
+		}
 
+		public void DrawAnnotations()
+		{
+			Game.Renderer.EnableAntialiasingFilter();
 			for (var i = 0; i < preparedAnnotationRenderables.Count; i++)
 				preparedAnnotationRenderables[i].Render(this);
+			Game.Renderer.DisableAntialiasingFilter();
 
+			// Engine debugging overlays
 			if (debugVis.Value != null && debugVis.Value.RenderGeometry)
 			{
 				for (var i = 0; i < preparedRenderables.Count; i++)
@@ -282,6 +286,7 @@ namespace OpenRA.Graphics
 			}
 
 			Game.Renderer.Flush();
+
 			preparedRenderables.Clear();
 			preparedOverlayRenderables.Clear();
 			preparedAnnotationRenderables.Clear();

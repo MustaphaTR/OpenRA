@@ -109,6 +109,8 @@ E1R1:
 	ProducibleWithLevel:
 		Prerequisites: techlevel.infonly
 		InitialLevels: 1
+	UpdatesPlayerStatistics:
+		OverrideActor: e1
 	-Buildable:
 	WithProductionIconOverlay:
 		Types: Veterancy
@@ -211,6 +213,8 @@ E3R1:
 	ProducibleWithLevel:
 		Prerequisites: techlevel.infonly
 		InitialLevels: 1
+	UpdatesPlayerStatistics:
+		OverrideActor: e3
 	-Buildable:
 	WithProductionIconOverlay:
 		Types: Veterancy
@@ -260,7 +264,7 @@ E4:
 
 E6:
 	Inherits: ^Soldier
-	Inherits@SELECTION_MODE: ^LowPrioritySelectionMode
+	Inherits@selection: ^SelectableSupportUnit
 	Buildable:
 		Queue: Infantry
 		BuildAtProductionType: Soldier
@@ -301,8 +305,6 @@ E6:
 		EnterBlockedCursor: move-blocked
 	Voiced:
 		VoiceSet: EngineerVoice
-	Selectable:
-		Priority: 5
 	-AttackFrontal:
 
 SPY:

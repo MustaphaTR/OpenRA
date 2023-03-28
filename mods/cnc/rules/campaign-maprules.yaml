@@ -15,6 +15,13 @@ World:
 	MapOptions:
 		ShortGameCheckboxLocked: True
 		ShortGameCheckboxEnabled: False
+	ScriptLobbyDropdown@difficulty:
+		ID: difficulty
+		Label: Difficulty
+		Values:
+			normal: Normal
+		Default: normal
+		Locked: true
 
 Player:
 	-ConquestVictoryConditions:
@@ -55,6 +62,17 @@ airstrike.proxy:
 		ClockSequence: clock
 		CircleSequence: circles
 		SupportPowerPaletteOrder: 10
+
+MoneyCrate:
+	Inherits: ^Crate
+	Tooltip:
+		Name: Money Crate
+	GiveCashCrateAction:
+		Amount: 2000
+		Sequence: dollar
+		UseCashTick: true
+	RenderSprites:
+		Image: wcrate
 
 TRUCK:
 	Buildable:

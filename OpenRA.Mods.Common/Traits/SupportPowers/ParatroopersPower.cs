@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -96,17 +96,19 @@ namespace OpenRA.Mods.Common.Traits
 		{
 			base.Activate(self, order, manager);
 
-			SendParatroopers(self, order.Target.CenterPosition, !info.UseDirectionalTarget || order.ExtraData == uint.MaxValue, (int)order.ExtraData);
+			var facing = info.UseDirectionalTarget && order.ExtraData != uint.MaxValue ? (int)order.ExtraData : -1;
+			SendParatroopers(self, order.Target.CenterPosition, facing);
 		}
 
-		public Actor[] SendParatroopers(Actor self, WPos target, bool randomize = true, int dropFacing = 0)
+		public Pair<Actor[], Actor[]> SendParatroopers(Actor self, WPos target, int facing = -1)
 		{
+			var aircraft = new List<Actor>();
 			var units = new List<Actor>();
 
 			var info = Info as ParatroopersPowerInfo;
 
-			if (randomize)
-				dropFacing = 256 * self.World.SharedRandom.Next(info.QuantizedFacings) / info.QuantizedFacings;
+			if (facing < 0)
+				facing = 256 * self.World.SharedRandom.Next(info.QuantizedFacings) / info.QuantizedFacings;
 
 			var utLower = info.UnitTypes.First(ut => ut.Key == GetLevel()).Value.ToLowerInvariant();
 			ActorInfo unitType;
@@ -114,7 +116,7 @@ namespace OpenRA.Mods.Common.Traits
 				throw new YamlException("Actors ruleset does not include the entry '{0}'".F(utLower));
 
 			var altitude = unitType.TraitInfo<AircraftInfo>().CruiseAltitude.Length;
-			var dropRotation = WRot.FromFacing(dropFacing);
+			var dropRotation = WRot.FromFacing(facing);
 			var delta = new WVec(0, -1024, 0).Rotate(dropRotation);
 			target = target + new WVec(0, 0, altitude);
 			var startEdge = target - (self.World.Map.DistanceToEdge(target, -delta) + info.Cordon).Length * delta / 1024;
@@ -171,15 +173,32 @@ namespace OpenRA.Mods.Common.Traits
 				}
 			};
 
-			// Create the units immediately so they can be returned
-			foreach (var p in info.DropItems.First(di => di.Key == GetLevel()).Value)
+			// Create the actors immediately so they can be returned
+			var squadSize = info.SquadSizes.First(ss => ss.Key == GetLevel()).Value;
+			for (var i = -squadSize / 2; i <= squadSize / 2; i++)
 			{
-				var unit = self.World.CreateActor(false, p.ToLowerInvariant(), new TypeDictionary
+				// Even-sized squads skip the lead plane
+				if (i == 0 && (squadSize & 1) == 0)
+					continue;
+
+				// Includes the 90 degree rotation between body and world coordinates
+				var so = info.SquadOffset;
+				var spawnOffset = new WVec(i * so.Y, -Math.Abs(i) * so.X, 0).Rotate(dropRotation);
+
+				aircraft.Add(self.World.CreateActor(false, info.UnitTypes.First(ut => ut.Key == GetLevel(), new TypeDictionary
+				{
+					new CenterPositionInit(startEdge + spawnOffset),
+					new OwnerInit(self.Owner),
+					new FacingInit(facing),
+				}));
+			}
+
+			foreach (var p in info.DropItems)
+			{
+				units.Add(self.World.CreateActor(false, p.ToLowerInvariant(), new TypeDictionary
 				{
 					new OwnerInit(self.Owner)
-				});
-
-				units.Add(unit);
+				}));
 			}
 
 			self.World.AddFrameEndTask(w =>
@@ -188,10 +207,10 @@ namespace OpenRA.Mods.Common.Traits
 
 				Actor distanceTestActor = null;
 
-				var squadSize = info.SquadSizes.First(ss => ss.Key == GetLevel()).Value;
 				var passengersPerPlane = (info.DropItems.First(di => di.Key == GetLevel()).Value.Length + squadSize - 1) / squadSize;
 				var added = 0;
-				for (var i = -squadSize / 2; i <= squadSize / 2; i++)
+				var j = 0;
+				for (var i = -info.SquadSize / 2; i <= info.SquadSize / 2; i++)
 				{
 					// Even-sized squads skip the lead plane
 					if (i == 0 && (squadSize & 1) == 0)
@@ -201,13 +220,8 @@ namespace OpenRA.Mods.Common.Traits
 					var so = info.SquadOffset;
 					var spawnOffset = new WVec(i * so.Y, -Math.Abs(i) * so.X, 0).Rotate(dropRotation);
 					var targetOffset = new WVec(i * so.Y, 0, 0).Rotate(dropRotation);
-
-					var a = w.CreateActor(info.UnitTypes.First(ut => ut.Key == GetLevel()).Value, new TypeDictionary
-					{
-						new CenterPositionInit(startEdge + spawnOffset),
-						new OwnerInit(self.Owner),
-						new FacingInit(dropFacing),
-					});
+					var a = aircraft[j++];
+					w.Add(a);
 
 					var drop = a.Trait<ParaDrop>();
 					drop.SetLZ(w.Map.CellContaining(target + targetOffset), !info.AllowImpassableCells);
@@ -256,7 +270,7 @@ namespace OpenRA.Mods.Common.Traits
 				}
 			});
 
-			return units.ToArray();
+			return Pair.New(aircraft.ToArray(), units.ToArray());
 		}
 
 		void RemoveCamera(Actor camera)

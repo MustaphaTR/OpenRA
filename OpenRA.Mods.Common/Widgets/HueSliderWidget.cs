@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -47,7 +47,7 @@ namespace OpenRA.Mods.Common.Widgets
 			Game.Renderer.RgbaSpriteRenderer.DrawSprite(hueSprite, ro, new float2(rb.Size));
 
 			var sprite = ChromeProvider.GetImage("lobby-bits", "huepicker");
-			var pos = RenderOrigin + new int2(PxFromValue(Value).Clamp(0, rb.Width - 1) - sprite.Bounds.Width / 2, (rb.Height - sprite.Bounds.Height) / 2);
+			var pos = RenderOrigin + new int2(PxFromValue(Value).Clamp(0, rb.Width - 1) - (int)sprite.Size.X / 2, (rb.Height - (int)sprite.Size.Y) / 2);
 			Game.Renderer.RgbaSpriteRenderer.DrawSprite(sprite, pos);
 		}
 	}

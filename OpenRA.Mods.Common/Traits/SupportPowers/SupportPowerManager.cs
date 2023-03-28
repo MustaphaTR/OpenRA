@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -60,14 +60,7 @@ namespace OpenRA.Mods.Common.Traits
 
 				var hasKey = Powers.ContainsKey(key);
 				if (!hasKey)
-				{
-					Powers.Add(key, new SupportPowerInstance(key, this)
-					{
-						Instances = new List<SupportPower>(),
-						RemainingTime = t.Info.StartFullyCharged ? 0 : t.Info.ChargeInterval,
-						TotalTime = t.Info.ChargeInterval,
-					});
-				}
+					Powers.Add(key, t.CreateInstance(key, this));
 
 				Powers[key].Instances.Add(t);
 
@@ -122,13 +115,6 @@ namespace OpenRA.Mods.Common.Traits
 				Powers[order.OrderString].Activate(order);
 		}
 
-		// Deprecated. Remove after SupportPowerBinWidget is removed.
-		public void Target(string key)
-		{
-			if (Powers.ContainsKey(key))
-				Powers[key].Target();
-		}
-
 		static readonly SupportPowerInstance[] NoInstances = { };
 
 		public IEnumerable<SupportPowerInstance> GetPowersForActor(Actor a)
@@ -165,36 +151,43 @@ namespace OpenRA.Mods.Common.Traits
 
 	public class SupportPowerInstance
 	{
-		readonly SupportPowerManager manager;
+		protected readonly SupportPowerManager Manager;
 
 		public readonly string Key;
 
-		public List<SupportPower> Instances;
-		public int RemainingTime;
-		public int TotalTime;
+		public readonly List<SupportPower> Instances = new List<SupportPower>();
+		public readonly int TotalTicks;
+
+		protected int remainingSubTicks;
+		public int RemainingTicks { get { return remainingSubTicks / 100; } }
 		public bool Active { get; private set; }
 		public bool Disabled
 		{
 			get
 			{
-				return manager.Self.Owner.WinState == WinState.Lost ||
-					(!prereqsAvailable && !manager.DevMode.AllTech) ||
+				return Manager.Self.Owner.WinState == WinState.Lost ||
+					(!prereqsAvailable && !Manager.DevMode.AllTech) ||
 					!instancesEnabled ||
 					oneShotFired;
 			}
 		}
 
 		public SupportPowerInfo Info { get { return Instances.Select(i => i.Info).FirstOrDefault(); } }
-		public bool Ready { get { return Active && RemainingTime == 0; } }
+		public bool Ready { get { return Active && RemainingTicks == 0; } }
 
 		bool instancesEnabled;
 		bool prereqsAvailable = true;
 		bool oneShotFired;
+		protected bool notifiedCharging;
+		bool notifiedReady;
 
-		public SupportPowerInstance(string key, SupportPowerManager manager)
+		public SupportPowerInstance(string key, SupportPowerInfo info, SupportPowerManager manager)
 		{
-			this.manager = manager;
 			Key = key;
+			TotalTicks = info.ChargeInterval;
+			remainingSubTicks = info.StartFullyCharged ? 0 : TotalTicks * 100;
+
+			Manager = manager;
 		}
 
 		public void CheckPrerequisites(bool disable)
@@ -203,15 +196,16 @@ namespace OpenRA.Mods.Common.Traits
 				prereqsAvailable = false;
 			else
 				prereqsAvailable = GetLevel() != 0;
+
+			if (!prereqsAvailable)
+				remainingSubTicks = TotalTicks * 100;
 		}
 
-		bool notifiedCharging;
-		bool notifiedReady;
-		public void Tick()
+		public virtual void Tick()
 		{
 			instancesEnabled = Instances.Any(i => !i.IsTraitDisabled);
 			if (!instancesEnabled)
-				RemainingTime = TotalTime;
+				remainingSubTicks = TotalTicks * 100;
 
 			Active = !Disabled && Instances.Any(i => !i.IsTraitPaused) && GetLevel() != 0;
 			if (!Active)
@@ -220,18 +214,19 @@ namespace OpenRA.Mods.Common.Traits
 			if (Active)
 			{
 				var power = Instances.First();
-				if (manager.DevMode.FastCharge && RemainingTime > 25)
-					RemainingTime = 25;
+				if (Manager.DevMode.FastCharge && remainingSubTicks > 2500)
+					remainingSubTicks = 2500;
 
-				if (RemainingTime > 0)
-					--RemainingTime;
+				if (remainingSubTicks > 0)
+					remainingSubTicks = (remainingSubTicks - 100).Clamp(0, TotalTicks * 100);
+
 				if (!notifiedCharging)
 				{
 					power.Charging(power.Self, Key);
 					notifiedCharging = true;
 				}
 
-				if (RemainingTime == 0
+				if (RemainingTicks == 0
 					&& !notifiedReady)
 				{
 					power.Charged(power.Self, Key);
@@ -240,7 +235,7 @@ namespace OpenRA.Mods.Common.Traits
 			}
 		}
 
-		public void Target()
+		public virtual void Target()
 		{
 			if (!Ready)
 				return;
@@ -249,10 +244,10 @@ namespace OpenRA.Mods.Common.Traits
 			if (power == null)
 				return;
 
-			power.SelectTarget(power.Self, Key, manager);
+			power.SelectTarget(power.Self, Key, Manager);
 		}
 
-		public void Activate(Order order)
+		public virtual void Activate(Order order)
 		{
 			if (!Ready)
 				return;
@@ -270,8 +265,8 @@ namespace OpenRA.Mods.Common.Traits
 				return;
 
 			// Note: order.Subject is the *player* actor
-			power.Activate(power.Self, order, manager);
-			RemainingTime = TotalTime;
+			power.Activate(power.Self, order, Manager);
+			remainingSubTicks = TotalTicks * 100;
 			notifiedCharging = notifiedReady = false;
 
 			if (Info.OneShot)
@@ -279,6 +274,16 @@ namespace OpenRA.Mods.Common.Traits
 				CheckPrerequisites(true);
 				oneShotFired = true;
 			}
+		}
+
+		public virtual string IconOverlayTextOverride()
+		{
+			return null;
+		}
+
+		public virtual string TooltipTimeTextOverride()
+		{
+			return null;
 		}
 
 		public int GetLevel()

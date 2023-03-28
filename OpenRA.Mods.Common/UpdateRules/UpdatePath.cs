@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -34,90 +34,8 @@ namespace OpenRA.Mods.Common.UpdateRules
 			Justification = "Extracting update lists to temporary variables obfuscates the definitions.")]
 		static readonly UpdatePath[] Paths =
 		{
-			new UpdatePath("release-20171014", "release-20180218", new UpdateRule[]
+			new UpdatePath("release-20190314", "release-20191117", new UpdateRule[]
 			{
-				new LegacyBetaWarning(),
-				new RemoveMobileOnRails(),
-				new AircraftCanHoverGeneralization(),
-				new AddNukeLaunchAnimation(),
-				new RenameWithTurreted(),
-				new RemovePlayerPaletteTileset(),
-				new CapturableChanges(),
-				new DecoupleSelfReloading(),
-				new RemoveOutOfAmmo(),
-				new ChangeCanPowerDown(),
-				new ReplaceRequiresPower(),
-				new DropPauseAnimationWhenDisabled(),
-				new ChangeBuildableArea(),
-				new MoveVisualBounds(),
-				new ScaleDefaultModHealth(),
-				new ReworkCheckboxes(),
-				new SplitGateFromBuilding(),
-				new RemoveIDisable(),
-				new ReplaceCanPowerDown(),
-				new ScaleSupportPowerSecondsToTicks(),
-				new WarnAboutInfiltrateForTypes(),
-				new RenameBurstDelay(),
-			}),
-
-			new UpdatePath("release-20180218", "release-20180307", new UpdateRule[0]),
-
-			new UpdatePath("release-20180307", "release-20180923", new UpdateRule[]
-			{
-				new RemoveTerrainTypeIsWaterFlag(),
-				new DefineSquadExcludeHarvester(),
-				new RemoveWeaponScanRadius(),
-				new SplitAimAnimations(),
-				new DefineSoundDefaults(),
-				new RenameWormSpawner(),
-				new RemoveWithReloadingSpriteTurret(),
-				new ChangeIntensityToDuration(),
-				new IgnoreAbstractActors(),
-				new AddShakeToBridge(),
-				new RemovePaletteFromCurrentTileset(),
-				new DefineLocomotors(),
-				new DefineOwnerLostAction(),
-				new RenameEmitInfantryOnSell(),
-				new SplitRepairDecoration(),
-				new MoveHackyAISupportPowerDecisions(),
-				new DefineGroundCorpseDefault(),
-				new RemoveCanUndeployFromGrantConditionOnDeploy(),
-			}),
-
-			new UpdatePath("release-20180923", "release-20181215", new UpdateRule[0]),
-
-			new UpdatePath("release-20181215", "release-20190314", new UpdateRule[]
-			{
-				new AddCarryableHarvester(),
-				new RenameEditorTilesetFilter(),
-				new DefineNotificationDefaults(),
-				new MergeRearmAndRepairAnimation(),
-				new MergeCaptureTraits(),
-				new RemovedNotifyBuildComplete(),
-				new LowPowerSlowdownToModifier(),
-				new ChangeTakeOffSoundAndLandingSound(),
-				new RemoveHealthPercentageRing(),
-				new RenameCrateActionNotification(),
-				new RemoveRepairBuildingsFromAircraft(),
-				new AddRearmable(),
-				new MergeAttackPlaneAndHeli(),
-				new RemovedDemolishLocking(),
-				new RequireProductionType(),
-				new CloakRequiresConditionToPause(),
-				new ExtractHackyAIModules(),
-				new RemoveNegativeDamageFullHealthCheck(),
-				new RemoveResourceExplodeModifier(),
-				new DefineLevelUpImageDefault(),
-				new RemovedAutoCarryallCircleTurnSpeed(),
-				new RemoveAttackIgnoresVisibility(),
-				new ReplacedWithChargeAnimation(),
-				new RefactorResourceLevelAnimating(),
-				new RemoveAttackSuicides(),
-			}),
-
-			new UpdatePath("release-20190314", "playtest-20190825", new UpdateRule[]
-			{
-				// Prep only changes here
 				new MultipleDeploySounds(),
 				new RemoveSimpleBeacon(),
 				new MakeMobilePausableConditional(),
@@ -138,11 +56,24 @@ namespace OpenRA.Mods.Common.UpdateRules
 				new RemoveMoveIntoWorldFromExit(),
 			}),
 
-			new UpdatePath("playtest-20190825", new UpdateRule[]
+			new UpdatePath("release-20191117", "release-20200202", new UpdateRule[]
+			{
+				new ReplaceAttackTypeStrafe()
+			}),
+
+			new UpdatePath("release-20200202", new UpdateRule[]
 			{
 				// Bleed only changes here
 				new RemoveYesNo(),
 				new RemoveInitialFacingHardcoding(),
+				new RemoveAirdropActorTypeDefault(),
+				new RenameProneTime(),
+				new RemoveWithPermanentInjury(),
+				new AddResourceRenderer(),
+				new ReformatChromeProvider(),
+				new RenameSpins(),
+				new CreateScreenShakeWarhead(),
+				new RenameRallyPointPath(),
 			})
 		};
 

@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -67,6 +67,10 @@ namespace OpenRA.Mods.Common.Server
 
 		public static bool ValidateCommand(S server, Connection conn, Session.Client client, string cmd)
 		{
+			// Kick command is always valid for the host
+			if (cmd.StartsWith("kick "))
+				return true;
+
 			if (server.State == ServerState.GameStarted)
 			{
 				server.SendOrderTo(conn, "Message", "Cannot change state when game started. ({0})".F(cmd));
@@ -394,8 +398,17 @@ namespace OpenRA.Mods.Common.Server
 				LoadMapSettings(server, server.LobbyInfo.GlobalSettings, server.Map.Rules);
 
 				// Reset client states
+				var selectableFactions = server.Map.Rules.Actors["world"].TraitInfos<FactionInfo>()
+					.Where(f => f.Selectable)
+					.Select(f => f.InternalName)
+					.ToList();
+
 				foreach (var c in server.LobbyInfo.Clients)
+				{
 					c.State = Session.ClientState.Invalid;
+					if (!selectableFactions.Contains(c.Faction))
+						c.Faction = "Random";
+				}
 
 				// Reassign players into new slots based on their old slots:
 				//  - Observers remain as observers
@@ -584,6 +597,11 @@ namespace OpenRA.Mods.Common.Server
 			}
 
 			var kickClient = server.GetClient(kickConn);
+			if (server.State == ServerState.GameStarted && !kickClient.IsObserver)
+			{
+				server.SendOrderTo(conn, "Message", "Only spectators can be kicked after the game has started.");
+				return true;
+			}
 
 			Log.Write("server", "Kicking client {0}.", kickClientID);
 			server.SendMessage("{0} kicked {1} from the server.".F(client.Name, kickClient.Name));
@@ -595,9 +613,9 @@ namespace OpenRA.Mods.Common.Server
 
 			if (tempBan)
 			{
-				Log.Write("server", "Temporarily banning client {0} ({1}).", kickClientID, kickClient.IpAddress);
+				Log.Write("server", "Temporarily banning client {0} ({1}).", kickClientID, kickClient.IPAddress);
 				server.SendMessage("{0} temporarily banned {1} from the server.".F(client.Name, kickClient.Name));
-				server.TempBans.Add(kickClient.IpAddress);
+				server.TempBans.Add(kickClient.IPAddress);
 			}
 
 			server.SyncLobbyClients();

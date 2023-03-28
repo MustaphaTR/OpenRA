@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -41,6 +41,7 @@ namespace OpenRA.Mods.Common.Widgets
 		public bool Shadow = ChromeMetrics.Get<bool>("ButtonTextShadow");
 		public Color ContrastColorDark = ChromeMetrics.Get<Color>("ButtonTextContrastColorDark");
 		public Color ContrastColorLight = ChromeMetrics.Get<Color>("ButtonTextContrastColorLight");
+		public int ContrastRadius = ChromeMetrics.Get<int>("ButtonTextContrastRadius");
 		public string ClickSound = ChromeMetrics.Get<string>("ClickSound");
 		public string ClickDisabledSound = ChromeMetrics.Get<string>("ClickDisabledSound");
 		public bool Disabled = false;
@@ -114,6 +115,7 @@ namespace OpenRA.Mods.Common.Widgets
 			GetColorDisabled = other.GetColorDisabled;
 			ContrastColorDark = other.ContrastColorDark;
 			ContrastColorLight = other.ContrastColorLight;
+			ContrastRadius = other.ContrastRadius;
 			GetContrastColorDark = other.GetContrastColorDark;
 			GetContrastColorLight = other.GetContrastColorLight;
 			OnMouseDown = other.OnMouseDown;
@@ -251,7 +253,7 @@ namespace OpenRA.Mods.Common.Widgets
 			DrawBackground(rb, disabled, Depressed, hover, highlighted);
 			if (Contrast)
 				font.DrawTextWithContrast(text, position + stateOffset,
-					disabled ? colordisabled : color, bgDark, bgLight, 2);
+					disabled ? colordisabled : color, bgDark, bgLight, ContrastRadius);
 			else if (Shadow)
 				font.DrawTextWithShadow(text, position, color, bgDark, bgLight, 1);
 			else

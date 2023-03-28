@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -36,6 +36,7 @@ namespace OpenRA.Graphics
 		public readonly SheetType Type;
 		readonly List<Sheet> sheets = new List<Sheet>();
 		readonly Func<Sheet> allocateSheet;
+		readonly int margin;
 
 		Sheet current;
 		TextureChannel channel;
@@ -47,19 +48,30 @@ namespace OpenRA.Graphics
 			return new Sheet(type, new Size(sheetSize, sheetSize));
 		}
 
+		public static SheetType FrameTypeToSheetType(SpriteFrameType t)
+		{
+			switch (t)
+			{
+				case SpriteFrameType.Indexed: return SheetType.Indexed;
+				case SpriteFrameType.BGRA: return SheetType.BGRA;
+				default: throw new NotImplementedException("Unknown SpriteFrameType {0}".F(t));
+			}
+		}
+
 		public SheetBuilder(SheetType t)
 			: this(t, Game.Settings.Graphics.SheetSize) { }
 
-		public SheetBuilder(SheetType t, int sheetSize)
-			: this(t, () => AllocateSheet(t, sheetSize)) { }
+		public SheetBuilder(SheetType t, int sheetSize, int margin = 1)
+			: this(t, () => AllocateSheet(t, sheetSize), margin) { }
 
-		public SheetBuilder(SheetType t, Func<Sheet> allocateSheet)
+		public SheetBuilder(SheetType t, Func<Sheet> allocateSheet, int margin = 1)
 		{
 			channel = t == SheetType.Indexed ? TextureChannel.Red : TextureChannel.RGBA;
 			Type = t;
 			current = allocateSheet();
 			sheets.Add(current);
 			this.allocateSheet = allocateSheet;
+			this.margin = margin;
 		}
 
 		public Sprite Add(ISpriteFrame frame) { return Add(frame.Data, frame.Size, 0, frame.Offset); }
@@ -76,9 +88,9 @@ namespace OpenRA.Graphics
 			return rect;
 		}
 
-		public Sprite Add(Png src)
+		public Sprite Add(Png src, float scale = 1f)
 		{
-			var rect = Allocate(new Size(src.Width, src.Height));
+			var rect = Allocate(new Size(src.Width, src.Height),  scale);
 			Util.FastCopyIntoSprite(rect, src);
 			current.CommitBufferedData();
 			return rect;
@@ -102,19 +114,19 @@ namespace OpenRA.Graphics
 			return (TextureChannel)nextChannel;
 		}
 
-		public Sprite Allocate(Size imageSize) { return Allocate(imageSize, 0, float3.Zero); }
-		public Sprite Allocate(Size imageSize, float zRamp, float3 spriteOffset)
+		public Sprite Allocate(Size imageSize, float scale = 1f) { return Allocate(imageSize, 0, float3.Zero, scale); }
+		public Sprite Allocate(Size imageSize, float zRamp, float3 spriteOffset, float scale = 1f)
 		{
-			if (imageSize.Width + p.X > current.Size.Width)
+			if (imageSize.Width + p.X + margin > current.Size.Width)
 			{
-				p = new int2(0, p.Y + rowHeight);
+				p = new int2(0, p.Y + rowHeight + margin);
 				rowHeight = imageSize.Height;
 			}
 
 			if (imageSize.Height > rowHeight)
 				rowHeight = imageSize.Height;
 
-			if (p.Y + imageSize.Height > current.Size.Height)
+			if (p.Y + imageSize.Height + margin > current.Size.Height)
 			{
 				var next = NextChannel(channel);
 				if (next == null)
@@ -131,8 +143,8 @@ namespace OpenRA.Graphics
 				p = int2.Zero;
 			}
 
-			var rect = new Sprite(current, new Rectangle(p.X, p.Y, imageSize.Width, imageSize.Height), zRamp, spriteOffset, channel, BlendMode.Alpha);
-			p += new int2(imageSize.Width, 0);
+			var rect = new Sprite(current, new Rectangle(p.X + margin, p.Y + margin, imageSize.Width, imageSize.Height), zRamp, spriteOffset, channel, BlendMode.Alpha, scale);
+			p += new int2(imageSize.Width + margin, 0);
 
 			return rect;
 		}

@@ -64,6 +64,7 @@ e1:
 		Start: 324
 		Length: 18
 	die6: electro
+		Frames: 0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13
 		Length: *
 		UseTilesetExtension: true
 		TilesetOverrides:
@@ -146,6 +147,7 @@ sniper:
 		Start: 452
 		Length: 18
 	die6: electro
+		Frames: 0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13
 		Length: *
 		UseTilesetExtension: true
 		TilesetOverrides:
@@ -206,6 +208,7 @@ e3:
 		Start: 340
 		Length: 18
 	die6: electro
+		Frames: 0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13
 		Length: *
 		UseTilesetExtension: true
 		TilesetOverrides:
@@ -275,6 +278,7 @@ e6:
 		Start: 182
 		Length: 18
 	die6: electro
+		Frames: 0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13
 		Length: *
 		UseTilesetExtension: true
 		TilesetOverrides:
@@ -339,6 +343,7 @@ medi:
 		Start: 229
 		Length: 18
 	die6: electro
+		Frames: 0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13
 		Length: *
 		UseTilesetExtension: true
 		TilesetOverrides:
@@ -399,6 +404,7 @@ mech:
 		Start: 229
 		Length: 18
 	die6: electro
+		Frames: 0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13
 		Length: *
 		UseTilesetExtension: true
 		TilesetOverrides:
@@ -464,6 +470,7 @@ e2:
 		Start: 452
 		Length: 18
 	die6: electro
+		Frames: 0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13
 		Length: *
 		UseTilesetExtension: true
 		TilesetOverrides:
@@ -591,6 +598,7 @@ spy:
 		Start: 324
 		Length: 18
 	die6: electro
+		Frames: 0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13
 		Length: *
 		UseTilesetExtension: true
 		TilesetOverrides:
@@ -651,6 +659,7 @@ thf:
 		Start: 175
 		Length: 18
 	die6: electro
+		Frames: 0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13
 		Length: *
 		UseTilesetExtension: true
 		TilesetOverrides:
@@ -711,6 +720,7 @@ e7:
 		Start: 298
 		Length: 18
 	die6: electro
+		Frames: 0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13
 		Length: *
 		UseTilesetExtension: true
 		TilesetOverrides:
@@ -784,6 +794,7 @@ e4:
 		Start: 452
 		Length: 18
 	die6: electro
+		Frames: 0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13
 		Length: *
 		UseTilesetExtension: true
 		TilesetOverrides:
@@ -865,6 +876,7 @@ gnrl:
 		Start: 246
 		Length: 18
 	die6: electro
+		Frames: 0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13
 		Length: *
 		UseTilesetExtension: true
 		TilesetOverrides:
@@ -945,6 +957,7 @@ shok:
 		Start: 452
 		Length: 18
 	die6: electro
+		Frames: 0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13
 		Length: *
 		UseTilesetExtension: true
 		TilesetOverrides:
@@ -989,6 +1002,7 @@ c1:
 		Start: 180
 		Length: 18
 	die6: electro
+		Frames: 0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13
 		Length: *
 		UseTilesetExtension: true
 		TilesetOverrides:
@@ -1037,6 +1051,7 @@ c2:
 		Start: 180
 		Length: 18
 	die6: electro
+		Frames: 0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13
 		Length: *
 		UseTilesetExtension: true
 		TilesetOverrides:
@@ -1085,6 +1100,7 @@ c3:
 		Start: 180
 		Length: 18
 	die6: electro
+		Frames: 0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13
 		Length: *
 		UseTilesetExtension: true
 		TilesetOverrides:
@@ -1134,6 +1150,7 @@ einstein:
 		Start: 148
 		Length: 17
 	die6: electro
+		Frames: 0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13
 		Length: *
 		UseTilesetExtension: true
 		TilesetOverrides:
@@ -1178,6 +1195,7 @@ delphi:
 		Start: 357
 		Length: 17
 	die6: electro
+		Frames: 0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13
 		Length: *
 		UseTilesetExtension: true
 		TilesetOverrides:
@@ -1222,6 +1240,7 @@ chan:
 		Start: 148
 		Length: 17
 	die6: electro
+		Frames: 0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13
 		Length: *
 		UseTilesetExtension: true
 		TilesetOverrides:
@@ -1271,6 +1290,7 @@ zombie:
 		Start: 114
 		Length: 19
 	die6: electro
+		Frames: 0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13
 		Length: *
 		UseTilesetExtension: true
 		TilesetOverrides:

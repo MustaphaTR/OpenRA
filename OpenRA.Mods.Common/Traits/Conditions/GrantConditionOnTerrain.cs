@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -35,9 +35,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		ConditionManager conditionManager;
 		int conditionToken = ConditionManager.InvalidConditionToken;
-
 		string cachedTerrain;
-		CPos cachedLocation;
 
 		public GrantConditionOnTerrain(ActorInitializer init, GrantConditionOnTerrainInfo info)
 		{
@@ -53,9 +51,10 @@ namespace OpenRA.Mods.Common.Traits
 		void ITick.Tick(Actor self)
 		{
 			var loc = self.Location;
-			if (conditionManager == null || loc == cachedLocation)
+			if (conditionManager == null)
 				return;
 
+			// The terrain type may change between ticks without the actor moving
 			var currentTerrain = loc.Layer == 0 ? self.World.Map.GetTerrainInfo(loc).Type :
 					tileSet[self.World.GetCustomMovementLayers()[loc.Layer].GetTerrainIndex(loc)].Type;
 
@@ -69,7 +68,6 @@ namespace OpenRA.Mods.Common.Traits
 			}
 
 			cachedTerrain = currentTerrain;
-			cachedLocation = loc;
 		}
 	}
 }

@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -42,7 +42,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		bool IOccupySpaceInfo.SharesCell { get { return false; } }
 
-		public bool CanEnterCell(World world, Actor self, CPos cell, Actor ignoreActor = null, BlockedByActor check = BlockedByActor.All)
+		public bool CanEnterCell(World world, Actor self, CPos cell, SubCell subCell = SubCell.FullCell, Actor ignoreActor = null, BlockedByActor check = BlockedByActor.All)
 		{
 			// IPositionable*Info*.CanEnterCell is only ever used for things like exiting production facilities,
 			// all places relevant for husks check IPositionable.CanEnterCell instead, so we can safely set this to true.
@@ -59,6 +59,8 @@ namespace OpenRA.Mods.Common.Traits
 
 		readonly int dragSpeed;
 		readonly WPos finalPosition;
+
+		INotifyVisualPositionChanged[] notifyVisualPositionChanged;
 
 		[Sync]
 		public CPos TopLeft { get; private set; }
@@ -91,6 +93,8 @@ namespace OpenRA.Mods.Common.Traits
 			var distance = (finalPosition - CenterPosition).Length;
 			if (dragSpeed > 0 && distance > 0)
 				self.QueueActivity(new Drag(self, CenterPosition, finalPosition, distance / dragSpeed));
+
+			notifyVisualPositionChanged = self.TraitsImplementing<INotifyVisualPositionChanged>().ToArray();
 		}
 
 		public bool CanExistInCell(CPos cell)
@@ -130,6 +134,11 @@ namespace OpenRA.Mods.Common.Traits
 		{
 			CenterPosition = pos;
 			self.World.ScreenMap.AddOrUpdate(self);
+
+			// This can be called from the constructor before notifyVisualPositionChanged is assigned.
+			if (notifyVisualPositionChanged != null)
+				foreach (var n in notifyVisualPositionChanged)
+					n.VisualPositionChanged(self, 0, 0);
 		}
 
 		public void SetPosition(Actor self, WPos pos)

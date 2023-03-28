@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -28,7 +28,7 @@ namespace OpenRA.Mods.Common.Traits
 		public object Create(ActorInitializer init) { return new EditorActorLayer(init.Self, this); }
 	}
 
-	public class EditorActorLayer : IWorldLoaded, ITickRender, IRender, IRadarSignature, ICreatePlayers
+	public class EditorActorLayer : IWorldLoaded, ITickRender, IRender, IRadarSignature, ICreatePlayers, IRenderAnnotations
 	{
 		readonly EditorActorLayerInfo info;
 		readonly List<EditorActorPreview> previews = new List<EditorActorPreview>();
@@ -103,6 +103,17 @@ namespace OpenRA.Mods.Common.Traits
 			yield break;
 		}
 
+		public IEnumerable<IRenderable> RenderAnnotations(Actor self, WorldRenderer wr)
+		{
+			if (wr.World.Type != WorldType.Editor)
+				return NoRenderables;
+
+			return PreviewsInBox(wr.Viewport.TopLeft, wr.Viewport.BottomRight)
+				.SelectMany(p => p.RenderAnnotations());
+		}
+
+		bool IRenderAnnotations.SpatiallyPartitionable { get { return false; } }
+
 		public EditorActorPreview Add(ActorReference reference) { return Add(NextActorName(), reference); }
 
 		public EditorActorPreview Add(string id, ActorReference reference, bool initialSetup = false)
@@ -122,12 +133,13 @@ namespace OpenRA.Mods.Common.Traits
 			if (!preview.Bounds.IsEmpty)
 				screenMap.Add(preview, preview.Bounds);
 
-			foreach (var kv in preview.Footprint)
-				AddPreviewLocation(preview, kv.Key);
-
 			// Fallback to the actor's CenterPosition for the ActorMap if it has no Footprint
-			if (!preview.Footprint.Any())
-				AddPreviewLocation(preview, worldRenderer.World.Map.CellContaining(preview.CenterPosition));
+			var footprint = preview.Footprint.Select(kv => kv.Key).ToArray();
+			if (!footprint.Any())
+				footprint = new[] { worldRenderer.World.Map.CellContaining(preview.CenterPosition) };
+
+			foreach (var cell in footprint)
+				AddPreviewLocation(preview, cell);
 
 			if (!initialSetup)
 			{
@@ -143,16 +155,21 @@ namespace OpenRA.Mods.Common.Traits
 			previews.Remove(preview);
 			screenMap.Remove(preview);
 
-			foreach (var kv in preview.Footprint)
+			// Fallback to the actor's CenterPosition for the ActorMap if it has no Footprint
+			var footprint = preview.Footprint.Select(kv => kv.Key).ToArray();
+			if (!footprint.Any())
+				footprint = new[] { worldRenderer.World.Map.CellContaining(preview.CenterPosition) };
+
+			foreach (var cell in footprint)
 			{
 				List<EditorActorPreview> list;
-				if (!cellMap.TryGetValue(kv.Key, out list))
+				if (!cellMap.TryGetValue(cell, out list))
 					continue;
 
 				list.Remove(preview);
 
 				if (!list.Any())
-					cellMap.Remove(kv.Key);
+					cellMap.Remove(cell);
 			}
 
 			UpdateNeighbours(preview.Footprint);
@@ -252,8 +269,16 @@ namespace OpenRA.Mods.Common.Traits
 				return map.Grid.DefaultSubCell;
 
 			for (var i = (byte)SubCell.First; i < map.Grid.SubCellOffsets.Length; i++)
-				if (!previews.Any(p => p.Footprint[cell] == (SubCell)i))
+			{
+				var blocked = previews.Any(p =>
+				{
+					SubCell s;
+					return p.Footprint.TryGetValue(cell, out s) && s == (SubCell)i;
+				});
+
+				if (!blocked)
 					return (SubCell)i;
+			}
 
 			return SubCell.Invalid;
 		}

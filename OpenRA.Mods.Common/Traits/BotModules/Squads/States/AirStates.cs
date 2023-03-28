@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -159,13 +159,13 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 		protected static bool FullAmmo(Actor a)
 		{
 			var ammoPools = a.TraitsImplementing<AmmoPool>();
-			return ammoPools.All(x => x.FullAmmo());
+			return ammoPools.All(x => x.HasFullAmmo);
 		}
 
 		protected static bool HasAmmo(Actor a)
 		{
 			var ammoPools = a.TraitsImplementing<AmmoPool>();
-			return ammoPools.All(x => x.HasAmmo());
+			return ammoPools.All(x => x.HasAmmo);
 		}
 
 		protected static bool ReloadsAutomatically(Actor a)

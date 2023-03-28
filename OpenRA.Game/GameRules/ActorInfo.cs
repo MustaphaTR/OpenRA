@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -44,7 +44,11 @@ namespace OpenRA
 				{
 					try
 					{
-						traits.Add(LoadTraitInfo(creator, t.Key.Split('@')[0], t.Value));
+						// HACK: The linter does not want to crash when a trait doesn't exist but only print an error instead
+						// LoadTraitInfo will only return null to signal us to abort here if the linter is running
+						var trait = LoadTraitInfo(creator, t.Key.Split('@')[0], t.Value);
+						if (trait != null)
+							traits.Add(trait);
 					}
 					catch (FieldLoader.MissingFieldsException e)
 					{
@@ -73,7 +77,13 @@ namespace OpenRA
 			if (!string.IsNullOrEmpty(my.Value))
 				throw new YamlException("Junk value `{0}` on trait node {1}"
 				.F(my.Value, traitName));
+
+			// HACK: The linter does not want to crash when a trait doesn't exist but only print an error instead
+			// ObjectCreator will only return null to signal us to abort here if the linter is running
 			var info = creator.CreateObject<ITraitInfo>(traitName + "Info");
+			if (info == null)
+				return null;
+
 			try
 			{
 				FieldLoader.Load(info, my);
