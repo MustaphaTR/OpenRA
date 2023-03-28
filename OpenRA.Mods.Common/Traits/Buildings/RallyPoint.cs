@@ -172,7 +172,7 @@ namespace OpenRA.Mods.Common.Traits
 				if (rallyAcceptor == null)
 				{
 					unit.QueueActivity(new AttackMoveActivity(unit, () => unit.Trait<IMove>().MoveTo(location, 1, evaluateNearestMovableCell: true, targetLineColor: Color.OrangeRed)));
-					return;
+					continue;
 				}
 
 				var ars = rallyAcceptor.TraitsImplementing<IAcceptsRallyPoint>();

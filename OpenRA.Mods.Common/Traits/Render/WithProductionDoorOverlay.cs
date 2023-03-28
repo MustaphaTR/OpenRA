@@ -76,6 +76,9 @@ namespace OpenRA.Mods.Common.Traits.Render
 
 		void INotifyProduction.UnitProduced(Actor self, Actor other, CPos exit)
 		{
+			if (other.TraitOrDefault<IPositionable>() == null)
+				return;
+
 			openExit = exit;
 			exitingActor = other;
 			desiredFrame = door.CurrentSequence.Length - 1;

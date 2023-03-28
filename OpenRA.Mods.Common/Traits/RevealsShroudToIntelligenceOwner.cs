@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2018 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -24,7 +24,7 @@ namespace OpenRA.Mods.Common.Traits
 		public override object Create(ActorInitializer init) { return new RevealsShroudToIntelligenceOwner(init.Self, this); }
 	}
 
-	public class RevealsShroudToIntelligenceOwner : RevealsShroud, INotifyAddedToWorld, ITick
+	public class RevealsShroudToIntelligenceOwner : RevealsShroud, INotifyAddedToWorld, INotifyMoving, INotifyVisualPositionChanged, ITick
 	{
 		public readonly new RevealsShroudToIntelligenceOwnerInfo Info;
 		public List<Player> IntelOwners = new List<Player>();
@@ -40,7 +40,7 @@ namespace OpenRA.Mods.Common.Traits
 			p.Shroud.AddSource(this, Type, uv);
 		}
 
-		void ITick.Tick(Actor self)
+		void INotifyVisualPositionChanged.VisualPositionChanged(Actor self, byte oldLayer, byte newLayer)
 		{
 			if (!self.IsInWorld)
 				return;
@@ -54,12 +54,42 @@ namespace OpenRA.Mods.Common.Traits
 			var centerPosition = self.CenterPosition;
 			var projectedPos = centerPosition - new WVec(0, centerPosition.Z, centerPosition.Z);
 			var projectedLocation = self.World.Map.CellContaining(projectedPos);
-			var traitDisabled = IsTraitDisabled;
+			var pos = self.CenterPosition;
 
-			if (cachedLocation == projectedLocation && traitDisabled == cachedTraitDisabled)
+			var dirty = Info.MoveRecalculationThreshold.Length > 0 && (pos - cachedPos).LengthSquared > Info.MoveRecalculationThreshold.LengthSquared;
+			if (!dirty && cachedLocation == projectedLocation)
 				return;
 
 			cachedLocation = projectedLocation;
+			cachedPos = pos;
+
+			var cells = ProjectedCells(self);
+			foreach (var p in self.World.Players)
+			{
+				RemoveCellsFromPlayerShroud(self, p);
+				if (IntelOwners.Contains(p))
+					AddCellsToPlayerShroud(self, p, cells);
+			}
+		}
+
+		void ITick.Tick(Actor self)
+		{
+			if (!self.IsInWorld)
+				return;
+
+			if (self.Owner.NonCombatant)
+				return;
+
+			if (!IntelOwners.Any())
+				return;
+
+			var traitDisabled = IsTraitDisabled;
+			var range = Range;
+
+			if (cachedRange == range && traitDisabled == cachedTraitDisabled)
+				return;
+
+			cachedRange = range;
 			cachedTraitDisabled = traitDisabled;
 
 			var cells = ProjectedCells(self);
@@ -95,6 +125,35 @@ namespace OpenRA.Mods.Common.Traits
 					AddCellsToPlayerShroud(self, p, cells);
 
 					IntelOwners.Add(p);
+				}
+			}
+		}
+
+		void INotifyMoving.MovementTypeChanged(Actor self, MovementType type)
+		{
+			if (self.Owner.NonCombatant)
+				return;
+
+			if (!IntelOwners.Any())
+				return;
+
+			// Recalculate the visiblity at our final stop position
+			if (type == MovementType.None && self.IsInWorld)
+			{
+				var centerPosition = self.CenterPosition;
+				var projectedPos = centerPosition - new WVec(0, centerPosition.Z, centerPosition.Z);
+				var projectedLocation = self.World.Map.CellContaining(projectedPos);
+				var pos = self.CenterPosition;
+
+				cachedLocation = projectedLocation;
+				cachedPos = pos;
+
+				var cells = ProjectedCells(self);
+				foreach (var p in self.World.Players)
+				{
+					RemoveCellsFromPlayerShroud(self, p);
+					if (IntelOwners.Contains(p))
+						AddCellsToPlayerShroud(self, p, cells);
 				}
 			}
 		}

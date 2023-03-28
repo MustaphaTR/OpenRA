@@ -48,7 +48,7 @@ namespace OpenRA.Mods.Common.Traits
 		[Sync]
 		protected bool cachedTraitDisabled;
 
-		WPos cachedPos;
+		protected WPos cachedPos;
 
 		public abstract void AddCellsToPlayerShroud(Actor self, Player player, PPos[] uv);
 		public abstract void RemoveCellsFromPlayerShroud(Actor self, Player player);
