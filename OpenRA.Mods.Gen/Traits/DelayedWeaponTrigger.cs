@@ -57,7 +57,7 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 		{
 			IsValid = false;
 			var target = Target.FromPos(attachable.CenterPosition);
-			attachable.World.AddFrameEndTask(w => weaponInfo.Impact(target, AttachedBy, Enumerable.Empty<int>()));
+			attachable.World.AddFrameEndTask(w => weaponInfo.Impact(target, AttachedBy));
 		}
 
 		public void Deactivate()

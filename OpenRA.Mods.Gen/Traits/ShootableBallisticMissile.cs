@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -47,7 +47,7 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 
 		public IReadOnlyDictionary<CPos, SubCell> OccupiedCells(ActorInfo info, CPos location, SubCell subCell = SubCell.Any) { return new ReadOnlyDictionary<CPos, SubCell>(); }
 		bool IOccupySpaceInfo.SharesCell { get { return false; } }
-		public bool CanEnterCell(World world, Actor self, CPos cell, Actor ignoreActor = null, BlockedByActor check = BlockedByActor.All)
+		public bool CanEnterCell(World world, Actor self, CPos cell, SubCell subCell = SubCell.FullCell, Actor ignoreActor = null, BlockedByActor check = BlockedByActor.All)
 		{
 			// SBMs may not land.
 			return false;
@@ -174,12 +174,8 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 
 		#region Implement IMove
 
-		public Activity MoveTo(CPos cell, int nearEnough, Color? targetLineColor = null)
-		{
-			return new ShootableBallisticMissileFly(self, Target.FromCell(self.World, cell));
-		}
-
-		public Activity MoveTo(CPos cell, Actor ignoreActor, Color? targetLineColor = null)
+		public Activity MoveTo(CPos cell, int nearEnough = 0, Actor ignoreActor = null,
+			bool evaluateNearestMovableCell = false, Color? targetLineColor = null)
 		{
 			return new ShootableBallisticMissileFly(self, Target.FromCell(self.World, cell));
 		}

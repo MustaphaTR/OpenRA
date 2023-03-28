@@ -10,6 +10,7 @@
 
 using System.Collections.Generic;
 using System.Linq;
+using OpenRA.GameRules;
 using OpenRA.Mods.Common.Activities;
 using OpenRA.Mods.Common.Traits;
 using OpenRA.Mods.Common.Warheads;
@@ -40,8 +41,9 @@ namespace OpenRA.Mods.Yupgi_alert.Warheads
 		[Desc("Map player to give the actors to. Defaults to the firer.")]
 		public readonly string Owner = null;
 
-		public override void DoImpact(Target target, Actor firedBy, IEnumerable<int> damageModifiers)
+		public override void DoImpact(Target target, WarheadArgs args)
 		{
+			var firedBy = args.SourceActor;
 			var map = firedBy.World.Map;
 			var targetCell = map.CellContaining(target.CenterPosition);
 

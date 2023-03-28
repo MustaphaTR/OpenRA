@@ -60,8 +60,10 @@ namespace OpenRA.Mods.Yupgi_alert.Warheads
 			}
 		}
 
-		public override void DoImpact(Target target, Actor firedBy, IEnumerable<int> damageModifiers)
+		public override void DoImpact(Target target, WarheadArgs args)
 		{
+			var firedBy = args.SourceActor;
+
 			if (!target.IsValidFor(firedBy))
 				return;
 

@@ -185,7 +185,7 @@ namespace OpenRA.Mods.Common.Traits
 				var so = info.SquadOffset;
 				var spawnOffset = new WVec(i * so.Y, -Math.Abs(i) * so.X, 0).Rotate(dropRotation);
 
-				aircraft.Add(self.World.CreateActor(false, info.UnitTypes.First(ut => ut.Key == GetLevel(), new TypeDictionary
+				aircraft.Add(self.World.CreateActor(false, info.UnitTypes.First(ut => ut.Key == GetLevel()).Value, new TypeDictionary
 				{
 					new CenterPositionInit(startEdge + spawnOffset),
 					new OwnerInit(self.Owner),
@@ -193,7 +193,7 @@ namespace OpenRA.Mods.Common.Traits
 				}));
 			}
 
-			foreach (var p in info.DropItems)
+			foreach (var p in info.DropItems.First(di => di.Key == GetLevel()).Value)
 			{
 				units.Add(self.World.CreateActor(false, p.ToLowerInvariant(), new TypeDictionary
 				{
@@ -210,7 +210,7 @@ namespace OpenRA.Mods.Common.Traits
 				var passengersPerPlane = (info.DropItems.First(di => di.Key == GetLevel()).Value.Length + squadSize - 1) / squadSize;
 				var added = 0;
 				var j = 0;
-				for (var i = -info.SquadSize / 2; i <= info.SquadSize / 2; i++)
+				for (var i = -squadSize / 2; i <= squadSize / 2; i++)
 				{
 					// Even-sized squads skip the lead plane
 					if (i == 0 && (squadSize & 1) == 0)

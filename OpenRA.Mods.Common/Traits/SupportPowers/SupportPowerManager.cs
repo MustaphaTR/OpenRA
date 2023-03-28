@@ -291,10 +291,10 @@ namespace OpenRA.Mods.Common.Traits
 			if (Info == null)
 				return 0;
 
-			var availables = Info.Prerequisites.Where(p => manager.TechTree.HasPrerequisites(p.Value));
+			var availables = Info.Prerequisites.Where(p => Manager.TechTree.HasPrerequisites(p.Value));
 			var level = availables.Any() ? availables.Max(p => p.Key) : 0;
 
-			return manager.DevMode.AllTech ? Info.Prerequisites.Max(p => p.Key) : level;
+			return Manager.DevMode.AllTech ? Info.Prerequisites.Max(p => p.Key) : level;
 		}
 	}
 

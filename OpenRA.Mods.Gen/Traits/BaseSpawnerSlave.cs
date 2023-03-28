@@ -1,6 +1,6 @@
 ﻿#region Copyright & License Information
 /*
- * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -117,16 +117,16 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 					continue;
 
 				if (target.Actor == null)
-					ab.AttackTarget(target, false, true, true); // force fire on the ground.
+					ab.AttackTarget(target, AttackSource.Default, false, true, true); // force fire on the ground.
 				else if (target.Actor.Owner.Stances[self.Owner] == Stance.Ally)
-					ab.AttackTarget(target, false, true, true); // force fire on ally.
+					ab.AttackTarget(target, AttackSource.Default, false, true, true); // force fire on ally.
 				else if (target.Actor.Owner.Stances[self.Owner] == Stance.Neutral)
-					ab.AttackTarget(target, false, true, true); // force fire on neutral.
+					ab.AttackTarget(target, AttackSource.Default, false, true, true); // force fire on neutral.
 				else
 					/* Target deprives me of force fire information.
 					 * This is a glitch if force fire weapon and normal fire are different, as in
 					 * RA mod spies but won't matter too much for carriers. */
-					ab.AttackTarget(target, false, true, target.RequiresForceFire);
+					ab.AttackTarget(target, AttackSource.Default, false, true, target.RequiresForceFire);
 			}
 		}
 

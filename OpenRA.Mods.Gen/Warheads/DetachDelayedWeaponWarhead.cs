@@ -11,6 +11,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using OpenRA.GameRules;
 using OpenRA.Mods.Yupgi_alert.Warheads;
 using OpenRA.Traits;
 
@@ -28,8 +29,9 @@ namespace OpenRA.Mods.Yupgi_alert.Traits.Warheads
 		[Desc("Defines how many DelayedWeapons can be detached per impact.")]
 		public readonly int DetachLimit = 1;
 
-		public override void DoImpact(Target target, Actor firedBy, IEnumerable<int> damageModifiers)
+		public override void DoImpact(Target target, WarheadArgs args)
 		{
+			var firedBy = args.SourceActor;
 			var pos = target.CenterPosition;
 
 			if (!IsValidImpact(pos, firedBy))

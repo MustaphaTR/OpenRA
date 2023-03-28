@@ -11,6 +11,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using OpenRA.GameRules;
+using OpenRA.Mods.Common.Warheads;
 using OpenRA.Mods.Yupgi_alert.Traits;
 using OpenRA.Primitives;
 using OpenRA.Traits;
@@ -45,8 +46,9 @@ namespace OpenRA.Mods.Yupgi_alert.Warheads
 				throw new YamlException("Weapons Ruleset does not contain an entry '{0}'".F(Weapon.ToLowerInvariant()));
 		}
 
-		public override void DoImpact(Target target, Actor firedBy, IEnumerable<int> damageModifiers)
+		public override void DoImpact(Target target, WarheadArgs args)
 		{
+			var firedBy = args.SourceActor;
 			var pos = target.CenterPosition;
 
 			if (!IsValidImpact(pos, firedBy))

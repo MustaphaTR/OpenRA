@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2017 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -35,7 +35,15 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 		public object Create(ActorInitializer init) { return new BlimpFallsToEarth(init.Self, this); }
 		public void RulesetLoaded(Ruleset rules, ActorInfo ai)
 		{
-			ExplosionWeapon = string.IsNullOrEmpty(Explosion) ? null : rules.Weapons[Explosion.ToLowerInvariant()];
+			if (string.IsNullOrEmpty(Explosion))
+				return;
+
+			WeaponInfo weapon;
+			var weaponToLower = Explosion.ToLowerInvariant();
+			if (!rules.Weapons.TryGetValue(weaponToLower, out weapon))
+				throw new YamlException("Weapons Ruleset does not contain an entry '{0}'".F(weaponToLower));
+
+			ExplosionWeapon = weapon;
 		}
 	}
 

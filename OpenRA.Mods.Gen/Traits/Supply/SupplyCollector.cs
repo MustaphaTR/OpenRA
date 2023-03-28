@@ -133,7 +133,7 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 
 				var cell = self.Location;
 				var moveTo = mobile.NearestMoveableCell(cell, 2, 5);
-				self.QueueActivity(mobile.MoveTo(moveTo, 0, Color.Green));
+				self.QueueActivity(mobile.MoveTo(moveTo, 0, targetLineColor: Color.Green));
 				self.ShowTargetLines();
 
 				if (IsEmpty)

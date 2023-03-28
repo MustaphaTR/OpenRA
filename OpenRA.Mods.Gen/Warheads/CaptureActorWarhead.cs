@@ -10,6 +10,7 @@
 
 using System.Collections.Generic;
 using System.Linq;
+using OpenRA.GameRules;
 using OpenRA.Mods.Common;
 using OpenRA.Mods.Common.Traits;
 using OpenRA.Primitives;
@@ -45,8 +46,9 @@ namespace OpenRA.Mods.Yupgi_alert.Warheads
 		[Desc("Stance that the structure's previous owner needs to have for the capturing player to receive Experience.")]
 		public readonly Stance PlayerExperienceStances = Stance.Enemy;
 
-		public override void DoImpact(Target target, Actor firedBy, IEnumerable<int> damageModifiers)
+		public override void DoImpact(Target target, WarheadArgs args)
 		{
+			var firedBy = args.SourceActor;
 			if (!target.IsValidFor(firedBy))
 				return;
 
@@ -66,7 +68,7 @@ namespace OpenRA.Mods.Yupgi_alert.Warheads
 				if (!activeShapes.Any())
 					continue;
 
-				var distance = activeShapes.Min(t => t.Info.Type.DistanceFromEdge(pos, a));
+				var distance = activeShapes.Min(t => t.DistanceFromEdge(a, pos));
 
 				if (distance > Range)
 					continue;

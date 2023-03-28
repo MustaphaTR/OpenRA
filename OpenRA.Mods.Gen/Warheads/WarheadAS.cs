@@ -58,7 +58,7 @@ namespace OpenRA.Mods.Yupgi_alert.Warheads
 
 				// If the impact position is within any HitShape, we have a direct hit
 				var activeShapes = victim.TraitsImplementing<HitShape>().Where(Exts.IsTraitEnabled);
-				if (activeShapes.Any(i => i.Info.Type.DistanceFromEdge(pos, victim).Length <= 0))
+				if (activeShapes.Any(s => s.DistanceFromEdge(victim, pos).Length <= 0))
 					return true;
 			}
 

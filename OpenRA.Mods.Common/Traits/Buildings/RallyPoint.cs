@@ -166,7 +166,7 @@ namespace OpenRA.Mods.Common.Traits
 			if (unit.TraitOrDefault<IMove>() == null)
 				throw new InvalidOperationException("How come rally point mover not have IMove trait? Actor: " + unit.ToString());
 
-			foreach (var location in rallyPoint.Path)
+			foreach (var location in Path)
 			{
 				var rallyAcceptor = GetRallyAcceptor(self, location);
 				if (rallyAcceptor == null)
