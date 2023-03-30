@@ -35,6 +35,7 @@ namespace OpenRA.Mods.Common.Traits
 		int checkForBasesTicks;
 		int cachedBases;
 		int cachedBuildings;
+		int excessPower;
 		int minimumExcessPower;
 		BitArray resourceTypeIndices;
 
@@ -50,6 +51,7 @@ namespace OpenRA.Mods.Common.Traits
 			playerResources = pr;
 			this.category = category;
 			failRetryTicks = baseBuilder.Info.StructureProductionResumeDelay;
+			excessPower = playerPower != null ? playerPower.ExcessPower : 0;
 			minimumExcessPower = baseBuilder.Info.MinimumExcessPower;
 			this.resourceTypeIndices = resourceTypeIndices;
 		}
@@ -100,6 +102,13 @@ namespace OpenRA.Mods.Common.Traits
 			playerBuildings = world.ActorsHavingTrait<Building>().Where(a => a.Owner == player).ToArray();
 			var excessPowerBonus = baseBuilder.Info.ExcessPowerIncrement * (playerBuildings.Count() / baseBuilder.Info.ExcessPowerIncreaseThreshold.Clamp(1, int.MaxValue));
 			minimumExcessPower = (baseBuilder.Info.MinimumExcessPower + excessPowerBonus).Clamp(baseBuilder.Info.MinimumExcessPower, baseBuilder.Info.MaximumExcessPower);
+
+			if (playerPower != null)
+			{
+				var productionQueues = world.ActorsWithTrait<ProductionQueue>().Where(a => a.Actor.Owner == player).Select(a => a.Trait);
+				var activeProductionQueues = productionQueues.Where(pq => pq.AllQueued().Any());
+				excessPower = playerPower.ExcessPower + activeProductionQueues.Sum(pq => pq.AllQueued().Sum(q => q.ActorInfo.TraitInfos<PowerInfo>().Where(p => p.EnabledByDefault).Sum(pi => pi.Amount)));
+			}
 
 			var active = false;
 			foreach (var queue in AIUtils.FindQueues(player, category))
@@ -187,8 +196,7 @@ namespace OpenRA.Mods.Common.Traits
 				if (!baseBuilder.Info.BuildingLimits.ContainsKey(actor.Name))
 					return true;
 
-				var producers = world.Actors.Where(a => a.Owner == player && a.TraitsImplementing<ProductionQueue>().Any());
-				var productionQueues = producers.SelectMany(a => a.TraitsImplementing<ProductionQueue>());
+				var productionQueues = world.ActorsWithTrait<ProductionQueue>().Where(a => a.Actor.Owner == player).Select(a => a.Trait);
 				var activeProductionQueues = productionQueues.Where(pq => pq.AllQueued().Any());
 				var queues = activeProductionQueues.Where(pq => pq.AllQueued().Where(q => q.Item == actor.Name).Any());
 
@@ -204,7 +212,7 @@ namespace OpenRA.Mods.Common.Traits
 		bool HasSufficientPowerForActor(ActorInfo actorInfo)
 		{
 			return playerPower == null || (actorInfo.TraitInfos<PowerInfo>().Where(i => i.EnabledByDefault)
-				.Sum(p => p.Amount) + playerPower.ExcessPower) >= baseBuilder.Info.MinimumExcessPower;
+				.Sum(p => p.Amount) + excessPower) >= baseBuilder.Info.MinimumExcessPower;
 		}
 
 		ActorInfo ChooseBuildingToBuild(ProductionQueue queue)
@@ -223,7 +231,7 @@ namespace OpenRA.Mods.Common.Traits
 				a => a.TraitInfos<PowerInfo>().Where(i => i.EnabledByDefault).Sum(p => p.Amount));
 
 			// First priority is to get out of a low power situation
-			if (playerPower != null && playerPower.ExcessPower < minimumExcessPower)
+			if (playerPower != null && excessPower < minimumExcessPower)
 			{
 				if (power != null && power.TraitInfos<PowerInfo>().Where(i => i.EnabledByDefault).Sum(p => p.Amount) > 0)
 				{
@@ -351,8 +359,7 @@ namespace OpenRA.Mods.Common.Traits
 				} */
 
 				// Do we want to build this structure?
-				var producers = world.Actors.Where(a => a.Owner == queue.Actor.Owner && a.TraitsImplementing<ProductionQueue>().Any());
-				var productionQueues = producers.SelectMany(a => a.TraitsImplementing<ProductionQueue>());
+				var productionQueues = world.ActorsWithTrait<ProductionQueue>().Where(a => a.Actor.Owner == player).Select(a => a.Trait);
 				var activeProductionQueues = productionQueues.Where(pq => pq.AllQueued().Any());
 				var queues = activeProductionQueues.Where(pq => pq.AllQueued().Where(q => q.Item == name).Any());
 
@@ -395,7 +402,7 @@ namespace OpenRA.Mods.Common.Traits
 				}
 
 				// Will this put us into low power?
-				if (playerPower != null && (playerPower.ExcessPower < minimumExcessPower || !HasSufficientPowerForActor(actor)))
+				if (playerPower != null && (excessPower < minimumExcessPower || !HasSufficientPowerForActor(actor)))
 				{
 					// Try building a power plant instead
 					if (power != null && power.TraitInfos<PowerInfo>().Where(i => i.EnabledByDefault).Sum(pi => pi.Amount) > 0)
