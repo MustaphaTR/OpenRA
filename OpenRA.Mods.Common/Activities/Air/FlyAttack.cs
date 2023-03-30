@@ -163,7 +163,7 @@ namespace OpenRA.Mods.Common.Activities
 			else if (attackAircraft.Info.AttackType == AirAttackType.Strafe)
 				QueueChild(new StrafeAttackRun(self, attackAircraft, target, strafeDistance != WDist.Zero ? strafeDistance : lastVisibleMaximumRange));
 			else if (attackAircraft.Info.AttackType == AirAttackType.Default && !aircraft.Info.CanHover)
-				QueueChild(new FlyAttackRun(self, target, lastVisibleMaximumRange));
+				QueueChild(new FlyAttackRun(self, target, lastVisibleMaximumRange, attackAircraft));
 
 			// Turn to face the target if required.
 			else if (!attackAircraft.TargetInFiringArc(self, target, attackAircraft.Info.FacingTolerance))
@@ -204,16 +204,18 @@ namespace OpenRA.Mods.Common.Activities
 
 	class FlyAttackRun : Activity
 	{
+		readonly AttackAircraft attack;
 		Target target;
 		WDist exitRange;
 		bool targetIsVisibleActor;
 
-		public FlyAttackRun(Actor self, Target t, WDist exitRange)
+		public FlyAttackRun(Actor self, Target t, WDist exitRange, AttackAircraft attack)
 		{
 			ChildHasPriority = false;
 
 			target = t;
 			this.exitRange = exitRange;
+			this.attack = attack;
 		}
 
 		protected override void OnFirstRun(Actor self)
@@ -239,7 +241,7 @@ namespace OpenRA.Mods.Common.Activities
 			target = target.Recalculate(self.Owner, out targetIsHiddenActor);
 			targetIsVisibleActor = target.Type == TargetType.Actor && !targetIsHiddenActor;
 
-			if (targetWasVisibleActor && !target.IsValidFor(self))
+			if (targetWasVisibleActor && (!target.IsValidFor(self) || !attack.HasAnyValidWeapons(target)))
 				Cancel(self);
 
 			return false;
