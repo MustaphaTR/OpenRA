@@ -1,6 +1,6 @@
 ﻿#region Copyright & License Information
 /*
- * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -42,7 +42,7 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 		public object Create(ActorInitializer init) { return new SupplyDock(init.Self, this); }
 	}
 
-	public class SupplyDock : IProvideTooltipInfo, INotifyCreated
+	public class SupplyDock : IProvideTooltipInfo, INotifyCreated, ISupplyDock
 	{
 		public readonly SupplyDockInfo Info;
 		public int Amount;
@@ -65,6 +65,10 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 		public bool IsFull { get { return Amount == Info.Capacity; } }
 		public bool IsEmpty { get { return Amount == 0; } }
 		public int Fullness { get { return Amount * 100 / Info.Capacity; } }
+
+		bool ISupplyDock.IsFull() { return IsFull; }
+		bool ISupplyDock.IsEmpty() { return IsEmpty; }
+		int ISupplyDock.Fullness() { return Fullness; }
 
 		public void CheckConditions(Actor self)
 		{

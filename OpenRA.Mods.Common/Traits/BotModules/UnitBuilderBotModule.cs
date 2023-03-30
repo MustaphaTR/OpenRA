@@ -30,6 +30,9 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("What units can the AI build with less cash than ProductionMinimumCash.")]
 		public readonly HashSet<string> CashGeneratorTypes = new HashSet<string>();
 
+		[Desc("What units can the AI won't build if there are no supplies on the map.")]
+		public readonly HashSet<string> SupplyCollectorTypes = new HashSet<string>();
+
 		[Desc("Production queues AI uses for producing units.")]
 		public readonly HashSet<string> UnitQueues = new HashSet<string> { "Vehicle", "Infantry", "Plane", "Ship", "Aircraft" };
 
@@ -153,6 +156,9 @@ namespace OpenRA.Mods.Common.Traits
 			var name = unit.Name;
 
 			if (Info.UnitsToBuild != null && !Info.UnitsToBuild.ContainsKey(name))
+				return;
+
+			if (Info.SupplyCollectorTypes.Contains(name) && !world.ActorsWithTrait<ISupplyDock>().Any(d => !d.Trait.IsEmpty()))
 				return;
 
 			if (playerResources != null && playerResources.Cash <= Info.ProductionMinimumCash && !Info.CashGeneratorTypes.Contains(name))
