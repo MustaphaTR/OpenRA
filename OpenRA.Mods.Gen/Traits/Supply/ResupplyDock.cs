@@ -24,7 +24,7 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 		[Desc("How much supply is reloaded after Delay.")]
 		public readonly int Amount = 600;
 
-		[Desc("Play this sound each time ammo is reloaded.")]
+		[Desc("Play this sound each time resupply happens.")]
 		public readonly string Sound = null;
 
 		public override object Create(ActorInitializer init) { return new ResupplyDock(this); }
