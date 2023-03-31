@@ -72,7 +72,7 @@ namespace OpenRA.Mods.Common.Traits
 		public object Create(ActorInitializer init) { return new DeveloperMode(this); }
 	}
 
-	public class DeveloperMode : IResolveOrder, ISync, INotifyCreated
+	public class DeveloperMode : IResolveOrder, ISync, INotifyCreated, IUnlocksRenderPlayer
 	{
 		readonly DeveloperModeInfo info;
 		public bool Enabled { get; private set; }
@@ -143,7 +143,7 @@ namespace OpenRA.Mods.Common.Traits
 						self.Owner.Shroud.ExploreAll();
 
 						var amount = order.ExtraData != 0 ? (int)order.ExtraData : info.Cash;
-						self.Trait<PlayerResources>().GiveCash(amount);
+						self.Trait<PlayerResources>().ChangeCash(amount);
 					}
 					else
 						self.Owner.Shroud.ResetExploration();
@@ -317,5 +317,7 @@ namespace OpenRA.Mods.Common.Traits
 
 			Game.Debug("Cheat used: {0} by {1}{2}", order.OrderString, self.Owner.PlayerName, debugSuffix);
 		}
+
+		bool IUnlocksRenderPlayer.RenderPlayerUnlocked { get { return Enabled; } } 
 	}
 }
