@@ -493,6 +493,9 @@ namespace OpenRA.Mods.Common.Traits
 					passenger.Kill(e.Attacker);
 			}
 
+			foreach (var c in cargo)
+				c.Kill(e.Attacker);
+
 			cargo.Clear();
 		}
 
