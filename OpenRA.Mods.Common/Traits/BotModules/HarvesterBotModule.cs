@@ -78,11 +78,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		protected override void Created(Actor self)
 		{
-			// Special case handling is required for the Player actor.
-			// Created is called before Player.PlayerActor is assigned,
-			// so we must query player traits from self, which refers
-			// for bot modules always to the Player actor.
-			requestUnitProduction = self.TraitsImplementing<IBotRequestUnitProduction>().ToArray();
+			requestUnitProduction = self.Owner.PlayerActor.TraitsImplementing<IBotRequestUnitProduction>().ToArray();
 		}
 
 		protected override void TraitEnabled(Actor self)
@@ -149,14 +145,14 @@ namespace OpenRA.Mods.Common.Traits
 		Target FindNextResource(Actor actor, HarvesterTraitWrapper harv)
 		{
 			Func<CPos, bool> isValidResource = cell =>
-				domainIndex.IsPassable(actor.Location, cell, harv.Locomotor.Info) &&
+				domainIndex.IsPassable(actor.Location, cell, harv.Locomotor) &&
 				harv.Harvester.CanHarvestCell(actor, cell) &&
 				claimLayer.CanClaimCell(actor, cell);
 
 			var path = pathfinder.FindPath(
 				PathSearch.Search(world, harv.Locomotor, actor, BlockedByActor.Stationary, isValidResource)
 					.WithCustomCost(loc => world.FindActorsInCircle(world.Map.CenterOfCell(loc), Info.HarvesterEnemyAvoidanceRadius)
-						.Where(u => !u.IsDead && actor.Owner.Stances[u.Owner] == Stance.Enemy)
+						.Where(u => !u.IsDead && actor.Owner.RelationshipWith(u.Owner) == PlayerRelationship.Enemy)
 						.Sum(u => Math.Max(WDist.Zero.Length, Info.HarvesterEnemyAvoidanceRadius.Length - (world.Map.CenterOfCell(loc) - u.CenterPosition).Length)))
 					.FromPoint(actor.Location));
 

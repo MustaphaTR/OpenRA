@@ -65,6 +65,9 @@ namespace OpenRA.Mods.Common.Widgets
 		public readonly string NotBuildableSequence = "idle";
 		public readonly string NotBuildablePalette = "chrome";
 
+		public readonly string OverlayFont = "TinyBold";
+		public readonly string SymbolsFont = "Symbols";
+
 		public readonly bool DrawTime = true;
 
 		[Translate]
@@ -98,8 +101,18 @@ namespace OpenRA.Mods.Common.Widgets
 
 		public ProductionQueue CurrentQueue
 		{
-			get { return currentQueue; }
-			set { currentQueue = value; RefreshIcons(); }
+			get
+			{
+				return currentQueue;
+			}
+			set
+			{
+				currentQueue = value;
+				if (currentQueue != null)
+					UpdateCachedProductionIconOverlays();
+
+				RefreshIcons();
+			}
 		}
 
 		public override Rectangle EventBounds { get { return eventBounds; } }
@@ -110,7 +123,10 @@ namespace OpenRA.Mods.Common.Widgets
 		readonly WorldRenderer worldRenderer;
 
 		SpriteFont overlayFont, symbolFont;
-		float2 holdOffset, readyOffset, timeOffset, queuedOffset, infiniteOffset;
+		float2 iconOffset, holdOffset, readyOffset, timeOffset, queuedOffset, infiniteOffset;
+
+		Player cachedQueueOwner;
+		IProductionIconOverlay[] pios;
 
 		[CustomLintableHotkeyNames]
 		public static IEnumerable<string> LinterHotkeyNames(MiniYamlNode widgetNode, Action<string> emitError, Action<string> emitWarning)
@@ -148,9 +164,6 @@ namespace OpenRA.Mods.Common.Widgets
 			cantBuild = new Animation(world, NotBuildableAnimation);
 			cantBuild.PlayFetchIndex(NotBuildableSequence, () => 0);
 			clock = new Animation(world, ClockAnimation);
-
-			overlayFont = Game.Renderer.Fonts["TinyBold"];
-			Game.Renderer.Fonts.TryGetValue("Symbols", out symbolFont);
 		}
 
 		public override void Initialize(WidgetArgs args)
@@ -159,6 +172,19 @@ namespace OpenRA.Mods.Common.Widgets
 
 			hotkeys = Exts.MakeArray(HotkeyCount,
 				i => modData.Hotkeys[HotkeyPrefix + (i + 1).ToString("D2")]);
+
+			overlayFont = Game.Renderer.Fonts[OverlayFont];
+			Game.Renderer.Fonts.TryGetValue(SymbolsFont, out symbolFont);
+
+			iconOffset = 0.5f * IconSize.ToFloat2() + IconSpriteOffset;
+			queuedOffset = new float2(4, 2);
+			holdOffset = iconOffset - overlayFont.Measure(HoldText) / 2;
+			readyOffset = iconOffset - overlayFont.Measure(ReadyText) / 2;
+
+			if (ChromeMetrics.TryGet("InfiniteOffset", out infiniteOffset))
+				infiniteOffset += queuedOffset;
+			else
+				infiniteOffset = queuedOffset;
 		}
 
 		public void ScrollDown()
@@ -223,7 +249,12 @@ namespace OpenRA.Mods.Common.Widgets
 				CurrentQueue = null;
 
 			if (CurrentQueue != null)
+			{
+				if (CurrentQueue.Actor.Owner != cachedQueueOwner)
+					UpdateCachedProductionIconOverlays();
+
 				RefreshIcons();
+			}
 		}
 
 		public override void MouseEntered()
@@ -303,8 +334,7 @@ namespace OpenRA.Mods.Common.Widgets
 			{
 				// Queue a new item
 				Game.Sound.PlayNotification(World.Map.Rules, World.LocalPlayer, "Sounds", ClickSound, null);
-				string notification;
-				var canQueue = CurrentQueue.CanQueue(buildable, out notification);
+				var canQueue = CurrentQueue.CanQueue(buildable, out var notification);
 
 				if (!CurrentQueue.AllQueued().Any())
 					Game.Sound.PlayNotification(World.Map.Rules, World.LocalPlayer, "Speech", notification, World.LocalPlayer.Faction.InternalName);
@@ -409,6 +439,12 @@ namespace OpenRA.Mods.Common.Widgets
 			return true;
 		}
 
+		void UpdateCachedProductionIconOverlays()
+		{
+			cachedQueueOwner = CurrentQueue.Actor.Owner;
+			pios = cachedQueueOwner.PlayerActor.TraitsImplementing<IProductionIconOverlay>().ToArray();
+		}
+
 		public void RefreshIcons()
 		{
 			icons = new Dictionary<Rectangle, ProductionIcon>();
@@ -444,13 +480,15 @@ namespace OpenRA.Mods.Common.Widgets
 				var icon = new Animation(World, rsi.GetImage(item, World.Map.Rules.Sequences, faction));
 				icon.Play(bi.Icon);
 
+				var palette = bi.IconPaletteIsPlayerPalette ? bi.IconPalette + producer.Actor.Owner.InternalName : bi.IconPalette;
+
 				var pi = new ProductionIcon()
 				{
 					Actor = item,
 					Name = item.Name,
 					Hotkey = iconLocation < HotkeyCount ? hotkeys[iconLocation] : null,
 					Sprite = icon.Image,
-					Palette = worldRenderer.Palette(bi.IconPalette),
+					Palette = worldRenderer.Palette(palette),
 					IconClockPalette = worldRenderer.Palette(ClockPalette),
 					IconDarkenPalette = worldRenderer.Palette(NotBuildablePalette),
 					Pos = new float2(rect.Location),
@@ -475,24 +513,12 @@ namespace OpenRA.Mods.Common.Widgets
 
 		public override void Draw()
 		{
-			var iconOffset = 0.5f * IconSize.ToFloat2() + IconSpriteOffset;
-
 			timeOffset = iconOffset - overlayFont.Measure(WidgetUtils.FormatTime(0, World.Timestep)) / 2;
-			queuedOffset = new float2(4, 2);
-			holdOffset = iconOffset - overlayFont.Measure(HoldText) / 2;
-			readyOffset = iconOffset - overlayFont.Measure(ReadyText) / 2;
-
-			if (ChromeMetrics.TryGet("InfiniteOffset", out infiniteOffset))
-				infiniteOffset += queuedOffset;
-			else
-				infiniteOffset = queuedOffset;
 
 			if (CurrentQueue == null)
 				return;
 
 			var buildableItems = CurrentQueue.BuildableItems();
-
-			var pios = currentQueue.Actor.Owner.PlayerActor.TraitsImplementing<IProductionIconOverlay>();
 
 			// Icons
 			Game.Renderer.EnableAntialiasingFilter();
@@ -545,7 +571,7 @@ namespace OpenRA.Mods.Common.Widgets
 							icon.Pos + timeOffset,
 							Color.White, Color.Black, 1);
 
-					if (first.Infinite)
+					if (first.Infinite && symbolFont != null)
 						symbolFont.DrawTextWithContrast(InfiniteSymbol,
 							icon.Pos + infiniteOffset,
 							Color.White, Color.Black, 1);

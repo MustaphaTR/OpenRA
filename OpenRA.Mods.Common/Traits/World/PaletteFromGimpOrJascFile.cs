@@ -20,7 +20,7 @@ using OpenRA.Traits;
 namespace OpenRA.Mods.Common.Traits
 {
 	[Desc("Load a GIMP .gpl or JASC .pal palette file. Supports per-color alpha.")]
-	class PaletteFromGimpOrJascFileInfo : ITraitInfo, IProvidesCursorPaletteInfo
+	class PaletteFromGimpOrJascFileInfo : TraitInfo, IProvidesCursorPaletteInfo
 	{
 		[PaletteDefinition]
 		[FieldLoader.Require]
@@ -49,7 +49,7 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Whether this palette is available for cursors.")]
 		public readonly bool CursorPalette = false;
 
-		public object Create(ActorInitializer init) { return new PaletteFromGimpOrJascFile(init.World, this); }
+		public override object Create(ActorInitializer init) { return new PaletteFromGimpOrJascFile(init.World, this); }
 
 		string IProvidesCursorPaletteInfo.Palette { get { return CursorPalette ? Name : null; } }
 
@@ -63,7 +63,7 @@ namespace OpenRA.Mods.Common.Traits
 					if (!lines.MoveNext() || (lines.Current != "GIMP Palette" && lines.Current != "JASC-PAL"))
 						throw new InvalidDataException("File `{0}` is not a valid GIMP or JASC palette.".F(Filename));
 
-					byte r, g, b, a;
+					byte a;
 					a = 255;
 					var i = 0;
 
@@ -77,13 +77,13 @@ namespace OpenRA.Mods.Common.Traits
 						if (rgba.Length < 3)
 							throw new InvalidDataException("Invalid RGB(A) triplet/quartet: ({0})".F(string.Join(" ", rgba)));
 
-						if (!byte.TryParse(rgba[0], out r))
+						if (!byte.TryParse(rgba[0], out var r))
 							throw new InvalidDataException("Invalid R value: {0}".F(rgba[0]));
 
-						if (!byte.TryParse(rgba[1], out g))
+						if (!byte.TryParse(rgba[1], out var g))
 							throw new InvalidDataException("Invalid G value: {0}".F(rgba[1]));
 
-						if (!byte.TryParse(rgba[2], out b))
+						if (!byte.TryParse(rgba[2], out var b))
 							throw new InvalidDataException("Invalid B value: {0}".F(rgba[2]));
 
 						// Check if color has a (valid) alpha value.

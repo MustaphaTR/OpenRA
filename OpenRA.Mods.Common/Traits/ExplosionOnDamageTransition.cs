@@ -9,14 +9,13 @@
  */
 #endregion
 
-using System.Linq;
 using OpenRA.GameRules;
 using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.Traits
 {
 	[Desc("This actor triggers an explosion on itself when transitioning to a specific damage state.")]
-	public class ExplosionOnDamageTransitionInfo : ITraitInfo, IRulesetLoaded, Requires<IHealthInfo>
+	public class ExplosionOnDamageTransitionInfo : TraitInfo, IRulesetLoaded, Requires<IHealthInfo>
 	{
 		[WeaponReference]
 		[FieldLoader.Require]
@@ -31,16 +30,15 @@ namespace OpenRA.Mods.Common.Traits
 
 		public WeaponInfo WeaponInfo { get; private set; }
 
-		public object Create(ActorInitializer init) { return new ExplosionOnDamageTransition(this, init.Self); }
+		public override object Create(ActorInitializer init) { return new ExplosionOnDamageTransition(this, init.Self); }
 
 		public void RulesetLoaded(Ruleset rules, ActorInfo ai)
 		{
 			if (string.IsNullOrEmpty(Weapon))
 				return;
 
-			WeaponInfo weapon;
 			var weaponToLower = Weapon.ToLowerInvariant();
-			if (!rules.Weapons.TryGetValue(weaponToLower, out weapon))
+			if (!rules.Weapons.TryGetValue(weaponToLower, out var weapon))
 				throw new YamlException("Weapons Ruleset does not contain an entry '{0}'".F(weaponToLower));
 
 			WeaponInfo = weapon;

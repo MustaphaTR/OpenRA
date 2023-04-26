@@ -25,7 +25,7 @@ namespace OpenRA.Mods.Common.Activities
 		[Flags]
 		protected enum AttackStatus { UnableToAttack, NeedsToTurn, NeedsToMove, Attacking }
 
-		readonly AttackFrontal[] attackTraits;
+		readonly IEnumerable<AttackFrontal> attackTraits;
 		readonly RevealsShroud[] revealsShroud;
 		readonly IMove move;
 		readonly IFacing facing;
@@ -45,13 +45,13 @@ namespace OpenRA.Mods.Common.Activities
 		WDist maxRange;
 		AttackStatus attackStatus = AttackStatus.UnableToAttack;
 
-		public Attack(Actor self, Target target, bool allowMovement, bool forceAttack, Color? targetLineColor = null)
+		public Attack(Actor self, in Target target, bool allowMovement, bool forceAttack, Color? targetLineColor = null)
 		{
 			this.target = target;
 			this.targetLineColor = targetLineColor;
 			this.forceAttack = forceAttack;
 
-			attackTraits = self.TraitsImplementing<AttackFrontal>().ToArray();
+			attackTraits = self.TraitsImplementing<AttackFrontal>().ToArray().Where(Exts.IsTraitEnabled);
 			revealsShroud = self.TraitsImplementing<RevealsShroud>().ToArray();
 			facing = self.Trait<IFacing>();
 			positionable = self.Trait<IPositionable>();
@@ -64,8 +64,11 @@ namespace OpenRA.Mods.Common.Activities
 			    || target.Type == TargetType.FrozenActor || target.Type == TargetType.Terrain)
 			{
 				lastVisibleTarget = Target.FromPos(target.CenterPosition);
+
+				// Lambdas can't use 'in' variables, so capture a copy for later
+				var rangeTarget = target;
 				lastVisibleMaximumRange = attackTraits.Where(x => !x.IsTraitDisabled)
-					.Min(x => x.GetMaximumRangeVersusTarget(target));
+					.Min(x => x.GetMaximumRangeVersusTarget(rangeTarget));
 
 				if (target.Type == TargetType.Actor)
 				{
@@ -90,13 +93,18 @@ namespace OpenRA.Mods.Common.Activities
 			if (IsCanceling || !attackTraits.Any(x => !x.IsTraitDisabled))
 				return true;
 
-			bool targetIsHiddenActor;
-			target = RecalculateTarget(self, out targetIsHiddenActor);
+			if (!attackTraits.Any())
+			{
+				Cancel(self);
+				return false;
+			}
+
+			target = RecalculateTarget(self, out var targetIsHiddenActor);
+
 			if (!targetIsHiddenActor && target.Type == TargetType.Actor)
 			{
 				lastVisibleTarget = Target.FromTargetPositions(target);
-				lastVisibleMaximumRange = attackTraits.Where(x => !x.IsTraitDisabled)
-					.Min(x => x.GetMaximumRangeVersusTarget(target));
+				lastVisibleMaximumRange = attackTraits.Min(x => x.GetMaximumRangeVersusTarget(target));
 
 				lastVisibleOwner = target.Actor.Owner;
 				lastVisibleTargetTypes = target.Actor.GetEnabledTargetTypes();
@@ -132,7 +140,7 @@ namespace OpenRA.Mods.Common.Activities
 
 			attackStatus = AttackStatus.UnableToAttack;
 
-			foreach (var attack in attackTraits.Where(x => !x.IsTraitDisabled))
+			foreach (var attack in attackTraits)
 			{
 				var status = TickAttack(self, attack);
 				attack.IsAiming = status == AttackStatus.Attacking || status == AttackStatus.NeedsToTurn;
@@ -200,10 +208,17 @@ namespace OpenRA.Mods.Common.Activities
 
 			if (!attack.TargetInFiringArc(self, target, attack.Info.FacingTolerance))
 			{
-				var desiredFacing = (attack.GetTargetPosition(pos, target) - pos).Yaw.Facing;
-				attackStatus |= AttackStatus.NeedsToTurn;
-				QueueChild(new Turn(self, desiredFacing));
-				return AttackStatus.NeedsToTurn;
+				var desiredFacing = (attack.GetTargetPosition(pos, target) - pos).Yaw;
+
+				// Don't queue a turn activity: Executing a child takes an additional tick during which the target may have moved again
+				facing.Facing = Util.TickFacing(facing.Facing, desiredFacing, facing.TurnSpeed);
+
+				// Check again if we turned enough and directly continue attacking if we did
+				if (!attack.TargetInFiringArc(self, target, attack.Info.FacingTolerance))
+				{
+					attackStatus |= AttackStatus.NeedsToTurn;
+					return AttackStatus.NeedsToTurn;
+				}
 			}
 
 			attackStatus |= AttackStatus.Attacking;

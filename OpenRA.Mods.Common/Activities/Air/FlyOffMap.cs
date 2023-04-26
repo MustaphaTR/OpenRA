@@ -29,7 +29,7 @@ namespace OpenRA.Mods.Common.Activities
 			this.endingDelay = endingDelay;
 		}
 
-		public FlyOffMap(Actor self, Target target, int endingDelay = 25)
+		public FlyOffMap(Actor self, in Target target, int endingDelay = 25)
 			: this(self, endingDelay)
 		{
 			this.target = target;
@@ -41,7 +41,7 @@ namespace OpenRA.Mods.Common.Activities
 			if (hasTarget)
 			{
 				QueueChild(new Fly(self, target));
-				QueueChild(new FlyTimed(-1, self));
+				QueueChild(new FlyForward(self));
 				return;
 			}
 
@@ -49,7 +49,7 @@ namespace OpenRA.Mods.Common.Activities
 			if (aircraft.Info.VTOL && self.World.Map.DistanceAboveTerrain(aircraft.CenterPosition) != aircraft.Info.CruiseAltitude)
 				QueueChild(new TakeOff(self));
 
-			QueueChild(new FlyTimed(-1, self));
+			QueueChild(new FlyForward(self));
 		}
 
 		public override bool Tick(Actor self)

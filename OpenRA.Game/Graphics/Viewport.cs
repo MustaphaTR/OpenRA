@@ -89,10 +89,20 @@ namespace OpenRA.Graphics
 			}
 		}
 
+		public float MinZoom { get { return minZoom; } }
+
 		public void AdjustZoom(float dz)
 		{
 			// Exponential ensures that equal positive and negative steps have the same effect
 			Zoom = (zoom * (float)Math.Exp(dz)).Clamp(unlockMinZoom ? unlockedMinZoom : minZoom, maxZoom);
+		}
+
+		public void AdjustZoom(float dz, int2 center)
+		{
+			var oldCenter = worldRenderer.Viewport.ViewToWorldPx(center);
+			AdjustZoom(dz);
+			var newCenter = worldRenderer.Viewport.ViewToWorldPx(center);
+			CenterLocation += oldCenter - newCenter;
 		}
 
 		public void ToggleZoom()
@@ -252,7 +262,6 @@ namespace OpenRA.Graphics
 			var world = worldRenderer.Viewport.ViewToWorldPx(view);
 			var map = worldRenderer.World.Map;
 			var candidates = CandidateMouseoverCells(world).ToList();
-			var tileSet = worldRenderer.World.Map.Rules.TileSet;
 
 			foreach (var uv in candidates)
 			{
@@ -261,18 +270,9 @@ namespace OpenRA.Graphics
 				var s = worldRenderer.ScreenPxPosition(p);
 				if (Math.Abs(s.X - world.X) <= tileSize.Width && Math.Abs(s.Y - world.Y) <= tileSize.Height)
 				{
-					var ramp = 0;
-					if (map.Contains(uv))
-					{
-						var ti = tileSet.GetTileInfo(map.Tiles[uv]);
-						if (ti != null)
-							ramp = ti.RampType;
-					}
-
-					var corners = map.Grid.CellCorners[ramp];
-					var pos = map.CenterOfCell(uv.ToCPos(map));
-					var screen = corners.Select(c => worldRenderer.ScreenPxPosition(pos + c)).ToArray();
-
+					var ramp = map.Grid.Ramps[map.Ramp.Contains(uv) ? map.Ramp[uv] : 0];
+					var pos = map.CenterOfCell(uv.ToCPos(map)) - new WVec(0, 0, ramp.CenterHeightOffset);
+					var screen = ramp.Corners.Select(c => worldRenderer.ScreenPxPosition(pos + c)).ToArray();
 					if (screen.PolygonContains(world))
 						return uv.ToCPos(map);
 				}
@@ -282,7 +282,7 @@ namespace OpenRA.Graphics
 			// Try and find the closest cell
 			if (candidates.Count > 0)
 			{
-				return candidates.OrderBy(uv =>
+				return candidates.MinBy(uv =>
 				{
 					var p = map.CenterOfCell(uv.ToCPos(map.Grid.Type));
 					var s = worldRenderer.ScreenPxPosition(p);
@@ -290,7 +290,7 @@ namespace OpenRA.Graphics
 					var dy = Math.Abs(s.Y - world.Y);
 
 					return dx * dx + dy * dy;
-				}).First().ToCPos(map);
+				}).ToCPos(map);
 			}
 
 			// Something is very wrong, but lets return something that isn't completely bogus and hope the caller can recover
@@ -314,7 +314,7 @@ namespace OpenRA.Graphics
 
 		public int2 ViewToWorldPx(int2 view) { return (graphicSettings.UIScale / Zoom * view.ToFloat2()).ToInt2() + TopLeft; }
 		public int2 WorldToViewPx(int2 world) { return ((Zoom / graphicSettings.UIScale) * (world - TopLeft).ToFloat2()).ToInt2(); }
-		public int2 WorldToViewPx(float3 world) { return ((Zoom / graphicSettings.UIScale) * (world - TopLeft).XY).ToInt2(); }
+		public int2 WorldToViewPx(in float3 world) { return ((Zoom / graphicSettings.UIScale) * (world - TopLeft).XY).ToInt2(); }
 
 		public void Center(IEnumerable<Actor> actors)
 		{

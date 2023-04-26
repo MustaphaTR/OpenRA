@@ -26,7 +26,7 @@ namespace OpenRA.Mods.Common.Traits.Render
 		[Desc("Sequence name to use")]
 		public readonly string Sequence = "turret";
 
-		[PaletteReference("IsPlayerPalette")]
+		[PaletteReference(nameof(IsPlayerPalette))]
 		[Desc("Custom palette name")]
 		public readonly string Palette = null;
 
@@ -50,12 +50,12 @@ namespace OpenRA.Mods.Common.Traits.Render
 			var t = init.Actor.TraitInfos<TurretedInfo>()
 				.First(tt => tt.Turret == Turret);
 
-			var turretFacing = Turreted.TurretFacingFromInit(init, t.InitialFacing, Turret);
+			var turretFacing = t.WorldFacingFromInit(init);
 			var anim = new Animation(init.World, image, turretFacing);
 			anim.Play(RenderSprites.NormalizeSequence(anim, init.GetDamageState(), Sequence));
 
-			Func<int> facing = init.GetFacing();
-			Func<WRot> orientation = () => body.QuantizeOrientation(WRot.FromFacing(facing()), facings);
+			var facing = init.GetFacing();
+			Func<WRot> orientation = () => body.QuantizeOrientation(WRot.FromYaw(facing()), facings);
 			Func<WVec> offset = () => body.LocalToWorld(t.Offset.Rotate(orientation()));
 			Func<int> zOffset = () =>
 			{
@@ -64,7 +64,7 @@ namespace OpenRA.Mods.Common.Traits.Render
 			};
 
 			if (IsPlayerPalette)
-				p = init.WorldRenderer.Palette(Palette + init.Get<OwnerInit>().PlayerName);
+				p = init.WorldRenderer.Palette(Palette + init.Get<OwnerInit>().InternalName);
 			else if (Palette != null)
 				p = init.WorldRenderer.Palette(Palette);
 
@@ -90,7 +90,7 @@ namespace OpenRA.Mods.Common.Traits.Render
 			arms = self.TraitsImplementing<Armament>()
 				.Where(w => w.Info.Turret == info.Turret).ToArray();
 
-			DefaultAnimation = new Animation(self.World, rs.GetImage(self), () => t.TurretFacing);
+			DefaultAnimation = new Animation(self.World, rs.GetImage(self), () => t.WorldOrientation.Yaw);
 			DefaultAnimation.PlayRepeating(NormalizeSequence(self, info.Sequence));
 			rs.Add(new AnimationWithOffset(DefaultAnimation,
 				() => TurretOffset(self),
@@ -106,10 +106,11 @@ namespace OpenRA.Mods.Common.Traits.Render
 			if (!Info.Recoils)
 				return t.Position(self);
 
-			var recoil = arms.Aggregate(WDist.Zero, (a, b) => a + b.Recoil);
-			var localOffset = new WVec(-recoil, WDist.Zero, WDist.Zero);
-			var quantizedWorldTurret = t.WorldOrientation(self);
-			return t.Position(self) + body.LocalToWorld(localOffset.Rotate(quantizedWorldTurret));
+			var recoilDist = 0;
+			foreach (var arm in arms)
+				recoilDist += arm.Recoil.Length;
+			var recoil = new WVec(new WDist(-recoilDist), WDist.Zero, WDist.Zero);
+			return t.Position(self) + body.LocalToWorld(recoil.Rotate(t.WorldOrientation));
 		}
 
 		public string NormalizeSequence(Actor self, string sequence)
@@ -133,8 +134,7 @@ namespace OpenRA.Mods.Common.Traits.Render
 			DefaultAnimation.PlayThen(NormalizeSequence(self, name), () =>
 			{
 				CancelCustomAnimation(self);
-				if (after != null)
-					after();
+				after?.Invoke();
 			});
 		}
 

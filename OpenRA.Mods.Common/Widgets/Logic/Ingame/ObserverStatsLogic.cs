@@ -386,11 +386,11 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 
 			SetupPlayerColor(player, template, playerColor, playerGradient);
 
-			var res = player.PlayerActor.Trait<PlayerResources>();
 			var stats = player.PlayerActor.TraitOrDefault<PlayerStatistics>();
 			if (stats == null)
 				return template;
 
+			var res = player.PlayerActor.Trait<PlayerResources>();
 			var cashText = new CachedTransform<int, string>(i => "$" + i);
 			template.Get<LabelWidget>("CASH").GetText = () => cashText.Update(res.Cash + res.Resources);
 
@@ -404,10 +404,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			template.Get<LabelWidget>("SPENT").GetText = () => spentText.Update(res.Spent);
 
 			var assetsText = new CachedTransform<int, string>(i => "$" + i);
-			var assets = template.Get<LabelWidget>("ASSETS");
-			assets.GetText = () => assetsText.Update(world.ActorsHavingTrait<Valued>()
-				.Where(a => a.Owner == player && !a.IsDead)
-				.Sum(a => a.Info.TraitInfos<ValuedInfo>().First().Cost));
+			template.Get<LabelWidget>("ASSETS").GetText = () => assetsText.Update(stats.AssetsValue);
 
 			var harvesters = template.Get<LabelWidget>("HARVESTERS");
 			harvesters.GetText = () => world.ActorsHavingTrait<Harvester>().Count(a => a.Owner == player && !a.IsDead).ToString();
@@ -442,8 +439,8 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			if (powerRes != null)
 			{
 				var power = template.Get<LabelWidget>("POWER");
-				var powerText = new CachedTransform<Pair<int, int>, string>(p => p.First + "/" + p.Second);
-				power.GetText = () => powerText.Update(new Pair<int, int>(powerRes.PowerDrained, powerRes.PowerProvided));
+				var powerText = new CachedTransform<(int PowerDrained, int PowerProvided), string>(p => p.PowerDrained + "/" + p.PowerProvided);
+				power.GetText = () => powerText.Update((powerRes.PowerDrained, powerRes.PowerProvided));
 				power.GetColor = () => GetPowerColor(powerRes.PowerState);
 			}
 
@@ -525,22 +522,8 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			flag.GetImageCollection = () => "flags";
 			flag.GetImageName = () => player.Faction.InternalName;
 
-			var client = player.World.LobbyInfo.ClientWithIndex(player.ClientIndex);
 			var playerName = template.Get<LabelWidget>("PLAYER");
-			var playerNameFont = Game.Renderer.Fonts[playerName.Font];
-			var suffixLength = new CachedTransform<string, int>(s => playerNameFont.Measure(s).X);
-			var name = new CachedTransform<Pair<string, int>, string>(c =>
-				WidgetUtils.TruncateText(c.First, playerName.Bounds.Width - c.Second, playerNameFont));
-
-			playerName.GetText = () =>
-			{
-				var suffix = player.WinState == WinState.Undefined ? "" : " (" + player.WinState + ")";
-				if (client != null && client.State == Session.ClientState.Disconnected)
-					suffix = " (Gone)";
-
-				var sl = suffixLength.Update(suffix);
-				return name.Update(Pair.New(player.PlayerName, sl)) + suffix;
-			};
+			WidgetUtils.BindPlayerNameAndStatus(playerName, player);
 
 			playerName.GetColor = () => player.Color;
 		}

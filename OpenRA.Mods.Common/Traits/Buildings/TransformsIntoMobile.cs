@@ -9,10 +9,8 @@
  */
 #endregion
 
-using System;
 using System.Collections.Generic;
 using System.Linq;
-using OpenRA.Activities;
 using OpenRA.Mods.Common.Activities;
 using OpenRA.Primitives;
 using OpenRA.Traits;
@@ -27,11 +25,17 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Locomotor used by the transformed actor. Must be defined on the World actor.")]
 		public readonly string Locomotor = null;
 
+		[Desc("Cursor to display when a move order can be issued at target location.")]
 		public readonly string Cursor = "move";
+
+		[Desc("Cursor to display when a move order cannot be issued at target location.")]
 		public readonly string BlockedCursor = "move-blocked";
 
 		[VoiceReference]
 		public readonly string Voice = "Action";
+
+		[Desc("Color to use for the target line for regular move orders.")]
+		public readonly Color TargetLineColor = Color.Green;
 
 		[Desc("Require the force-move modifier to display the move cursor.")]
 		public readonly bool RequiresForceMove = false;
@@ -83,7 +87,7 @@ namespace OpenRA.Mods.Common.Traits
 		}
 
 		// Note: Returns a valid order even if the unit can't move to the target
-		Order IIssueOrder.IssueOrder(Actor self, IOrderTargeter order, Target target, bool queued)
+		Order IIssueOrder.IssueOrder(Actor self, IOrderTargeter order, in Target target, bool queued)
 		{
 			if (order is MoveOrderTargeter)
 				return new Order("Move", self, target, queued);
@@ -109,10 +113,10 @@ namespace OpenRA.Mods.Common.Traits
 
 				// Manually manage the inner activity queue
 				var activity = currentTransform ?? transform.GetTransformActivity(self);
-				if (!order.Queued && activity.NextActivity != null)
-					activity.NextActivity.Cancel(self);
+				if (!order.Queued)
+					activity.NextActivity?.Cancel(self);
 
-				activity.Queue(new IssueOrderAfterTransform("Move", order.Target, Color.Green));
+				activity.Queue(new IssueOrderAfterTransform("Move", order.Target, Info.TargetLineColor));
 
 				if (currentTransform == null)
 					self.QueueActivity(order.Queued, activity);
@@ -158,7 +162,7 @@ namespace OpenRA.Mods.Common.Traits
 		{
 			readonly TransformsIntoMobile mobile;
 			readonly bool rejectMove;
-			public bool TargetOverridesSelection(Actor self, Target target, List<Actor> actorsAt, CPos xy, TargetModifiers modifiers)
+			public bool TargetOverridesSelection(Actor self, in Target target, List<Actor> actorsAt, CPos xy, TargetModifiers modifiers)
 			{
 				// Always prioritise orders over selecting other peoples actors or own actors that are already selected
 				if (target.Type == TargetType.Actor && (target.Actor.Owner != self.Owner || self.World.Selection.Contains(target.Actor)))
@@ -177,7 +181,7 @@ namespace OpenRA.Mods.Common.Traits
 			public int OrderPriority { get { return 4; } }
 			public bool IsQueued { get; protected set; }
 
-			public bool CanTarget(Actor self, Target target, List<Actor> othersAtTarget, ref TargetModifiers modifiers, ref string cursor)
+			public bool CanTarget(Actor self, in Target target, List<Actor> othersAtTarget, ref TargetModifiers modifiers, ref string cursor)
 			{
 				if (rejectMove || target.Type != TargetType.Terrain || (mobile.Info.RequiresForceMove && !modifiers.HasModifier(TargetModifiers.ForceMove)))
 					return false;

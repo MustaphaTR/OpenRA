@@ -9,7 +9,6 @@
  */
 #endregion
 
-using System.Collections.Generic;
 using System.Linq;
 using OpenRA.GameRules;
 using OpenRA.Mods.Common.Traits;
@@ -28,7 +27,7 @@ namespace OpenRA.Mods.Common.Warheads
 
 		public readonly WDist Range = WDist.FromCells(1);
 
-		public override void DoImpact(Target target, WarheadArgs args)
+		public override void DoImpact(in Target target, WarheadArgs args)
 		{
 			var firedBy = args.SourceActor;
 			var actors = target.Type == TargetType.Actor ? new[] { target.Actor } :
@@ -39,11 +38,9 @@ namespace OpenRA.Mods.Common.Warheads
 				if (!IsValidAgainst(a, firedBy))
 					continue;
 
-				var external = a.TraitsImplementing<ExternalCondition>()
-					.FirstOrDefault(t => t.Info.Condition == Condition && t.CanGrantCondition(a, firedBy));
-
-				if (external != null)
-					external.GrantCondition(a, firedBy, Duration);
+				a.TraitsImplementing<ExternalCondition>()
+					.FirstOrDefault(t => t.Info.Condition == Condition && t.CanGrantCondition(a, firedBy))
+					?.GrantCondition(a, firedBy, Duration);
 			}
 		}
 	}

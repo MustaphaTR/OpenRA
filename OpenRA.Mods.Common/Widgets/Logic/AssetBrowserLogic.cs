@@ -69,14 +69,8 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			if (sourceDropdown != null)
 			{
 				sourceDropdown.OnMouseDown = _ => ShowSourceDropdown(sourceDropdown);
-				sourceDropdown.GetText = () =>
-				{
-					var name = assetSource != null ? Platform.UnresolvePath(assetSource.Name) : "All Packages";
-					if (name.Length > 15)
-						name = "..." + name.Substring(name.Length - 15);
-
-					return name;
-				};
+				var sourceName = new CachedTransform<IReadOnlyPackage, string>(GetSourceDisplayName);
+				sourceDropdown.GetText = () => sourceName.Update(assetSource);
 			}
 
 			var spriteWidget = panel.GetOrNull<SpriteWidget>("SPRITE");
@@ -124,7 +118,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				frameContainer.IsVisible = () => (currentSprites != null && currentSprites.Length > 1) ||
 					(isVideoLoaded && player != null && player.Video != null && player.Video.Frames > 1);
 
-			frameSlider = panel.Get<SliderWidget>("FRAME_SLIDER");
+			frameSlider = panel.GetOrNull<SliderWidget>("FRAME_SLIDER");
 			if (frameSlider != null)
 			{
 				frameSlider.OnChange += x =>
@@ -183,7 +177,9 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 						player.Stop();
 					else
 					{
-						frameSlider.Value = 0;
+						if (frameSlider != null)
+							frameSlider.Value = 0;
+
 						currentFrame = 0;
 						animateFrames = false;
 					}
@@ -272,10 +268,8 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 
 			// Select the first visible
 			var firstVisible = assetVisByName.FirstOrDefault(kvp => kvp.Value);
-			IReadOnlyPackage package;
-			string filename;
 
-			if (firstVisible.Key != null && modData.DefaultFileSystem.TryGetPackageContaining(firstVisible.Key, out package, out filename))
+			if (firstVisible.Key != null && modData.DefaultFileSystem.TryGetPackageContaining(firstVisible.Key, out var package, out var filename))
 				LoadAsset(package, filename);
 		}
 
@@ -290,8 +284,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 
 			item.IsVisible = () =>
 			{
-				bool visible;
-				if (assetVisByName.TryGetValue(filepath, out visible))
+				if (assetVisByName.TryGetValue(filepath, out var visible))
 					return visible;
 
 				visible = FilterAsset(filepath);
@@ -339,15 +332,23 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 					player.Load(prefix + filename);
 					player.DrawOverlay = false;
 					isVideoLoaded = true;
-					frameSlider.MaximumValue = (float)player.Video.Frames - 1;
-					frameSlider.Ticks = 0;
+
+					if (frameSlider != null)
+					{
+						frameSlider.MaximumValue = (float)player.Video.Frames - 1;
+						frameSlider.Ticks = 0;
+					}
+
 					return true;
 				}
 
 				currentSprites = world.Map.Rules.Sequences.SpriteCache[prefix + filename];
 				currentFrame = 0;
-				frameSlider.MaximumValue = (float)currentSprites.Length - 1;
-				frameSlider.Ticks = currentSprites.Length;
+				if (frameSlider != null)
+				{
+					frameSlider.MaximumValue = (float)currentSprites.Length - 1;
+					frameSlider.Ticks = currentSprites.Length;
+				}
 			}
 			catch (Exception ex)
 			{
@@ -363,12 +364,14 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 
 		bool ShowSourceDropdown(DropDownButtonWidget dropdown)
 		{
+			var sourceName = new CachedTransform<IReadOnlyPackage, string>(GetSourceDisplayName);
 			Func<IReadOnlyPackage, ScrollItemWidget, ScrollItemWidget> setupItem = (source, itemTemplate) =>
 			{
 				var item = ScrollItemWidget.Setup(itemTemplate,
 					() => assetSource == source,
 					() => { assetSource = source; PopulateAssetList(); });
-				item.Get<LabelWidget>("LABEL").GetText = () => source != null ? Platform.UnresolvePath(source.Name) : "All Packages";
+
+				item.Get<LabelWidget>("LABEL").GetText = () => sourceName.Update(source);
 				return item;
 			};
 
@@ -426,6 +429,34 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				.SelectMany(p => p.PaletteNames);
 			dropdown.ShowDropDown("LABEL_DROPDOWN_TEMPLATE", 280, palettes, setupItem);
 			return true;
+		}
+
+		string GetSourceDisplayName(IReadOnlyPackage source)
+		{
+			if (source == null)
+				return "All Packages";
+
+			// Packages that are explicitly mounted in the filesystem use their explicit mount name
+			var fs = (OpenRA.FileSystem.FileSystem)modData.DefaultFileSystem;
+			var name = fs.GetPrefix(source);
+
+			// Fall back to the path relative to the mod, engine, or support dir
+			if (name == null)
+			{
+				name = source.Name;
+				var compare = Platform.CurrentPlatform == PlatformType.Windows ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+				if (name.StartsWith(modData.Manifest.Package.Name, compare))
+					name = "$" + modData.Manifest.Id + "/" + name.Substring(modData.Manifest.Package.Name.Length + 1);
+				else if (name.StartsWith(Platform.EngineDir, compare))
+					name = "./" + name.Substring(Platform.EngineDir.Length);
+				else if (name.StartsWith(Platform.SupportDir, compare))
+					name = "^" + name.Substring(Platform.SupportDir.Length);
+			}
+
+			if (name.Length > 18)
+				name = "..." + name.Substring(name.Length - 15);
+
+			return name;
 		}
 	}
 }

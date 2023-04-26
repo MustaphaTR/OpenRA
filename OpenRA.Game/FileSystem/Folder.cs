@@ -12,6 +12,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 
 namespace OpenRA.FileSystem
 {
@@ -32,10 +33,11 @@ namespace OpenRA.FileSystem
 		{
 			get
 			{
-				foreach (var filename in Directory.GetFiles(path, "*", SearchOption.TopDirectoryOnly))
-					yield return Path.GetFileName(filename);
-				foreach (var filename in Directory.GetDirectories(path))
-					yield return Path.GetFileName(filename);
+				// Order may vary on different file systems and it matters for hashing.
+				return Directory.GetFiles(path, "*", SearchOption.TopDirectoryOnly)
+					.Concat(Directory.GetDirectories(path))
+					.Select(Path.GetFileName)
+					.OrderBy(f => f);
 			}
 		}
 
@@ -58,17 +60,15 @@ namespace OpenRA.FileSystem
 				return new Folder(resolvedPath);
 
 			// Zip files loaded from Folders (and *only* from Folders) can be read-write
-			IReadWritePackage readWritePackage;
-			if (ZipFileLoader.TryParseReadWritePackage(resolvedPath, out readWritePackage))
+			if (ZipFileLoader.TryParseReadWritePackage(resolvedPath, out var readWritePackage))
 				return readWritePackage;
 
 			// Other package types can be loaded normally
-			IReadOnlyPackage package;
 			var s = GetStream(filename);
 			if (s == null)
 				return null;
 
-			if (context.TryParsePackage(s, filename, out package))
+			if (context.TryParsePackage(s, filename, out var package))
 				return package;
 
 			s.Dispose();

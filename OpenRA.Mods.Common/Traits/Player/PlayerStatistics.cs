@@ -11,7 +11,6 @@
 
 using System.Collections.Generic;
 using System.Linq;
-using OpenRA;
 using OpenRA.Graphics;
 using OpenRA.Mods.Common.Traits.Render;
 using OpenRA.Primitives;
@@ -20,9 +19,9 @@ using OpenRA.Traits;
 namespace OpenRA.Mods.Common.Traits
 {
 	[Desc("Attach this to the player actor to collect observer stats.")]
-	public class PlayerStatisticsInfo : ITraitInfo
+	public class PlayerStatisticsInfo : TraitInfo
 	{
-		public object Create(ActorInitializer init) { return new PlayerStatistics(init.Self); }
+		public override object Create(ActorInitializer init) { return new PlayerStatistics(init.Self); }
 	}
 
 	public class PlayerStatistics : ITick, IResolveOrder, INotifyCreated, IWorldLoaded
@@ -57,6 +56,7 @@ namespace OpenRA.Mods.Common.Traits
 		public int BuildingsDead;
 
 		public int ArmyValue;
+		public int AssetsValue;
 
 		// High resolution (every second) record of earnings, limited to the last minute
 		readonly Queue<int> earnedSeconds = new Queue<int>(60);
@@ -122,27 +122,9 @@ namespace OpenRA.Mods.Common.Traits
 
 		public void ResolveOrder(Actor self, Order order)
 		{
-			switch (order.OrderString)
-			{
-				case "Chat":
-				case "HandshakeResponse":
-				case "PauseGame":
-				case "StartGame":
-				case "Disconnected":
-				case "ServerError":
-				case "AuthenticationError":
-				case "SyncLobbyInfo":
-				case "SyncClientInfo":
-				case "SyncLobbySlots":
-				case "SyncLobbyGlobalSettings":
-				case "SyncClientPing":
-				case "Ping":
-				case "Pong":
-					return;
-			}
-
 			if (order.OrderString.StartsWith("Dev"))
 				return;
+
 			OrderCount++;
 		}
 
@@ -164,6 +146,7 @@ namespace OpenRA.Mods.Common.Traits
 		public readonly ActorInfo ActorInfo;
 		public readonly Animation Icon;
 		public readonly string IconPalette;
+		public readonly bool IconPaletteIsPlayerPalette;
 		public readonly int ProductionQueueOrder;
 		public readonly int BuildPaletteOrder;
 		public readonly TooltipInfo TooltipInfo;
@@ -189,6 +172,7 @@ namespace OpenRA.Mods.Common.Traits
 				Icon = new Animation(owner.World, image);
 				Icon.Play(BuildableInfo.Icon);
 				IconPalette = BuildableInfo.IconPalette;
+				IconPaletteIsPlayerPalette = BuildableInfo.IconPaletteIsPlayerPalette;
 				BuildPaletteOrder = BuildableInfo.BuildPaletteOrder;
 				ProductionQueueOrder = queues.Where(q => BuildableInfo.Queue.Contains(q.Type))
 					.Select(q => q.DisplayOrder)
@@ -198,16 +182,19 @@ namespace OpenRA.Mods.Common.Traits
 	}
 
 	[Desc("Attach this to a unit to update observer stats.")]
-	public class UpdatesPlayerStatisticsInfo : ITraitInfo
+	public class UpdatesPlayerStatisticsInfo : TraitInfo
 	{
 		[Desc("Add to army value in statistics")]
 		public bool AddToArmyValue = false;
+
+		[Desc("Add to assets value in statistics")]
+		public bool AddToAssetsValue = true;
 
 		[ActorReference]
 		[Desc("Count this actor as a different type in the spectator army display.")]
 		public string OverrideActor = null;
 
-		public object Create(ActorInitializer init) { return new UpdatesPlayerStatistics(this, init.Self); }
+		public override object Create(ActorInitializer init) { return new UpdatesPlayerStatistics(this, init.Self); }
 	}
 
 	public class UpdatesPlayerStatistics : INotifyKilled, INotifyCreated, INotifyOwnerChanged, INotifyActorDisposing
@@ -218,6 +205,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		PlayerStatistics playerStats;
 		bool includedInArmyValue = false;
+		bool includedInAssetsValue = false;
 
 		public UpdatesPlayerStatistics(UpdatesPlayerStatisticsInfo info, Actor self)
 		{
@@ -234,37 +222,45 @@ namespace OpenRA.Mods.Common.Traits
 				return;
 
 			var attackerStats = e.Attacker.Owner.PlayerActor.Trait<PlayerStatistics>();
-			var defenderStats = self.Owner.PlayerActor.Trait<PlayerStatistics>();
 			if (self.Info.HasTraitInfo<BuildingInfo>())
 			{
 				attackerStats.BuildingsKilled++;
-				defenderStats.BuildingsDead++;
+				playerStats.BuildingsDead++;
 			}
 			else if (self.Info.HasTraitInfo<IPositionableInfo>())
 			{
 				attackerStats.UnitsKilled++;
-				defenderStats.UnitsDead++;
+				playerStats.UnitsDead++;
 			}
 
 			attackerStats.KillsCost += cost;
-			defenderStats.DeathsCost += cost;
+			playerStats.DeathsCost += cost;
 			if (includedInArmyValue)
 			{
-				defenderStats.ArmyValue -= cost;
+				playerStats.ArmyValue -= cost;
 				includedInArmyValue = false;
 				playerStats.Units[actorName].Count--;
+			}
+
+			if (includedInAssetsValue)
+			{
+				playerStats.AssetsValue -= cost;
+				includedInAssetsValue = false;
 			}
 		}
 
 		void INotifyCreated.Created(Actor self)
 		{
 			includedInArmyValue = info.AddToArmyValue;
-
 			if (includedInArmyValue)
 			{
 				playerStats.ArmyValue += cost;
 				playerStats.Units[actorName].Count++;
 			}
+
+			includedInAssetsValue = info.AddToAssetsValue;
+			if (includedInAssetsValue)
+				playerStats.AssetsValue += cost;
 		}
 
 		void INotifyOwnerChanged.OnOwnerChanged(Actor self, Player oldOwner, Player newOwner)
@@ -278,6 +274,12 @@ namespace OpenRA.Mods.Common.Traits
 				newOwnerStats.Units[actorName].Count++;
 			}
 
+			if (includedInAssetsValue)
+			{
+				playerStats.AssetsValue -= cost;
+				newOwnerStats.AssetsValue += cost;
+			}
+
 			playerStats = newOwnerStats;
 		}
 
@@ -288,6 +290,12 @@ namespace OpenRA.Mods.Common.Traits
 				playerStats.ArmyValue -= cost;
 				includedInArmyValue = false;
 				playerStats.Units[actorName].Count--;
+			}
+
+			if (includedInAssetsValue)
+			{
+				playerStats.AssetsValue -= cost;
+				includedInAssetsValue = false;
 			}
 		}
 	}

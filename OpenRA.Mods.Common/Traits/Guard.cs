@@ -16,12 +16,15 @@ using OpenRA.Traits;
 namespace OpenRA.Mods.Common.Traits
 {
 	[Desc("The player can give this unit the order to follow and protect friendly units with the Guardable trait.")]
-	public class GuardInfo : ITraitInfo, Requires<IMoveInfo>
+	public class GuardInfo : TraitInfo, Requires<IMoveInfo>
 	{
 		[VoiceReference]
 		public readonly string Voice = "Action";
 
-		public object Create(ActorInitializer init) { return new Guard(this); }
+		[Desc("Color to use for the target line.")]
+		public readonly Color TargetLineColor = Color.OrangeRed;
+
+		public override object Create(ActorInitializer init) { return new Guard(this); }
 	}
 
 	public class Guard : IResolveOrder, IOrderVoice, INotifyCreated
@@ -51,7 +54,7 @@ namespace OpenRA.Mods.Common.Traits
 				return;
 
 			var range = target.Actor.Info.TraitInfo<GuardableInfo>().Range;
-			self.QueueActivity(queued, new AttackMoveActivity(self, () => move.MoveFollow(self, target, WDist.Zero, range, targetLineColor: Color.OrangeRed)));
+			self.QueueActivity(queued, new AttackMoveActivity(self, () => move.MoveFollow(self, target, WDist.Zero, range, targetLineColor: info.TargetLineColor)));
 			self.ShowTargetLines();
 		}
 

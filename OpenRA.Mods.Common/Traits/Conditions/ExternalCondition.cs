@@ -23,7 +23,7 @@ namespace OpenRA.Mods.Common.Traits
 	}
 
 	[Desc("Allows a condition to be granted from an external source (Lua, warheads, etc).")]
-	public class ExternalConditionInfo : ITraitInfo, Requires<ConditionManagerInfo>
+	public class ExternalConditionInfo : TraitInfo
 	{
 		[GrantedConditionReference]
 		[FieldLoader.Require]
@@ -35,7 +35,7 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("If > 0, restrict the number of times that this condition can be granted by any source.")]
 		public readonly int TotalCap = 0;
 
-		public virtual object Create(ActorInitializer init) { return new ExternalCondition(init.Self, this); }
+		public override object Create(ActorInitializer init) { return new ExternalCondition(init.Self, this); }
 	}
 
 	public class ExternalCondition : ITick, INotifyCreated
@@ -55,7 +55,6 @@ namespace OpenRA.Mods.Common.Traits
 		}
 
 		public readonly ExternalConditionInfo Info;
-		readonly ConditionManager conditionManager;
 		readonly Dictionary<object, HashSet<int>> permanentTokens = new Dictionary<object, HashSet<int>>();
 
 		// Tokens are sorted on insert/remove by ascending expiry time
@@ -67,22 +66,18 @@ namespace OpenRA.Mods.Common.Traits
 		public ExternalCondition(Actor self, ExternalConditionInfo info)
 		{
 			Info = info;
-			conditionManager = self.Trait<ConditionManager>();
 		}
 
 		public bool CanGrantCondition(Actor self, object source)
 		{
-			if (conditionManager == null || source == null)
+			if (source == null)
 				return false;
 
 			// Timed tokens do not count towards the source cap: the condition with the shortest
 			// remaining duration can always be revoked to make room.
 			if (Info.SourceCap > 0)
-			{
-				HashSet<int> permanentTokensForSource;
-				if (permanentTokens.TryGetValue(source, out permanentTokensForSource) && permanentTokensForSource.Count >= Info.SourceCap)
+				if (permanentTokens.TryGetValue(source, out var permanentTokensForSource) && permanentTokensForSource.Count >= Info.SourceCap)
 					return false;
-			}
 
 			if (Info.TotalCap > 0 && permanentTokens.Values.Sum(t => t.Count) >= Info.TotalCap)
 				return false;
@@ -93,11 +88,10 @@ namespace OpenRA.Mods.Common.Traits
 		public int GrantCondition(Actor self, object source, int duration = 0, int remaining = 0)
 		{
 			if (!CanGrantCondition(self, source))
-				return ConditionManager.InvalidConditionToken;
+				return Actor.InvalidConditionToken;
 
-			var token = conditionManager.GrantCondition(self, Info.Condition);
-			HashSet<int> permanent;
-			permanentTokens.TryGetValue(source, out permanent);
+			var token = self.GrantCondition(Info.Condition);
+			permanentTokens.TryGetValue(source, out var permanent);
 
 			// Callers can override the amount of time remaining by passing a value
 			// between 1 and the duration
@@ -118,8 +112,8 @@ namespace OpenRA.Mods.Common.Traits
 						{
 							var expireToken = timedTokens[expireIndex].Token;
 							timedTokens.RemoveAt(expireIndex);
-							if (conditionManager.TokenValid(self, expireToken))
-								conditionManager.RevokeCondition(self, expireToken);
+							if (self.TokenValid(expireToken))
+								self.RevokeCondition(expireToken);
 						}
 					}
 				}
@@ -133,8 +127,8 @@ namespace OpenRA.Mods.Common.Traits
 						if (timedTokens.Count > 0)
 						{
 							var expire = timedTokens[0].Token;
-							if (conditionManager.TokenValid(self, expire))
-								conditionManager.RevokeCondition(self, expire);
+							if (self.TokenValid(expire))
+								self.RevokeCondition(expire);
 
 							timedTokens.RemoveAt(0);
 						}
@@ -171,11 +165,10 @@ namespace OpenRA.Mods.Common.Traits
 		/// <returns><c>true</c> if the now-revoked condition was originally granted by this trait.</returns>
 		public bool TryRevokeCondition(Actor self, object source, int token)
 		{
-			if (conditionManager == null || source == null)
+			if (source == null)
 				return false;
 
-			HashSet<int> permanentTokensForSource;
-			if (permanentTokens.TryGetValue(source, out permanentTokensForSource))
+			if (permanentTokens.TryGetValue(source, out var permanentTokensForSource))
 			{
 				if (!permanentTokensForSource.Remove(token))
 					return false;
@@ -189,8 +182,8 @@ namespace OpenRA.Mods.Common.Traits
 					return false;
 			}
 
-			if (conditionManager.TokenValid(self, token))
-				conditionManager.RevokeCondition(self, token);
+			if (self.TokenValid(token))
+				self.RevokeCondition(token);
 
 			return true;
 		}
@@ -234,8 +227,8 @@ namespace OpenRA.Mods.Common.Traits
 			while (count < timedTokens.Count && timedTokens[count].Expires < worldTick)
 			{
 				var token = timedTokens[count].Token;
-				if (conditionManager.TokenValid(self, token))
-					conditionManager.RevokeCondition(self, token);
+				if (self.TokenValid(token))
+					self.RevokeCondition(token);
 
 				count++;
 			}

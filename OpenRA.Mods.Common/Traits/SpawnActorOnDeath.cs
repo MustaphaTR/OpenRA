@@ -72,15 +72,12 @@ namespace OpenRA.Mods.Common.Traits
 			: base(info)
 		{
 			enabled = !info.RequiresLobbyCreeps || init.Self.World.WorldActor.Trait<MapCreeps>().Enabled;
-			faction = init.Contains<FactionInit>() ? init.Get<FactionInit, string>() : init.Self.Owner.Faction.InternalName;
+			faction = init.GetValue<FactionInit, string>(init.Self.Owner.Faction.InternalName);
 		}
 
 		void INotifyKilled.Killed(Actor self, AttackInfo e)
 		{
-			if (!enabled || IsTraitDisabled)
-				return;
-
-			if (!self.IsInWorld)
+			if (!enabled || IsTraitDisabled || !self.IsInWorld)
 				return;
 
 			if (self.World.SharedRandom.Next(100) > Info.Probability)

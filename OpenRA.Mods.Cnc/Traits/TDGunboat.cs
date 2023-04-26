@@ -19,21 +19,22 @@ using OpenRA.Traits;
 
 namespace OpenRA.Mods.Cnc.Traits
 {
-	public class TDGunboatInfo : ITraitInfo, IPositionableInfo, IFacingInfo, IMoveInfo, IActorPreviewInitInfo
+	public class TDGunboatInfo : TraitInfo, IPositionableInfo, IFacingInfo, IMoveInfo, IActorPreviewInitInfo
 	{
 		public readonly int Speed = 28;
 
-		[Desc("Facing to use when actor spawns. Only 64 and 192 supported.")]
-		public readonly int InitialFacing = 64;
+		[Desc("Facing to use when actor spawns. Only 256 and 768 supported.")]
+		public readonly WAngle InitialFacing = new WAngle(256);
 
-		[Desc("Facing to use for actor previews (map editor, color picker, etc). Only 64 and 192 supported.")]
-		public readonly int PreviewFacing = 64;
+		[Desc("Facing to use for actor previews (map editor, color picker, etc). Only 256 and 768 supported.")]
+		public readonly WAngle PreviewFacing = new WAngle(256);
 
-		public virtual object Create(ActorInitializer init) { return new TDGunboat(init, this); }
+		public override object Create(ActorInitializer init) { return new TDGunboat(init, this); }
 
-		public int GetInitialFacing() { return InitialFacing; }
+		public WAngle GetInitialFacing() { return InitialFacing; }
+		public Color GetTargetLineColor() { return Color.Green; }
 
-		IEnumerable<object> IActorPreviewInitInfo.ActorPreviewInits(ActorInfo ai, ActorPreviewType type)
+		IEnumerable<ActorInit> IActorPreviewInitInfo.ActorPreviewInits(ActorInfo ai, ActorPreviewType type)
 		{
 			yield return new FacingInit(PreviewFacing);
 		}
@@ -58,12 +59,22 @@ namespace OpenRA.Mods.Cnc.Traits
 	{
 		public readonly TDGunboatInfo Info;
 		readonly Actor self;
+		static readonly WAngle Left = new WAngle(256);
+		static readonly WAngle Right = new WAngle(768);
 
 		IEnumerable<int> speedModifiers;
 		INotifyVisualPositionChanged[] notifyVisualPositionChanged;
 
+		WRot orientation;
+
 		[Sync]
-		public int Facing { get; set; }
+		public WAngle Facing
+		{
+			get { return orientation.Yaw; }
+			set { orientation = orientation.WithYaw(value); }
+		}
+
+		public WRot Orientation { get { return orientation; } }
 
 		[Sync]
 		public WPos CenterPosition { get; private set; }
@@ -71,7 +82,7 @@ namespace OpenRA.Mods.Cnc.Traits
 		public CPos TopLeft { get { return self.World.Map.CellContaining(CenterPosition); } }
 
 		// Isn't used anyway
-		public int TurnSpeed { get { return 255; } }
+		public WAngle TurnSpeed { get { return WAngle.Zero; } }
 
 		CPos cachedLocation;
 
@@ -80,17 +91,19 @@ namespace OpenRA.Mods.Cnc.Traits
 			Info = info;
 			self = init.Self;
 
-			if (init.Contains<LocationInit>())
-				SetPosition(self, init.Get<LocationInit, CPos>());
+			var locationInit = init.GetOrDefault<LocationInit>();
+			if (locationInit != null)
+				SetPosition(self, locationInit.Value);
 
-			if (init.Contains<CenterPositionInit>())
-				SetPosition(self, init.Get<CenterPositionInit, WPos>());
+			var centerPositionInit = init.GetOrDefault<CenterPositionInit>();
+			if (centerPositionInit != null)
+				SetPosition(self, centerPositionInit.Value);
 
-			Facing = init.Contains<FacingInit>() ? init.Get<FacingInit, int>() : Info.GetInitialFacing();
+			Facing = init.GetValue<FacingInit, WAngle>(Info.GetInitialFacing());
 
 			// Prevent mappers from setting bogus facings
-			if (Facing != 64 && Facing != 192)
-				Facing = Facing > 127 ? 192 : 64;
+			if (Facing != Left && Facing != Right)
+				Facing = Facing.Angle > 511 ? Right : Left;
 		}
 
 		void INotifyCreated.Created(Actor self)
@@ -126,27 +139,24 @@ namespace OpenRA.Mods.Cnc.Traits
 
 		void Turn()
 		{
-			if (Facing == 64)
-				Facing = 192;
-			else
-				Facing = 64;
+			Facing = Facing == Left ? Right : Left;
 		}
 
 		int MovementSpeed
 		{
-			get { return Util.ApplyPercentageModifiers(Info.Speed, speedModifiers); }
+			get { return OpenRA.Mods.Common.Util.ApplyPercentageModifiers(Info.Speed, speedModifiers); }
 		}
 
-		public Pair<CPos, SubCell>[] OccupiedCells() { return new[] { Pair.New(TopLeft, SubCell.FullCell) }; }
+		public (CPos, SubCell)[] OccupiedCells() { return new[] { (TopLeft, SubCell.FullCell) }; }
 
-		WVec MoveStep(int facing)
+		WVec MoveStep(WAngle facing)
 		{
 			return MoveStep(MovementSpeed, facing);
 		}
 
-		WVec MoveStep(int speed, int facing)
+		WVec MoveStep(int speed, WAngle facing)
 		{
-			var dir = new WVec(0, -1024, 0).Rotate(WRot.FromFacing(facing));
+			var dir = new WVec(0, -1024, 0).Rotate(WRot.FromYaw(facing));
 			return speed * dir / 1024;
 		}
 
@@ -174,12 +184,16 @@ namespace OpenRA.Mods.Cnc.Traits
 
 		public void SetPosition(Actor self, WPos pos)
 		{
+			if (self.IsInWorld)
+				self.World.ActorMap.RemoveInfluence(self, this);
+
 			CenterPosition = pos;
 
 			if (!self.IsInWorld)
 				return;
 
 			self.World.UpdateMaps(self, this);
+			self.World.ActorMap.AddInfluence(self, this);
 
 			// This can be called from the constructor before notifyVisualPositionChanged is assigned.
 			if (notifyVisualPositionChanged != null)
@@ -189,16 +203,16 @@ namespace OpenRA.Mods.Cnc.Traits
 
 		public Activity MoveTo(CPos cell, int nearEnough = 0, Actor ignoreActor = null,
 			bool evaluateNearestMovableCell = false, Color? targetLineColor = null) { return null; }
-		public Activity MoveWithinRange(Target target, WDist range,
+		public Activity MoveWithinRange(in Target target, WDist range,
 			WPos? initialTargetPosition = null, Color? targetLineColor = null) { return null; }
-		public Activity MoveWithinRange(Target target, WDist minRange, WDist maxRange,
+		public Activity MoveWithinRange(in Target target, WDist minRange, WDist maxRange,
 			WPos? initialTargetPosition = null, Color? targetLineColor = null) { return null; }
-		public Activity MoveFollow(Actor self, Target target, WDist minRange, WDist maxRange,
+		public Activity MoveFollow(Actor self, in Target target, WDist minRange, WDist maxRange,
 			WPos? initialTargetPosition = null, Color? targetLineColor = null) { return null; }
 		public Activity ReturnToCell(Actor self) { return null; }
-		public Activity MoveToTarget(Actor self, Target target,
+		public Activity MoveToTarget(Actor self, in Target target,
 			WPos? initialTargetPosition = null, Color? targetLineColor = null) { return null; }
-		public Activity MoveIntoTarget(Actor self, Target target) { return null; }
+		public Activity MoveIntoTarget(Actor self, in Target target) { return null; }
 		public Activity VisualMove(Actor self, WPos fromPos, WPos toPos) { return null; }
 
 		public int EstimatedMoveDuration(Actor self, WPos fromPos, WPos toPos)
@@ -211,7 +225,7 @@ namespace OpenRA.Mods.Cnc.Traits
 		// Actors with TDGunboat always move
 		public MovementType CurrentMovementTypes { get { return MovementType.Horizontal; } set { } }
 
-		public bool CanEnterTargetNow(Actor self, Target target)
+		public bool CanEnterTargetNow(Actor self, in Target target)
 		{
 			return false;
 		}

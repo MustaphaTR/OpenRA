@@ -52,7 +52,7 @@ namespace OpenRA
 	}
 
 	/// <summary> Describes what is to be loaded in order to run a mod. </summary>
-	public class Manifest
+	public class Manifest : IDisposable
 	{
 		public readonly string Id;
 		public readonly IReadOnlyPackage Package;
@@ -73,7 +73,7 @@ namespace OpenRA
 
 		readonly string[] reservedModuleNames =
 		{
-			"Metadata", "Folders", "MapFolders", "Packages", "Rules",
+			"Include", "Metadata", "Folders", "MapFolders", "Packages", "Rules",
 			"Sequences", "ModelSequences", "Cursors", "Chrome", "Assemblies", "ChromeLayout", "Weapons",
 			"Voices", "Notifications", "Music", "Translations", "TileSets", "ChromeMetrics", "Missions", "Hotkeys",
 			"ServerTraits", "LoadScreen", "SupportsMapsFrom", "SoundFormats", "SpriteFormats",
@@ -89,15 +89,32 @@ namespace OpenRA
 		{
 			Id = modId;
 			Package = package;
-			yaml = new MiniYaml(null, MiniYaml.FromStream(package.GetStream("mod.yaml"), "mod.yaml")).ToDictionary();
+
+			var nodes = MiniYaml.FromStream(package.GetStream("mod.yaml"), "mod.yaml");
+			for (var i = nodes.Count - 1; i >= 0; i--)
+			{
+				if (nodes[i].Key != "Include")
+					continue;
+
+				// Replace `Includes: filename.yaml` with the contents of filename.yaml
+				var filename = nodes[i].Value.Value;
+				var contents = package.GetStream(filename);
+				if (contents == null)
+					throw new YamlException("{0}: File `{1}` not found.".F(nodes[i].Location, filename));
+
+				nodes.RemoveAt(i);
+				nodes.InsertRange(i, MiniYaml.FromStream(contents, filename));
+			}
+
+			// Merge inherited overrides
+			yaml = new MiniYaml(null, MiniYaml.Merge(new[] { nodes })).ToDictionary();
 
 			Metadata = FieldLoader.Load<ModMetadata>(yaml["Metadata"]);
 
 			// TODO: Use fieldloader
 			MapFolders = YamlDictionary(yaml, "MapFolders");
 
-			MiniYaml packages;
-			if (yaml.TryGetValue("Packages", out packages))
+			if (yaml.TryGetValue("Packages", out var packages))
 				Packages = packages.ToDictionary(x => x.Value).AsReadOnly();
 
 			Rules = YamlList(yaml, "Rules");
@@ -217,9 +234,8 @@ namespace OpenRA
 		/// </summary>
 		public T Get<T>(ObjectCreator oc) where T : IGlobalModData
 		{
-			MiniYaml data;
 			var t = typeof(T);
-			if (!yaml.TryGetValue(t.Name, out data))
+			if (!yaml.TryGetValue(t.Name, out var data))
 			{
 				// Lazily create the default values if not explicitly defined.
 				return (T)oc.CreateBasic(t);
@@ -240,6 +256,15 @@ namespace OpenRA
 			}
 
 			return (T)module;
+		}
+
+		public void Dispose()
+		{
+			foreach (var module in modules)
+			{
+				var disposableModule = module as IDisposable;
+				disposableModule?.Dispose();
+			}
 		}
 	}
 }

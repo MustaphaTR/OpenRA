@@ -40,7 +40,7 @@ namespace OpenRA.Graphics
 		readonly MersenneTwister random;
 		TileSet tileset;
 
-		public Theater(TileSet tileset)
+		public Theater(TileSet tileset, Action<uint, string> onMissingImage = null)
 		{
 			this.tileset = tileset;
 			var allocated = false;
@@ -63,9 +63,31 @@ namespace OpenRA.Graphics
 
 				foreach (var i in t.Value.Images)
 				{
-					var allFrames = frameCache[i];
+					ISpriteFrame[] allFrames;
+					if (onMissingImage != null)
+					{
+						try
+						{
+							allFrames = frameCache[i];
+						}
+						catch (FileNotFoundException)
+						{
+							onMissingImage(t.Key, i);
+							continue;
+						}
+					}
+					else
+						allFrames = frameCache[i];
+
 					var frameCount = tileset.EnableDepth ? allFrames.Length / 2 : allFrames.Length;
-					var indices = t.Value.Frames != null ? t.Value.Frames : Enumerable.Range(0, frameCount);
+					var indices = t.Value.Frames != null ? t.Value.Frames : Exts.MakeArray(t.Value.TilesCount, j => j);
+
+					var start = indices.Min();
+					var end = indices.Max();
+					if (start < 0 || end >= frameCount)
+						throw new YamlException("Template `{0}` uses frames [{1}..{2}] of {3}, but only [0..{4}] actually exist"
+							.F(t.Key, start, end, i, frameCount - 1));
+
 					variants.Add(indices.Select(j =>
 					{
 						var f = allFrames[j];
@@ -82,7 +104,7 @@ namespace OpenRA.Graphics
 						if (sheetBuilder == null)
 							sheetBuilder = new SheetBuilder(SheetBuilder.FrameTypeToSheetType(f.Type), allocate);
 						else if (type != sheetBuilder.Type)
-							throw new InvalidDataException("Sprite type mismatch. Terrain sprites must all be either Indexed or RGBA.");
+							throw new YamlException("Sprite type mismatch. Terrain sprites must all be either Indexed or RGBA.");
 
 						var s = sheetBuilder.Allocate(f.Size, zRamp, offset);
 						Util.FastCopyIntoChannel(s, f.Data);
@@ -107,6 +129,9 @@ namespace OpenRA.Graphics
 				if (tileset.IgnoreTileSpriteOffsets)
 					allSprites = allSprites.Select(s => new Sprite(s.Sheet, s.Bounds, s.ZRamp, new float3(float2.Zero, s.Offset.Z), s.Channel, s.BlendMode));
 
+				if (onMissingImage != null && !variants.Any())
+					continue;
+
 				templates.Add(t.Value.Id, new TheaterTemplate(allSprites.ToArray(), variants.First().Count(), t.Value.Images.Length));
 			}
 
@@ -116,10 +141,14 @@ namespace OpenRA.Graphics
 			Sheet.ReleaseBuffer();
 		}
 
+		public bool HasTileSprite(TerrainTile r, int? variant = null)
+		{
+			return TileSprite(r, variant) != missingTile;
+		}
+
 		public Sprite TileSprite(TerrainTile r, int? variant = null)
 		{
-			TheaterTemplate template;
-			if (!templates.TryGetValue(r.Type, out template))
+			if (!templates.TryGetValue(r.Type, out var template))
 				return missingTile;
 
 			if (r.Index >= template.Stride)

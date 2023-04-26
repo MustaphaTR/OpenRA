@@ -179,7 +179,7 @@ E6:
 	Health:
 		HP: 3000
 	Passenger:
-		PipType: Yellow
+		CustomPipType: yellow
 	EngineerRepair:
 	RepairsBridges:
 	CaptureManager:
@@ -198,7 +198,7 @@ RMBO:
 	Inherits@AUTOTARGET: ^AutoTargetGroundAssaultMove
 	Inherits@DECORATIONS: ^InfantryExperienceHospitalHazmatOverrides
 	Valued:
-		Cost: 2000
+		Cost: 1800
 	Tooltip:
 		Name: Commando
 	UpdatesPlayerStatistics:
@@ -207,8 +207,6 @@ RMBO:
 		BuildPaletteOrder: 50
 		Prerequisites: eye, ~techlevel.high
 		Queue: Infantry.GDI
-		BuildDuration: 2000
-		BuildDurationModifier: 40
 		Description: Elite sniper infantry unit.\n  Strong vs Infantry, Buildings\n  Weak vs Vehicles
 	Mobile:
 		Speed: 71
@@ -218,7 +216,7 @@ RMBO:
 	Health:
 		HP: 15000
 	Passenger:
-		PipType: Red
+		CustomPipType: red
 		Voice: Move
 	RevealsShroud:
 		Range: 6c0
@@ -277,7 +275,6 @@ TREX:
 	Selectable:
 		Bounds: 48,36,2,1
 		DecorationBounds: 52,38
-	SelectionDecorations:
 	Buildable:
 		Description: Bipedal carnivore with a massive skull
 
@@ -287,7 +284,6 @@ TRIC:
 		Name: Triceratops
 	Armament:
 		Weapon: horn
-	SelectionDecorations:
 	Buildable:
 		Description: Quadruped with large bony frill and three horns
 	Selectable:

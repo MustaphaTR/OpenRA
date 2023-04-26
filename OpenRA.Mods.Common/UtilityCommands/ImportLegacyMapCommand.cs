@@ -15,10 +15,10 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using OpenRA.FileSystem;
-using OpenRA.Graphics;
 using OpenRA.Mods.Common.FileFormats;
 using OpenRA.Mods.Common.Traits;
 using OpenRA.Primitives;
+using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.UtilityCommands
 {
@@ -182,19 +182,19 @@ namespace OpenRA.Mods.Common.UtilityCommands
 					switch (s.Key)
 					{
 					case "Intro":
-						videos.Add(new MiniYamlNode("BackgroundVideo", s.Value.ToLower() + ".vqa"));
+						videos.Add(new MiniYamlNode("BackgroundVideo", s.Value.ToLowerInvariant() + ".vqa"));
 						break;
 					case "Brief":
-						videos.Add(new MiniYamlNode("BriefingVideo", s.Value.ToLower() + ".vqa"));
+						videos.Add(new MiniYamlNode("BriefingVideo", s.Value.ToLowerInvariant() + ".vqa"));
 						break;
 					case "Action":
-						videos.Add(new MiniYamlNode("StartVideo", s.Value.ToLower() + ".vqa"));
+						videos.Add(new MiniYamlNode("StartVideo", s.Value.ToLowerInvariant() + ".vqa"));
 						break;
 					case "Win":
-						videos.Add(new MiniYamlNode("WinVideo", s.Value.ToLower() + ".vqa"));
+						videos.Add(new MiniYamlNode("WinVideo", s.Value.ToLowerInvariant() + ".vqa"));
 						break;
 					case "Lose":
-						videos.Add(new MiniYamlNode("LossVideo", s.Value.ToLower() + ".vqa"));
+						videos.Add(new MiniYamlNode("LossVideo", s.Value.ToLowerInvariant() + ".vqa"));
 						break;
 					}
 				}
@@ -251,17 +251,17 @@ namespace OpenRA.Mods.Common.UtilityCommands
 			var actorCount = Map.ActorDefinitions.Count;
 			var wps = waypointSection
 				.Where(kv => Exts.ParseIntegerInvariant(kv.Value) > 0)
-				.Select(kv => Pair.New(Exts.ParseIntegerInvariant(kv.Key),
-					LocationFromMapOffset(Exts.ParseIntegerInvariant(kv.Value), MapSize)));
+				.Select(kv => (WaypointNumber: Exts.ParseIntegerInvariant(kv.Key),
+					Location: LocationFromMapOffset(Exts.ParseIntegerInvariant(kv.Value), MapSize)));
 
 			// Add waypoint actors skipping duplicate entries
-			foreach (var kv in wps.DistinctBy(location => location.Second))
+			foreach (var kv in wps.DistinctBy(location => location.Location))
 			{
-				if (!singlePlayer && kv.First <= 7)
+				if (!singlePlayer && kv.WaypointNumber <= 7)
 				{
 					var ar = new ActorReference("mpspawn")
 					{
-						new LocationInit((CPos)kv.Second),
+						new LocationInit((CPos)kv.Location),
 						new OwnerInit("Neutral")
 					};
 
@@ -272,11 +272,11 @@ namespace OpenRA.Mods.Common.UtilityCommands
 				{
 					var ar = new ActorReference("waypoint")
 					{
-						new LocationInit((CPos)kv.Second),
+						new LocationInit((CPos)kv.Location),
 						new OwnerInit("Neutral")
 					};
 
-					SaveWaypoint(kv.First, ar);
+					SaveWaypoint(kv.WaypointNumber, ar);
 				}
 			}
 		}
@@ -409,14 +409,13 @@ namespace OpenRA.Mods.Common.UtilityCommands
 						new OwnerInit(parts[0]),
 					};
 
-					var initDict = actor.InitDict;
 					if (health != 100)
-						initDict.Add(new HealthInit(health));
+						actor.Add(new HealthInit(health));
 					if (facing != 0)
-						initDict.Add(new FacingInit(255 - facing));
+						actor.Add(new FacingInit(new WAngle(1024 - 4 * facing)));
 
 					if (section == "INFANTRY")
-						actor.Add(new SubCellInit(Exts.ParseByte(parts[4])));
+						actor.Add(new SubCellInit((SubCell)Exts.ParseByte(parts[4])));
 
 					var actorCount = map.ActorDefinitions.Count;
 

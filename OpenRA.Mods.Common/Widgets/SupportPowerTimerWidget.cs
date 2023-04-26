@@ -22,12 +22,13 @@ namespace OpenRA.Mods.Common.Widgets
 	{
 		public readonly string Font = "Bold";
 		public readonly string Format = "{0}: {1}";
+		public readonly TextAlign Align = TextAlign.Left;
 		public readonly TimerOrder Order = TimerOrder.Descending;
 
 		readonly int timestep;
 		readonly IEnumerable<SupportPowerInstance> powers;
 		readonly Color bgDark, bgLight;
-		Pair<string, Color>[] texts;
+		(string Text, Color Color)[] texts;
 
 		[ObjectCreator.UseCtor]
 		public SupportPowerTimerWidget(World world)
@@ -35,7 +36,7 @@ namespace OpenRA.Mods.Common.Widgets
 			powers = world.ActorsWithTrait<SupportPowerManager>()
 				.Where(p => !p.Actor.IsDead && !p.Actor.Owner.NonCombatant)
 				.SelectMany(s => s.Trait.Powers.Values)
-				.Where(p => p.Instances.Any() && p.Info.DisplayTimerStances != Stance.None && !p.Disabled);
+				.Where(p => p.Instances.Any() && p.Info.DisplayTimerRelationships != PlayerRelationship.None && !p.Disabled);
 
 			// Timers in replays should be synced to the effective game time, not the playback time.
 			timestep = world.Timestep;
@@ -52,7 +53,7 @@ namespace OpenRA.Mods.Common.Widgets
 			{
 				var owner = p.Instances[0].Self.Owner;
 				var viewer = owner.World.RenderPlayer ?? owner.World.LocalPlayer;
-				return viewer == null || p.Info.DisplayTimerStances.HasStance(owner.Stances[viewer]);
+				return viewer == null || p.Info.DisplayTimerRelationships.HasStance(owner.RelationshipWith(viewer));
 			});
 
 			texts = displayedPowers.Select(p =>
@@ -68,7 +69,7 @@ namespace OpenRA.Mods.Common.Widgets
 
 				var color = !p.Ready || Game.LocalTick % 50 < 25 ? playerColor : Color.White;
 
-				return Pair.New(text, color);
+				return (text, color);
 			}).ToArray();
 		}
 
@@ -81,8 +82,17 @@ namespace OpenRA.Mods.Common.Widgets
 			foreach (var t in texts)
 			{
 				var font = Game.Renderer.Fonts[Font];
-				font.DrawTextWithShadow(t.First, new float2(Bounds.Location) + new float2(0, y), t.Second, bgDark, bgLight, 1);
-				y += (font.Measure(t.First).Y + 5) * (int)Order;
+				var textSize = font.Measure(t.Text);
+				var location = new float2(Bounds.Location) + new float2(0, y);
+
+				if (Align == TextAlign.Center)
+					location += new int2((Bounds.Width - textSize.X) / 2, 0);
+
+				if (Align == TextAlign.Right)
+					location += new int2(Bounds.Width - textSize.X, 0);
+
+				font.DrawTextWithShadow(t.Text, location, t.Color, bgDark, bgLight, 1);
+				y += (font.Measure(t.Text).Y + 5) * (int)Order;
 			}
 		}
 

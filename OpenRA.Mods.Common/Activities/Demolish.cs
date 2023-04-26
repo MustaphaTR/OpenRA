@@ -24,21 +24,23 @@ namespace OpenRA.Mods.Common.Activities
 		readonly int flashes;
 		readonly int flashesDelay;
 		readonly int flashInterval;
+		readonly BitSet<DamageType> damageTypes;
 		readonly INotifyDemolition[] notifiers;
 		readonly EnterBehaviour enterBehaviour;
 
 		Actor enterActor;
 		IDemolishable[] enterDemolishables;
 
-		public Demolish(Actor self, Target target, EnterBehaviour enterBehaviour, int delay,
-			int flashes, int flashesDelay, int flashInterval)
-			: base(self, target, WDist.Zero, Color.Crimson)
+		public Demolish(Actor self, in Target target, EnterBehaviour enterBehaviour, int delay, int flashes,
+			int flashesDelay, int flashInterval, BitSet<DamageType> damageTypes, Color? targetLineColor)
+			: base(self, target, WDist.Zero, targetLineColor)
 		{
 			notifiers = self.TraitsImplementing<INotifyDemolition>().ToArray();
 			this.delay = delay;
 			this.flashes = flashes;
 			this.flashesDelay = flashesDelay;
 			this.flashInterval = flashInterval;
+			this.damageTypes = damageTypes;
 			this.enterBehaviour = enterBehaviour;
 		}
 
@@ -76,7 +78,7 @@ namespace OpenRA.Mods.Common.Activities
 					ind.Demolishing(self);
 
 				foreach (var d in enterDemolishables)
-					d.Demolish(enterActor, self, delay);
+					d.Demolish(enterActor, self, delay, damageTypes);
 
 				if (enterBehaviour == EnterBehaviour.Dispose)
 					self.Dispose();

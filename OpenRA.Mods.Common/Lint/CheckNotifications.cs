@@ -12,17 +12,18 @@
 using System;
 using System.Linq;
 using OpenRA.GameRules;
+using OpenRA.Mods.Common.Traits;
 using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.Lint
 {
 	class CheckNotifications : ILintRulesPass
 	{
-		public void Run(Action<string> emitError, Action<string> emitWarning, Ruleset rules)
+		public void Run(Action<string> emitError, Action<string> emitWarning, ModData modData, Ruleset rules)
 		{
 			foreach (var actorInfo in rules.Actors)
 			{
-				foreach (var traitInfo in actorInfo.Value.TraitInfos<ITraitInfo>())
+				foreach (var traitInfo in actorInfo.Value.TraitInfos<TraitInfo>())
 				{
 					var fields = traitInfo.GetType().GetFields();
 					foreach (var field in fields.Where(x => x.HasAttribute<NotificationReferenceAttribute>()))
@@ -43,9 +44,8 @@ namespace OpenRA.Mods.Common.Lint
 							if (string.IsNullOrEmpty(notification))
 								continue;
 
-							SoundInfo soundInfo;
-							if (string.IsNullOrEmpty(type) || !rules.Notifications.TryGetValue(type.ToLowerInvariant(), out soundInfo) ||
-									!soundInfo.Notifications.ContainsKey(notification))
+							if (string.IsNullOrEmpty(type) || !rules.Notifications.TryGetValue(type.ToLowerInvariant(), out var soundInfo) ||
+								!soundInfo.Notifications.ContainsKey(notification))
 								emitError("Undefined notification reference {0}.{1} detected at {2} for {3}".F(
 									type ?? "(null)", notification, traitInfo.GetType().Name, actorInfo.Key));
 						}

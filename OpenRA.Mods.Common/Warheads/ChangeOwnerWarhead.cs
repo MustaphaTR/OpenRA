@@ -9,7 +9,6 @@
  */
 #endregion
 
-using System.Collections.Generic;
 using OpenRA.GameRules;
 using OpenRA.Mods.Common.Traits;
 using OpenRA.Traits;
@@ -24,7 +23,7 @@ namespace OpenRA.Mods.Common.Warheads
 
 		public readonly WDist Range = WDist.FromCells(1);
 
-		public override void DoImpact(Target target, WarheadArgs args)
+		public override void DoImpact(in Target target, WarheadArgs args)
 		{
 			var firedBy = args.SourceActor;
 			var actors = target.Type == TargetType.Actor ? new[] { target.Actor } :
@@ -32,6 +31,9 @@ namespace OpenRA.Mods.Common.Warheads
 
 			foreach (var a in actors)
 			{
+				if (!IsValidAgainst(a, firedBy))
+					continue;
+
 				// Don't do anything on friendly fire
 				if (a.Owner == firedBy.Owner)
 					continue;

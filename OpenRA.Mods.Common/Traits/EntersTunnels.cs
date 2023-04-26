@@ -20,31 +20,39 @@ using OpenRA.Traits;
 namespace OpenRA.Mods.Common.Traits
 {
 	[Desc("This actor can interact with TunnelEntrances to move through TerrainTunnels.")]
-	public class EntersTunnelsInfo : ITraitInfo, Requires<IMoveInfo>, IObservesVariablesInfo
+	public class EntersTunnelsInfo : TraitInfo, Requires<IMoveInfo>, IObservesVariablesInfo
 	{
+		[Desc("Cursor to display when able to enter target tunnel.")]
 		public readonly string EnterCursor = "enter";
+
+		[Desc("Cursor to display when unable to enter target tunnel.")]
 		public readonly string EnterBlockedCursor = "enter-blocked";
 
 		[VoiceReference]
 		public readonly string Voice = "Action";
 
+		[Desc("Color to use for the target line while in tunnels.")]
+		public readonly Color TargetLineColor = Color.Green;
+
 		[ConsumedConditionReference]
 		[Desc("Boolean expression defining the condition under which the regular (non-force) enter cursor is disabled.")]
 		public readonly BooleanExpression RequireForceMoveCondition = null;
 
-		public object Create(ActorInitializer init) { return new EntersTunnels(init.Self, this); }
+		public override object Create(ActorInitializer init) { return new EntersTunnels(init.Self, this); }
 	}
 
 	public class EntersTunnels : IIssueOrder, IResolveOrder, IOrderVoice, IObservesVariables
 	{
 		readonly EntersTunnelsInfo info;
 		readonly IMove move;
+		readonly IMoveInfo moveInfo;
 		bool requireForceMove;
 
 		public EntersTunnels(Actor self, EntersTunnelsInfo info)
 		{
 			this.info = info;
 			move = self.Trait<IMove>();
+			moveInfo = self.Info.TraitInfo<IMoveInfo>();
 		}
 
 		public IEnumerable<IOrderTargeter> Orders
@@ -60,7 +68,7 @@ namespace OpenRA.Mods.Common.Traits
 			return !requireForceMove || modifiers.HasModifier(TargetModifiers.ForceMove);
 		}
 
-		public Order IssueOrder(Actor self, IOrderTargeter order, Target target, bool queued)
+		public Order IssueOrder(Actor self, IOrderTargeter order, in Target target, bool queued)
 		{
 			if (order.OrderID != "EnterTunnel")
 				return null;
@@ -82,8 +90,8 @@ namespace OpenRA.Mods.Common.Traits
 			if (tunnel == null || !tunnel.Exit.HasValue)
 				return;
 
-			self.QueueActivity(order.Queued, move.MoveTo(tunnel.Entrance, tunnel.NearEnough, targetLineColor: Color.Green));
-			self.QueueActivity(move.MoveTo(tunnel.Exit.Value, tunnel.NearEnough, targetLineColor: Color.Green));
+			self.QueueActivity(order.Queued, move.MoveTo(tunnel.Entrance, tunnel.NearEnough, targetLineColor: moveInfo.GetTargetLineColor()));
+			self.QueueActivity(move.MoveTo(tunnel.Exit.Value, tunnel.NearEnough, targetLineColor: info.TargetLineColor));
 			self.ShowTargetLines();
 		}
 

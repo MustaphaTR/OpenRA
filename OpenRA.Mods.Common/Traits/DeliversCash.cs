@@ -18,7 +18,7 @@ using OpenRA.Traits;
 namespace OpenRA.Mods.Common.Traits
 {
 	[Desc("Donate money to actors with the `AcceptsDeliveredCash` trait.")]
-	public class DeliversCashInfo : ITraitInfo
+	public class DeliversCashInfo : TraitInfo
 	{
 		[Desc("The amount of cash the owner receives.")]
 		public readonly int Payload = 500;
@@ -32,10 +32,16 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Sound to play when delivering cash")]
 		public readonly string[] Sounds = { };
 
+		[Desc("Cursor to display when hovering over a valid actor to deliver cash to.")]
+		public readonly string Cursor = "enter";
+
 		[VoiceReference]
 		public readonly string Voice = "Action";
 
-		public object Create(ActorInitializer init) { return new DeliversCash(this); }
+		[Desc("Color to use for the target line.")]
+		public readonly Color TargetLineColor = Color.Yellow;
+
+		public override object Create(ActorInitializer init) { return new DeliversCash(this); }
 	}
 
 	public class DeliversCash : IIssueOrder, IResolveOrder, IOrderVoice, INotifyCashTransfer
@@ -49,10 +55,10 @@ namespace OpenRA.Mods.Common.Traits
 
 		public IEnumerable<IOrderTargeter> Orders
 		{
-			get { yield return new DeliversCashOrderTargeter(); }
+			get { yield return new DeliversCashOrderTargeter(info); }
 		}
 
-		public Order IssueOrder(Actor self, IOrderTargeter order, Target target, bool queued)
+		public Order IssueOrder(Actor self, IOrderTargeter order, in Target target, bool queued)
 		{
 			if (order.OrderID != "DeliverCash")
 				return null;
@@ -73,7 +79,7 @@ namespace OpenRA.Mods.Common.Traits
 			if (order.OrderString != "DeliverCash")
 				return;
 
-			self.QueueActivity(order.Queued, new DonateCash(self, order.Target, info.Payload, info.PlayerExperience));
+			self.QueueActivity(order.Queued, new DonateCash(self, order.Target, info.Payload, info.PlayerExperience, info.TargetLineColor));
 			self.ShowTargetLines();
 		}
 
@@ -87,27 +93,33 @@ namespace OpenRA.Mods.Common.Traits
 
 		public class DeliversCashOrderTargeter : UnitOrderTargeter
 		{
-			public DeliversCashOrderTargeter()
-				: base("DeliverCash", 5, "enter", false, true) { }
+			public DeliversCashOrderTargeter(DeliversCashInfo info)
+				: base("DeliverCash", 5, info.Cursor, false, true) { }
 
 			public override bool CanTargetActor(Actor self, Actor target, TargetModifiers modifiers, ref string cursor)
 			{
-				var type = self.Info.TraitInfo<DeliversCashInfo>().Type;
 				var targetInfo = target.Info.TraitInfoOrDefault<AcceptsDeliveredCashInfo>();
-				return targetInfo != null
-					&& targetInfo.ValidStances.HasStance(target.Owner.Stances[self.Owner])
-					&& (targetInfo.ValidTypes.Count == 0
-						|| (!string.IsNullOrEmpty(type) && targetInfo.ValidTypes.Contains(type)));
+				if (targetInfo == null || !targetInfo.ValidRelationships.HasStance(target.Owner.RelationshipWith(self.Owner)))
+					return false;
+
+				if (targetInfo.ValidTypes.Count == 0)
+					return true;
+
+				var type = self.Info.TraitInfo<DeliversCashInfo>().Type;
+				return !string.IsNullOrEmpty(type) && targetInfo.ValidTypes.Contains(type);
 			}
 
 			public override bool CanTargetFrozenActor(Actor self, FrozenActor target, TargetModifiers modifiers, ref string cursor)
 			{
-				var type = self.Info.TraitInfo<DeliversCashInfo>().Type;
 				var targetInfo = target.Info.TraitInfoOrDefault<AcceptsDeliveredCashInfo>();
-				return targetInfo != null
-					&& targetInfo.ValidStances.HasStance(target.Owner.Stances[self.Owner])
-					&& (targetInfo.ValidTypes.Count == 0
-						|| (!string.IsNullOrEmpty(type) && targetInfo.ValidTypes.Contains(type)));
+				if (targetInfo == null || !targetInfo.ValidRelationships.HasStance(target.Owner.RelationshipWith(self.Owner)))
+					return false;
+
+				if (targetInfo.ValidTypes.Count == 0)
+					return true;
+
+				var type = self.Info.TraitInfo<DeliversCashInfo>().Type;
+				return !string.IsNullOrEmpty(type) && targetInfo.ValidTypes.Contains(type);
 			}
 		}
 	}

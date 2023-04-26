@@ -45,7 +45,7 @@ namespace OpenRA.Mods.Common.Traits
 			rp = Exts.Lazy(() => init.Self.IsDead ? null : init.Self.TraitOrDefault<RallyPoint>());
 		}
 
-		public override bool Produce(Actor self, ActorInfo producee, string productionType, TypeDictionary inits)
+		public override bool Produce(Actor self, ActorInfo producee, string productionType, TypeDictionary inits, int refundableValue)
 		{
 			if (IsTraitDisabled || IsTraitPaused)
 				return false;
@@ -69,26 +69,32 @@ namespace OpenRA.Mods.Common.Traits
 			owner.World.AddFrameEndTask(w =>
 			{
 				if (!self.IsInWorld || self.IsDead)
+				{
+					owner.PlayerActor.Trait<PlayerResources>().GiveCash(refundableValue);
 					return;
+				}
 
 				var altitude = self.World.Map.Rules.Actors[actorType].TraitInfo<AircraftInfo>().CruiseAltitude;
 				var actor = w.CreateActor(actorType, new TypeDictionary
 				{
 					new CenterPositionInit(w.Map.CenterOfCell(startPos) + new WVec(WDist.Zero, WDist.Zero, altitude)),
 					new OwnerInit(owner),
-					new FacingInit(64)
+					new FacingInit(new WAngle(256)),
 				});
 
 				actor.QueueActivity(new Fly(actor, Target.FromCell(w, dropPos)));
 				actor.QueueActivity(new CallFunc(() =>
 				{
 					if (!self.IsInWorld || self.IsDead)
+					{
+						owner.PlayerActor.Trait<PlayerResources>().GiveCash(refundableValue);
 						return;
+					}
 
 					foreach (var cargo in self.TraitsImplementing<INotifyDelivery>())
 						cargo.Delivered(self);
 
-					self.World.AddFrameEndTask(ww => DoProduction(self, producee, exit == null ? null : exit.Info, productionType, inits));
+					self.World.AddFrameEndTask(ww => DoProduction(self, producee, exit?.Info, productionType, inits));
 					Game.Sound.Play(SoundType.World, info.ChuteSound, self.CenterPosition);
 					Game.Sound.PlayNotification(self.World.Map.Rules, self.Owner, "Speech", info.ReadyAudio, self.Owner.Faction.InternalName);
 				}));
@@ -124,7 +130,7 @@ namespace OpenRA.Mods.Common.Traits
 				var spawn = self.World.Map.CenterOfCell(exit) + new WVec(WDist.Zero, WDist.Zero, altitude);
 				var to = self.World.Map.CenterOfCell(exit);
 
-				var initialFacing = exitinfo == null || exitinfo.Facing < 0 ? (to - spawn).Yaw.Facing : exitinfo.Facing;
+				var initialFacing = (exitinfo != null && exitinfo.Facing.HasValue) ? exitinfo.Facing.Value : (to - spawn).Yaw;
 
 				exitLocations = rp.Value != null && rp.Value.Path.Count > 0 ? rp.Value.Path : new List<CPos> { exit };
 

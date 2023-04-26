@@ -56,7 +56,7 @@ namespace OpenRA.Network
 			"Mod", "Version", "ModTitle", "ModWebsite", "ModIcon32",
 
 			// Current server state
-			"Map", "State", "MaxPlayers", "Protected", "Authentication"
+			"Map", "State", "MaxPlayers", "Protected", "Authentication", "DisabledSpawnPoints"
 		};
 
 		public const int ProtocolVersion = 2;
@@ -132,6 +132,9 @@ namespace OpenRA.Network
 		[FieldLoader.LoadUsing("LoadClients")]
 		public readonly GameClient[] Clients;
 
+		/// <summary>The list of spawnpoints that are disabled for this game</summary>
+		public readonly int[] DisabledSpawnPoints = { };
+
 		public string ModLabel { get { return "{0} ({1})".F(ModTitle, Version); } }
 
 		static object LoadClients(MiniYaml yaml)
@@ -167,28 +170,22 @@ namespace OpenRA.Network
 
 			// Games advertised using the old API calculated the play time locally
 			if (State == 2 && PlayTime < 0)
-			{
-				DateTime startTime;
-				if (DateTime.TryParse(Started, out startTime))
+				if (DateTime.TryParse(Started, out var startTime))
 					PlayTime = (int)(DateTime.UtcNow - startTime).TotalSeconds;
-			}
 
-			ExternalMod external;
 			var externalKey = ExternalMod.MakeKey(Mod, Version);
-			if (Game.ExternalMods.TryGetValue(externalKey, out external) && external.Version == Version)
+			if (Game.ExternalMods.TryGetValue(externalKey, out var external) && external.Version == Version)
 				IsCompatible = true;
 
 			// Games advertised using the old API used local mod metadata
 			if (string.IsNullOrEmpty(ModTitle))
 			{
-				Manifest mod;
-
 				if (external != null && external.Version == Version)
 				{
 					// Use external mod registration to populate the section header
 					ModTitle = external.Title;
 				}
-				else if (Game.Mods.TryGetValue(Mod, out mod))
+				else if (Game.Mods.TryGetValue(Mod, out var mod))
 				{
 					// Use internal mod data to populate the section header, but
 					// on-connect switching must use the external mod plumbing.
@@ -232,6 +229,7 @@ namespace OpenRA.Network
 			Protected = !string.IsNullOrEmpty(server.Settings.Password);
 			Authentication = server.Settings.RequireAuthentication || server.Settings.ProfileIDWhitelist.Any();
 			Clients = server.LobbyInfo.Clients.Select(c => new GameClient(c)).ToArray();
+			DisabledSpawnPoints = server.LobbyInfo.DisabledSpawnPoints?.ToArray() ?? Array.Empty<int>();
 		}
 
 		public string ToPOSTData(bool lanGame)

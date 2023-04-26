@@ -9,10 +9,8 @@
  */
 #endregion
 
-using System;
 using System.Collections.Generic;
 using System.Linq;
-using OpenRA.Primitives;
 using OpenRA.Server;
 using OpenRA.Traits;
 
@@ -29,13 +27,6 @@ namespace OpenRA.Network
 
 		internal static void ProcessOrder(OrderManager orderManager, World world, int clientId, Order order)
 		{
-			if (world != null)
-			{
-				if (!world.WorldActor.TraitsImplementing<IValidateOrder>().All(vo =>
-					vo.OrderValidation(orderManager, world, clientId, order)))
-					return;
-			}
-
 			switch (order.OrderString)
 			{
 				// Server message
@@ -48,7 +39,13 @@ namespace OpenRA.Network
 					{
 						var client = orderManager.LobbyInfo.ClientWithIndex(clientId);
 						if (client != null)
+						{
 							client.State = Session.ClientState.Disconnected;
+							var player = world?.FindPlayerByClient(client);
+							if (player != null)
+								world.OnPlayerDisconnected(player);
+						}
+
 						break;
 					}
 
@@ -147,8 +144,7 @@ namespace OpenRA.Network
 						var data = MiniYaml.FromString(order.TargetString)[0];
 						var traitIndex = int.Parse(data.Key);
 
-						if (world != null)
-							world.AddGameSaveTraitData(traitIndex, data.Value);
+						world?.AddGameSaveTraitData(traitIndex, data.Value);
 
 						break;
 					}
@@ -192,9 +188,8 @@ namespace OpenRA.Network
 						var request = HandshakeRequest.Deserialize(order.TargetString);
 
 						var externalKey = ExternalMod.MakeKey(request.Mod, request.Version);
-						ExternalMod external;
-						if ((request.Mod != mod.Id || request.Version != mod.Metadata.Version)
-							&& Game.ExternalMods.TryGetValue(externalKey, out external))
+						if ((request.Mod != mod.Id || request.Version != mod.Metadata.Version) &&
+							Game.ExternalMods.TryGetValue(externalKey, out var external))
 						{
 							// The ConnectionFailedLogic will prompt the user to switch mods
 							orderManager.ServerExternalMod = external;
@@ -337,17 +332,27 @@ namespace OpenRA.Network
 
 				default:
 					{
-						ResolveOrder(order);
+						if (world == null)
+							break;
+
+						if (order.GroupedActors == null)
+							ResolveOrder(order, world, orderManager, clientId);
+						else
+							foreach (var subject in order.GroupedActors)
+								ResolveOrder(Order.FromGroupedOrder(order, subject), world, orderManager, clientId);
+
 						break;
 					}
 			}
 		}
 
-		static void ResolveOrder(Order order)
+		static void ResolveOrder(Order order, World world, OrderManager orderManager, int clientId)
 		{
-			if (order.Subject != null && !order.Subject.IsDead)
-				foreach (var t in order.Subject.TraitsImplementing<IResolveOrder>())
-					t.ResolveOrder(order.Subject, order);
+			if (order.Subject == null || order.Subject.IsDead)
+				return;
+
+			if (world.OrderValidators.All(vo => vo.OrderValidation(orderManager, world, clientId, order)))
+				order.Subject.ResolveOrder(order);
 		}
 
 		static void SetOrderLag(OrderManager o)

@@ -28,6 +28,11 @@ namespace OpenRA.Graphics
 		IFinalizedRenderable PrepareRender(WorldRenderer wr);
 	}
 
+	public interface ITintableRenderable
+	{
+		IRenderable WithTint(in float3 newTint);
+	}
+
 	public interface IFinalizedRenderable
 	{
 		void Render(WorldRenderer wr);

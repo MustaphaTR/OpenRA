@@ -63,19 +63,16 @@ namespace OpenRA.FileSystem
 		{
 			// Raw directories are the easiest and one of the most common cases, so try these first
 			var resolvedPath = Platform.ResolvePath(filename);
-			if (!filename.Contains("|") && Directory.Exists(resolvedPath))
+			if (!resolvedPath.Contains("|") && Directory.Exists(resolvedPath))
 				return new Folder(resolvedPath);
 
 			// Children of another package require special handling
-			IReadOnlyPackage parent;
-			string subPath = null;
-			if (TryGetPackageContaining(filename, out parent, out subPath))
+			if (TryGetPackageContaining(filename, out var parent, out var subPath))
 				return parent.OpenPackage(subPath, this);
 
 			// Try and open it normally
-			IReadOnlyPackage package;
 			var stream = Open(filename);
-			if (TryParsePackage(stream, filename, out package))
+			if (TryParsePackage(stream, filename, out var package))
 				return package;
 
 			// No package loaders took ownership of the stream, so clean it up
@@ -97,8 +94,7 @@ namespace OpenRA.FileSystem
 				{
 					name = name.Substring(1);
 
-					Manifest mod;
-					if (!installedMods.TryGetValue(name, out mod))
+					if (!installedMods.TryGetValue(name, out var mod))
 						throw new InvalidOperationException("Could not load mod '{0}'. Available mods: {1}".F(name, installedMods.Keys.JoinWith(", ")));
 
 					package = mod.Package;
@@ -122,8 +118,7 @@ namespace OpenRA.FileSystem
 
 		public void Mount(IReadOnlyPackage package, string explicitName = null)
 		{
-			var mountCount = 0;
-			if (mountedPackages.TryGetValue(package, out mountCount))
+			if (mountedPackages.TryGetValue(package, out var mountCount))
 			{
 				// Package is already mounted
 				// Increment the mount count and bump up the file loading priority
@@ -149,8 +144,7 @@ namespace OpenRA.FileSystem
 
 		public bool Unmount(IReadOnlyPackage package)
 		{
-			var mountCount = 0;
-			if (!mountedPackages.TryGetValue(package, out mountCount))
+			if (!mountedPackages.TryGetValue(package, out var mountCount))
 				return false;
 
 			if (--mountCount <= 0)
@@ -203,16 +197,12 @@ namespace OpenRA.FileSystem
 			var package = fileIndex[filename]
 				.LastOrDefault(x => x.Contains(filename));
 
-			if (package != null)
-				return package.GetStream(filename);
-
-			return null;
+			return package?.GetStream(filename);
 		}
 
 		public Stream Open(string filename)
 		{
-			Stream s;
-			if (!TryOpen(filename, out s))
+			if (!TryOpen(filename, out var s))
 				throw new FileNotFoundException("File not found: {0}".F(filename), filename);
 
 			return s;
@@ -238,8 +228,7 @@ namespace OpenRA.FileSystem
 			var explicitSplit = filename.IndexOf('|');
 			if (explicitSplit > 0)
 			{
-				IReadOnlyPackage explicitPackage;
-				if (explicitMounts.TryGetValue(filename.Substring(0, explicitSplit), out explicitPackage))
+				if (explicitMounts.TryGetValue(filename.Substring(0, explicitSplit), out var explicitPackage))
 				{
 					s = explicitPackage.GetStream(filename.Substring(explicitSplit + 1));
 					if (s != null)
@@ -274,12 +263,9 @@ namespace OpenRA.FileSystem
 		{
 			var explicitSplit = filename.IndexOf('|');
 			if (explicitSplit > 0)
-			{
-				IReadOnlyPackage explicitPackage;
-				if (explicitMounts.TryGetValue(filename.Substring(0, explicitSplit), out explicitPackage))
+				if (explicitMounts.TryGetValue(filename.Substring(0, explicitSplit), out var explicitPackage))
 					if (explicitPackage.Contains(filename.Substring(explicitSplit + 1)))
 						return true;
-			}
 
 			return fileIndex.ContainsKey(filename);
 		}
@@ -293,8 +279,7 @@ namespace OpenRA.FileSystem
 			if (explicitSplit < 0)
 				return false;
 
-			IReadOnlyPackage explicitPackage;
-			if (!explicitMounts.TryGetValue(filename.Substring(0, explicitSplit), out explicitPackage))
+			if (!explicitMounts.TryGetValue(filename.Substring(0, explicitSplit), out var explicitPackage))
 				return false;
 
 			if (installedMods[modID].Package == explicitPackage)
@@ -310,7 +295,7 @@ namespace OpenRA.FileSystem
 		public static string ResolveAssemblyPath(string path, Manifest manifest, InstalledMods installedMods)
 		{
 			var explicitSplit = path.IndexOf('|');
-			if (explicitSplit > 0)
+			if (explicitSplit > 0 && !path.StartsWith("^"))
 			{
 				var parent = path.Substring(0, explicitSplit);
 				var filename = path.Substring(explicitSplit + 1);
@@ -321,8 +306,7 @@ namespace OpenRA.FileSystem
 
 				if (parentPath.StartsWith("$", StringComparison.Ordinal))
 				{
-					Manifest mod;
-					if (!installedMods.TryGetValue(parentPath.Substring(1), out mod))
+					if (!installedMods.TryGetValue(parentPath.Substring(1), out var mod))
 						return null;
 
 					if (!(mod.Package is Folder))

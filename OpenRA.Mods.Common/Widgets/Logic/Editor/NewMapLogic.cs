@@ -45,9 +45,8 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 
 			panel.Get<ButtonWidget>("CREATE_BUTTON").OnClick = () =>
 			{
-				int width, height;
-				int.TryParse(widthTextField.Text, out width);
-				int.TryParse(heightTextField.Text, out height);
+				int.TryParse(widthTextField.Text, out var width);
+				int.TryParse(heightTextField.Text, out var height);
 
 				// Require at least a 2x2 playable area so that the
 				// ground is visible through the edge shroud
@@ -71,8 +70,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 					// It's not clear why this is needed here, but not in the other places that load maps.
 					Game.RunAfterTick(() =>
 					{
-						ConnectionLogic.Connect(System.Net.IPAddress.Loopback.ToString(),
-							Game.CreateLocalServer(uid), "",
+						ConnectionLogic.Connect(Game.CreateLocalServer(uid), "",
 							() => Game.LoadEditor(uid),
 							() => { Game.CloseServer(); onExit(); });
 					});

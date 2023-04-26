@@ -19,13 +19,13 @@ using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.Traits.Render
 {
-	public interface IRenderActorPreviewSpritesInfo : ITraitInfo
+	public interface IRenderActorPreviewSpritesInfo : ITraitInfoInterface
 	{
 		IEnumerable<IActorPreview> RenderPreviewSprites(ActorPreviewInitializer init, RenderSpritesInfo rs, string image, int facings, PaletteReference p);
 	}
 
 	[Desc("Render trait fundament that won't work without additional With* render traits.")]
-	public class RenderSpritesInfo : IRenderActorPreviewInfo, ITraitInfo
+	public class RenderSpritesInfo : TraitInfo, IRenderActorPreviewInfo
 	{
 		[Desc("The sequence name that defines the actor sprites. Defaults to the actor name.")]
 		public readonly string Image = null;
@@ -44,13 +44,13 @@ namespace OpenRA.Mods.Common.Traits.Render
 		[Desc("Change the sprite image size.")]
 		public readonly float Scale = 1f;
 
-		public virtual object Create(ActorInitializer init) { return new RenderSprites(init, this); }
+		public override object Create(ActorInitializer init) { return new RenderSprites(init, this); }
 
 		public IEnumerable<IActorPreview> RenderPreview(ActorPreviewInitializer init)
 		{
 			var sequenceProvider = init.World.Map.Rules.Sequences;
-			var faction = init.Get<FactionInit, string>();
-			var ownerName = init.Get<OwnerInit>().PlayerName;
+			var faction = init.GetValue<FactionInit, string>(this);
+			var ownerName = init.Get<OwnerInit>().InternalName;
 			var image = GetImage(init.Actor, sequenceProvider, faction);
 			var palette = init.WorldRenderer.Palette(Palette ?? PlayerPalette + ownerName);
 
@@ -74,12 +74,8 @@ namespace OpenRA.Mods.Common.Traits.Render
 
 		public string GetImage(ActorInfo actor, SequenceProvider sequenceProvider, string faction)
 		{
-			if (FactionImages != null && !string.IsNullOrEmpty(faction))
-			{
-				string factionImage = null;
-				if (FactionImages.TryGetValue(faction, out factionImage) && sequenceProvider.HasSequence(factionImage))
-					return factionImage;
-			}
+			if (FactionImages != null && !string.IsNullOrEmpty(faction) && FactionImages.TryGetValue(faction, out var factionImage))
+				return factionImage.ToLowerInvariant();
 
 			return (Image ?? actor.Name).ToLowerInvariant();
 		}
@@ -87,12 +83,12 @@ namespace OpenRA.Mods.Common.Traits.Render
 
 	public class RenderSprites : IRender, ITick, INotifyOwnerChanged, INotifyEffectiveOwnerChanged, IActorPreviewInitModifier
 	{
-		static readonly Pair<DamageState, string>[] DamagePrefixes =
+		static readonly (DamageState DamageState, string Prefix)[] DamagePrefixes =
 		{
-			Pair.New(DamageState.Critical, "critical-"),
-			Pair.New(DamageState.Heavy, "damaged-"),
-			Pair.New(DamageState.Medium, "scratched-"),
-			Pair.New(DamageState.Light, "scuffed-")
+			(DamageState.Critical, "critical-"),
+			(DamageState.Heavy, "damaged-"),
+			(DamageState.Medium, "scratched-"),
+			(DamageState.Light, "scuffed-")
 		};
 
 		class AnimationWrapper
@@ -157,17 +153,19 @@ namespace OpenRA.Mods.Common.Traits.Render
 		readonly List<AnimationWrapper> anims = new List<AnimationWrapper>();
 		string cachedImage;
 
-		public static Func<int> MakeFacingFunc(Actor self)
+		public static Func<WAngle> MakeFacingFunc(Actor self)
 		{
 			var facing = self.TraitOrDefault<IFacing>();
-			if (facing == null) return () => 0;
+			if (facing == null)
+				return () => WAngle.Zero;
+
 			return () => facing.Facing;
 		}
 
 		public RenderSprites(ActorInitializer init, RenderSpritesInfo info)
 		{
 			Info = info;
-			faction = init.Contains<FactionInit>() ? init.Get<FactionInit, string>() : init.Self.Owner.Faction.InternalName;
+			faction = init.GetValue<FactionInit, string>(init.Self.Owner.Faction.InternalName);
 		}
 
 		public string GetImage(Actor self)
@@ -249,9 +247,9 @@ namespace OpenRA.Mods.Common.Traits.Render
 			// Remove existing damage prefix
 			foreach (var s in DamagePrefixes)
 			{
-				if (sequence.StartsWith(s.Second, StringComparison.Ordinal))
+				if (sequence.StartsWith(s.Prefix, StringComparison.Ordinal))
 				{
-					sequence = sequence.Substring(s.Second.Length);
+					sequence = sequence.Substring(s.Prefix.Length);
 					break;
 				}
 			}
@@ -265,8 +263,8 @@ namespace OpenRA.Mods.Common.Traits.Render
 			sequence = UnnormalizeSequence(sequence);
 
 			foreach (var s in DamagePrefixes)
-				if (state >= s.First && anim.HasSequence(s.Second + sequence))
-					return s.Second + sequence;
+				if (state >= s.DamageState && anim.HasSequence(s.Prefix + sequence))
+					return s.Prefix + sequence;
 
 			return sequence;
 		}

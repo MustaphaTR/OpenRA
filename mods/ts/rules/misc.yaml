@@ -31,9 +31,9 @@ waypoint:
 mmch.colorpicker:
 	Inherits: MMCH
 	Mobile:
-		InitialFacing: 160
+		InitialFacing: 640
 	Turreted:
-		InitialFacing: 160
+		InitialFacing: 640
 	WithFacingSpriteBody:
 		Sequence: walk
 	-Buildable:
@@ -77,7 +77,7 @@ CRATE:
 	HideMapCrateAction:
 		SelectionShares: 5
 		Sequence: hide-map
-	HealUnitsCrateAction:
+	HealActorsCrateAction:
 		SelectionShares: 2
 		Sequence: heal
 	RevealMapCrateAction:

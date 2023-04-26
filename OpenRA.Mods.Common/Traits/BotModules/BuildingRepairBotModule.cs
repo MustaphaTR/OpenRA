@@ -29,7 +29,7 @@ namespace OpenRA.Mods.Common.Traits
 			// HACK: We don't want D2k bots to repair all their buildings on placement
 			// where half their HP is removed via neutral terrain damage.
 			// TODO: Implement concrete placement for D2k bots and remove this hack.
-			if (e.Attacker.Owner.Stances[self.Owner] == Stance.Neutral)
+			if (self.Owner.RelationshipWith(e.Attacker.Owner) == PlayerRelationship.Neutral)
 				return;
 
 			var rb = self.TraitOrDefault<RepairableBuilding>();
@@ -37,8 +37,8 @@ namespace OpenRA.Mods.Common.Traits
 			{
 				if (e.DamageState > DamageState.Light && e.PreviousDamageState <= DamageState.Light && !rb.RepairActive)
 				{
-					AIUtils.BotDebug("Bot noticed damage {0} {1}->{2}, repairing.",
-						self, e.PreviousDamageState, e.DamageState);
+					AIUtils.BotDebug("{0} noticed damage {1} {2}->{3}, repairing.",
+						self.Owner, self, e.PreviousDamageState, e.DamageState);
 					bot.QueueOrder(new Order("RepairBuilding", self.Owner.PlayerActor, Target.FromActor(self), false));
 				}
 			}

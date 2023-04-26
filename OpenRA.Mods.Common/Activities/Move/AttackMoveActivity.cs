@@ -19,18 +19,19 @@ namespace OpenRA.Mods.Common.Activities
 {
 	public class AttackMoveActivity : Activity
 	{
-		readonly Func<Activity> getInner;
+		readonly Func<Activity> getMove;
 		readonly bool isAssaultMove;
-		AutoTarget autoTarget;
-		ConditionManager conditionManager;
-		AttackMove attackMove;
-		int token = ConditionManager.InvalidConditionToken;
+		readonly AutoTarget autoTarget;
+		readonly AttackMove attackMove;
 
-		public AttackMoveActivity(Actor self, Func<Activity> getInner, bool assaultMoving = false)
+		bool runningMoveActivity = false;
+		int token = Actor.InvalidConditionToken;
+		Target target = Target.Invalid;
+
+		public AttackMoveActivity(Actor self, Func<Activity> getMove, bool assaultMoving = false)
 		{
-			this.getInner = getInner;
+			this.getMove = getMove;
 			autoTarget = self.TraitOrDefault<AutoTarget>();
-			conditionManager = self.TraitOrDefault<ConditionManager>();
 			attackMove = self.TraitOrDefault<AttackMove>();
 			isAssaultMove = assaultMoving;
 			ChildHasPriority = false;
@@ -38,47 +39,56 @@ namespace OpenRA.Mods.Common.Activities
 
 		protected override void OnFirstRun(Actor self)
 		{
-			// Start moving.
-			QueueChild(getInner());
-
-			if (conditionManager == null || attackMove == null)
+			if (attackMove == null || autoTarget == null)
+			{
+				QueueChild(getMove());
 				return;
+			}
 
-			if (!isAssaultMove && !string.IsNullOrEmpty(attackMove.Info.AttackMoveCondition))
-				token = conditionManager.GrantCondition(self, attackMove.Info.AttackMoveCondition);
-			else if (isAssaultMove && !string.IsNullOrEmpty(attackMove.Info.AssaultMoveCondition))
-				token = conditionManager.GrantCondition(self, attackMove.Info.AssaultMoveCondition);
+			if (isAssaultMove)
+				token = self.GrantCondition(attackMove.Info.AssaultMoveCondition);
+			else
+				token = self.GrantCondition(attackMove.Info.AttackMoveCondition);
 		}
 
 		public override bool Tick(Actor self)
 		{
-			// We are not currently attacking a target, so scan for new targets.
-			if (!IsCanceling && ChildActivity != null && ChildActivity.NextActivity == null && autoTarget != null)
+			if (IsCanceling || attackMove == null || autoTarget == null)
+				return TickChild(self);
+
+			// We are currently not attacking, so scan for new targets.
+			if (ChildActivity == null || runningMoveActivity)
 			{
-				// ScanForTarget already limits the scanning rate for performance so we don't need to do that here.
-				var target = autoTarget.ScanForTarget(self, false, true);
+				// Use the standard ScanForTarget rate limit while we are running the move activity to save performance.
+				// Override the rate limit if our attack activity has completed so we can immediately acquire a new target instead of moving.
+				target = autoTarget.ScanForTarget(self, false, true, !runningMoveActivity);
+
+				// Cancel the current move activity and queue attack activities if we find a new target.
 				if (target.Type != TargetType.Invalid)
 				{
-					// We have found a target so cancel the current move activity and queue attack activities.
-					ChildActivity.Cancel(self);
-					var attackBases = autoTarget.ActiveAttackBases;
-					foreach (var ab in attackBases)
-						QueueChild(ab.GetAttackActivity(self, AttackSource.AttackMove, target, false, false));
+					runningMoveActivity = false;
+					ChildActivity?.Cancel(self);
 
-					// Make sure to continue moving when the attack activities have finished.
-					QueueChild(getInner());
+					foreach (var ab in autoTarget.ActiveAttackBases)
+						QueueChild(ab.GetAttackActivity(self, AttackSource.AttackMove, target, false, false));
+				}
+
+				// Continue with the move activity (or queue a new one) when there are no targets.
+				if (ChildActivity == null)
+				{
+					runningMoveActivity = true;
+					QueueChild(getMove());
 				}
 			}
 
-			// The last queued childactivity is guaranteed to be the inner move, so if the childactivity
-			// queue is empty it means we have reached our destination and there are no more enemies on our path.
-			return TickChild(self);
+			// If the move activity finished, we have reached our destination and there are no more enemies on our path.
+			return TickChild(self) && runningMoveActivity;
 		}
 
 		protected override void OnLastRun(Actor self)
 		{
-			if (conditionManager != null && token != ConditionManager.InvalidConditionToken)
-				token = conditionManager.RevokeCondition(self, token);
+			if (token != Actor.InvalidConditionToken)
+				token = self.RevokeCondition(token);
 		}
 
 		public override IEnumerable<Target> GetTargets(Actor self)
@@ -91,7 +101,7 @@ namespace OpenRA.Mods.Common.Activities
 
 		public override IEnumerable<TargetLineNode> TargetLineNodes(Actor self)
 		{
-			foreach (var n in getInner().TargetLineNodes(self))
+			foreach (var n in getMove().TargetLineNodes(self))
 				yield return n;
 
 			yield break;

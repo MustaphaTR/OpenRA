@@ -543,6 +543,7 @@ namespace OpenRA.Platforms.Default
 				}
 			}
 
+			Console.WriteLine("OpenGL renderer: " + glGetString(GL_RENDERER));
 			Console.WriteLine("OpenGL version: " + glGetString(GL_VERSION));
 
 			try
@@ -596,15 +597,24 @@ namespace OpenRA.Platforms.Default
 				glBindTexture = Bind<BindTexture>("glBindTexture");
 				glActiveTexture = Bind<ActiveTexture>("glActiveTexture");
 				glTexImage2D = Bind<TexImage2D>("glTexImage2D");
-				glGetTexImage = Bind<GetTexImage>("glGetTexImage");
 				glTexParameteri = Bind<TexParameteri>("glTexParameteri");
 				glTexParameterf = Bind<TexParameterf>("glTexParameterf");
 
 				if (Profile != GLProfile.Legacy)
 				{
+					if (Profile != GLProfile.Embedded)
+					{
+						glGetTexImage = Bind<GetTexImage>("glGetTexImage");
+						glBindFragDataLocation = Bind<BindFragDataLocation>("glBindFragDataLocation");
+					}
+					else
+					{
+						glGetTexImage = null;
+						glBindFragDataLocation = null;
+					}
+
 					glGenVertexArrays = Bind<GenVertexArrays>("glGenVertexArrays");
 					glBindVertexArray = Bind<BindVertexArray>("glBindVertexArray");
-					glBindFragDataLocation = Bind<BindFragDataLocation>("glBindFragDataLocation");
 					glGenFramebuffers = Bind<GenFramebuffers>("glGenFramebuffers");
 					glBindFramebuffer = Bind<BindFramebuffer>("glBindFramebuffer");
 					glFramebufferTexture2D = Bind<FramebufferTexture2D>("glFramebufferTexture2D");
@@ -719,8 +729,7 @@ namespace OpenRA.Platforms.Default
 
 			if (Profile != GLProfile.Legacy)
 			{
-				int extensionCount;
-				glGetIntegerv(GL_NUM_EXTENSIONS, out extensionCount);
+				glGetIntegerv(GL_NUM_EXTENSIONS, out var extensionCount);
 				for (var i = 0; i < extensionCount; i++)
 					Log.Write("graphics", glGetStringi(GL_EXTENSIONS, (uint)i));
 			}
@@ -731,7 +740,7 @@ namespace OpenRA.Platforms.Default
 		public static void CheckGLError()
 		{
 			// Let the debug message handler log the errors instead.
-			if (Features.HasFlag(GLFeatures.DebugMessagesCallback))
+			if ((Features & GLFeatures.DebugMessagesCallback) == GLFeatures.DebugMessagesCallback)
 				return;
 
 			var type = glGetError();

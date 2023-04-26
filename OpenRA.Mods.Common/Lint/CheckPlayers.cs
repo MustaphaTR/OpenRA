@@ -13,8 +13,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using OpenRA.Mods.Common.Traits;
-using OpenRA.Primitives;
-using OpenRA.Scripting;
 using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.Lint
@@ -24,8 +22,10 @@ namespace OpenRA.Mods.Common.Lint
 		public void Run(Action<string> emitError, Action<string> emitWarning, ModData modData, Map map)
 		{
 			var players = new MapPlayers(map.PlayerDefinitions).Players;
-			var worldOwnerFound = false;
+			if (players.Count > 64)
+				emitError("Defining more than 64 players is not allowed.");
 
+			var worldOwnerFound = false;
 			var playerNames = players.Values.Select(p => p.Name).ToHashSet();
 			foreach (var player in players.Values)
 			{
@@ -57,7 +57,6 @@ namespace OpenRA.Mods.Common.Lint
 				emitError("Found no player owning the world.");
 
 			var worldActor = map.Rules.Actors["world"];
-
 			var factions = worldActor.TraitInfos<FactionInfo>().Select(f => f.InternalName).ToHashSet();
 			foreach (var player in players.Values)
 				if (!string.IsNullOrWhiteSpace(player.Faction) && !factions.Contains(player.Faction))
@@ -70,7 +69,7 @@ namespace OpenRA.Mods.Common.Lint
 				foreach (var kv in map.ActorDefinitions.Where(d => d.Value.Value == "mpspawn"))
 				{
 					var s = new ActorReference(kv.Value.Value, kv.Value.ToDictionary());
-					spawns.Add(s.InitDict.Get<LocationInit>().Value(null));
+					spawns.Add(s.Get<LocationInit>().Value);
 				}
 
 				if (playerCount > spawns.Count)
@@ -88,17 +87,16 @@ namespace OpenRA.Mods.Common.Lint
 			foreach (var kv in map.ActorDefinitions)
 			{
 				var actorReference = new ActorReference(kv.Value.Value, kv.Value.ToDictionary());
-				var ownerInit = actorReference.InitDict.GetOrDefault<OwnerInit>();
+				var ownerInit = actorReference.GetOrDefault<OwnerInit>();
 				if (ownerInit == null)
 					emitError("Actor {0} is not owned by any player.".F(kv.Key));
 				else
 				{
-					var ownerName = ownerInit.PlayerName;
+					var ownerName = ownerInit.InternalName;
 					if (!playerNames.Contains(ownerName))
 						emitError("Actor {0} is owned by unknown player {1}.".F(kv.Key, ownerName));
 
-					RequiresSpecificOwnersInfo info;
-					if (actorsWithRequiredOwner.TryGetValue(kv.Value.Value, out info))
+					if (actorsWithRequiredOwner.TryGetValue(kv.Value.Value, out var info))
 						if (!info.ValidOwnerNames.Contains(ownerName))
 							emitError("Actor {0} owner {1} is not one of ValidOwnerNames: {2}".F(kv.Key, ownerName, info.ValidOwnerNames.JoinWith(", ")));
 				}

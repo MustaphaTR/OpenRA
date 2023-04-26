@@ -23,7 +23,7 @@ namespace OpenRA.Mods.Cnc.Traits
 		[Desc("How many game ticks should pass before closing the actor's turret.")]
 		public readonly int CloseDelay = 125;
 
-		public readonly int DefaultFacing = 0;
+		public readonly WAngle DefaultFacing = WAngle.Zero;
 
 		[Desc("The percentage of damage that is received while this actor is closed.")]
 		public readonly int ClosedDamageMultiplier = 50;
@@ -64,7 +64,7 @@ namespace OpenRA.Mods.Cnc.Traits
 			this.info = info;
 			turret = turrets.FirstOrDefault();
 			wsb = init.Self.TraitsImplementing<WithSpriteBody>().Single(w => w.Info.Name == info.Body);
-			skippedMakeAnimation = init.Contains<SkipMakeAnimsInit>();
+			skippedMakeAnimation = init.Contains<SkipMakeAnimsInit>(info);
 		}
 
 		protected override void Created(Actor self)
@@ -76,19 +76,15 @@ namespace OpenRA.Mods.Cnc.Traits
 			{
 				state = PopupState.Closed;
 				wsb.PlayCustomAnimationRepeating(self, info.ClosedIdleSequence);
-				turret.DesiredFacing = null;
+				turret.FaceTarget(self, Target.Invalid);
 			}
 		}
 
-		protected override bool CanAttack(Actor self, Target target)
+		protected override bool CanAttack(Actor self, in Target target)
 		{
-			if (state == PopupState.Transitioning)
+			if (IsTraitPaused)
 				return false;
 
-			if (!base.CanAttack(self, target))
-				return false;
-
-			idleTicks = 0;
 			if (state == PopupState.Closed)
 			{
 				state = PopupState.Transitioning;
@@ -97,27 +93,36 @@ namespace OpenRA.Mods.Cnc.Traits
 					state = PopupState.Open;
 					wsb.PlayCustomAnimationRepeating(self, wsb.Info.Sequence);
 				});
-				return false;
+
+				idleTicks = 0;
 			}
 
+			if (state == PopupState.Transitioning || !base.CanAttack(self, target))
+				return false;
+
+			idleTicks = 0;
 			return true;
 		}
 
 		void INotifyIdle.TickIdle(Actor self)
 		{
+			if (IsTraitDisabled || IsTraitPaused)
+				return;
+
 			if (state == PopupState.Open && idleTicks++ > info.CloseDelay)
 			{
-				turret.DesiredFacing = info.DefaultFacing;
+				var facingOffset = new WVec(0, -1024, 0).Rotate(WRot.FromYaw(info.DefaultFacing));
+				turret.FaceTarget(self, Target.FromPos(self.CenterPosition + facingOffset));
 				state = PopupState.Rotating;
 			}
-			else if (state == PopupState.Rotating && turret.TurretFacing == info.DefaultFacing)
+			else if (state == PopupState.Rotating && turret.HasAchievedDesiredFacing)
 			{
 				state = PopupState.Transitioning;
 				wsb.PlayCustomAnimation(self, info.ClosingSequence, () =>
 				{
 					state = PopupState.Closed;
 					wsb.PlayCustomAnimationRepeating(self, info.ClosedIdleSequence);
-					turret.DesiredFacing = null;
+					turret.FaceTarget(self, Target.Invalid);
 				});
 			}
 		}

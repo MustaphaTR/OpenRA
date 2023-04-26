@@ -15,10 +15,10 @@ using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.Traits
 {
-	public class ImmobileInfo : ITraitInfo, IOccupySpaceInfo
+	public class ImmobileInfo : TraitInfo, IOccupySpaceInfo
 	{
 		public readonly bool OccupiesSpace = true;
-		public object Create(ActorInitializer init) { return new Immobile(init, this); }
+		public override object Create(ActorInitializer init) { return new Immobile(init, this); }
 
 		public IReadOnlyDictionary<CPos, SubCell> OccupiedCells(ActorInfo info, CPos location, SubCell subCell = SubCell.Any)
 		{
@@ -39,22 +39,22 @@ namespace OpenRA.Mods.Common.Traits
 		[Sync]
 		readonly WPos position;
 
-		readonly Pair<CPos, SubCell>[] occupied;
+		readonly (CPos, SubCell)[] occupied;
 
 		public Immobile(ActorInitializer init, ImmobileInfo info)
 		{
-			location = init.Get<LocationInit, CPos>();
+			location = init.GetValue<LocationInit, CPos>();
 			position = init.World.Map.CenterOfCell(location);
 
 			if (info.OccupiesSpace)
-				occupied = new[] { Pair.New(TopLeft, SubCell.FullCell) };
+				occupied = new[] { (TopLeft, SubCell.FullCell) };
 			else
-				occupied = new Pair<CPos, SubCell>[0];
+				occupied = new (CPos, SubCell)[0];
 		}
 
 		public CPos TopLeft { get { return location; } }
 		public WPos CenterPosition { get { return position; } }
-		public Pair<CPos, SubCell>[] OccupiedCells() { return occupied; }
+		public (CPos, SubCell)[] OccupiedCells() { return occupied; }
 
 		void INotifyAddedToWorld.AddedToWorld(Actor self)
 		{

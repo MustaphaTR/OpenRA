@@ -166,24 +166,23 @@ namespace OpenRA.Mods.D2k.Traits
 					return;
 
 				var clear = FindClearSides(renderType, cell);
-				int index;
 
 				if (clear == ClearSides.None)
 				{
 					var sprites = Variants[content.Variant];
-					var frame = density > ResourceLayer.GetMaxResourceDensity(cell) / 2 ? 1 : 0;
+					var frame = density > renderType.Info.MaxDensity / 2 ? 1 : 0;
 
-					UpdateSpriteLayers(cell, renderType.Variants.First().Value[sprites[frame]], renderType.Palette);
+					UpdateSpriteLayers(cell, renderType.Variants.First().Value, sprites[frame], renderType.Palette);
 				}
-				else if (SpriteMap.TryGetValue(clear, out index))
+				else if (SpriteMap.TryGetValue(clear, out var index))
 				{
-					UpdateSpriteLayers(cell, renderType.Variants.First().Value[index], renderType.Palette);
+					UpdateSpriteLayers(cell, renderType.Variants.First().Value, index, renderType.Palette);
 				}
 				else
 					throw new InvalidOperationException("SpriteMap does not contain an index for ClearSides type '{0}'".F(clear));
 			}
 			else
-				UpdateSpriteLayers(cell, null, null);
+				UpdateSpriteLayers(cell, null, 0, null);
 		}
 
 		protected override string ChooseRandomVariant(ResourceType t)

@@ -17,7 +17,7 @@ namespace OpenRA.Mods.Common.Traits.Sound
 {
 	[Desc("Players will be notified when this actor becomes visible to them.",
 		"Requires the 'EnemyWatcher' trait on the player actor.")]
-	public class AnnounceOnSeenInfo : ITraitInfo
+	public class AnnounceOnSeenInfo : TraitInfo
 	{
 		[Desc("Should there be a radar ping on enemies' radar at the actor's location when they see him")]
 		public readonly bool PingRadar = false;
@@ -27,7 +27,7 @@ namespace OpenRA.Mods.Common.Traits.Sound
 
 		public readonly bool AnnounceNeutrals = false;
 
-		public object Create(ActorInitializer init) { return new AnnounceOnSeen(init.Self, this); }
+		public override object Create(ActorInitializer init) { return new AnnounceOnSeen(init.Self, this); }
 	}
 
 	public class AnnounceOnSeen : INotifyDiscovered
@@ -57,8 +57,8 @@ namespace OpenRA.Mods.Common.Traits.Sound
 				Game.Sound.PlayNotification(self.World.Map.Rules, discoverer, "Speech", Info.Notification, discoverer.Faction.InternalName);
 
 			// Radar notification
-			if (Info.PingRadar && radarPings.Value != null)
-				radarPings.Value.Add(() => true, self.CenterPosition, Color.Red, 50);
+			if (Info.PingRadar)
+				radarPings.Value?.Add(() => true, self.CenterPosition, Color.Red, 50);
 		}
 	}
 }

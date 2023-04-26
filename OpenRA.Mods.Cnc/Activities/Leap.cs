@@ -11,7 +11,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using OpenRA.Activities;
 using OpenRA.Mods.Cnc.Traits;
 using OpenRA.Mods.Common.Traits;
@@ -37,7 +36,7 @@ namespace OpenRA.Mods.Cnc.Activities
 		int ticks = 0;
 		WPos targetPosition;
 
-		public Leap(Actor self, Target target, Mobile mobile, Mobile targetMobile, int speed, AttackLeap attack, EdibleByLeap edible)
+		public Leap(Actor self, in Target target, Mobile mobile, Mobile targetMobile, int speed, AttackLeap attack, EdibleByLeap edible)
 		{
 			this.mobile = mobile;
 			this.targetMobile = targetMobile;

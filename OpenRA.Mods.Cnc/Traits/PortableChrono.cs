@@ -10,6 +10,7 @@
 #endregion
 
 using System.Collections.Generic;
+using System.Linq;
 using OpenRA.Graphics;
 using OpenRA.Mods.Cnc.Activities;
 using OpenRA.Mods.Common.Graphics;
@@ -20,8 +21,7 @@ using OpenRA.Traits;
 
 namespace OpenRA.Mods.Cnc.Traits
 {
-	// OP Mod: made public for Chrono Miner
-	public class PortableChronoInfo : ITraitInfo, Requires<IMoveInfo>
+	public class PortableChronoInfo : TraitInfo, Requires<IMoveInfo>
 	{
 		[Desc("Cooldown in ticks until the unit can teleport.")]
 		public readonly int ChargeDelay = 500;
@@ -56,10 +56,24 @@ namespace OpenRA.Mods.Cnc.Traits
 		[VoiceReference]
 		public readonly string Voice = "Action";
 
-		public object Create(ActorInitializer init) { return new PortableChrono(init.Self, this); }
+		[Desc("Range circle color.")]
+		public readonly Color CircleColor = Color.FromArgb(128, Color.LawnGreen);
+
+		[Desc("Range circle line width.")]
+		public readonly float CircleWidth = 1;
+
+		[Desc("Range circle border color.")]
+		public readonly Color CircleBorderColor = Color.FromArgb(96, Color.Black);
+
+		[Desc("Range circle border width.")]
+		public readonly float CircleBorderWidth = 3;
+
+		[Desc("Color to use for the target line.")]
+		public readonly Color TargetLineColor = Color.LawnGreen;
+
+		public override object Create(ActorInitializer init) { return new PortableChrono(init.Self, this); }
 	}
 
-	// OP Mod: made public for Chrono Miner
 	public class PortableChrono : IIssueOrder, IResolveOrder, ITick, ISelectionBar, IOrderVoice, ISync
 	{
 		public readonly PortableChronoInfo Info;
@@ -89,7 +103,7 @@ namespace OpenRA.Mods.Cnc.Traits
 			}
 		}
 
-		public Order IssueOrder(Actor self, IOrderTargeter order, Target target, bool queued)
+		public Order IssueOrder(Actor self, IOrderTargeter order, in Target target, bool queued)
 		{
 			if (order.OrderID == "PortableChronoDeploy")
 			{
@@ -117,10 +131,10 @@ namespace OpenRA.Mods.Cnc.Traits
 
 				var cell = self.World.Map.CellContaining(order.Target.CenterPosition);
 				if (maxDistance != null)
-					self.QueueActivity(move.MoveWithinRange(order.Target, WDist.FromCells(maxDistance.Value), targetLineColor: Color.LawnGreen));
+					self.QueueActivity(move.MoveWithinRange(order.Target, WDist.FromCells(maxDistance.Value), targetLineColor: Info.TargetLineColor));
 
 				self.QueueActivity(new Teleport(self, cell, maxDistance, Info.KillCargo, Info.FlashScreen, Info.ChronoshiftSound));
-				self.QueueActivity(move.MoveTo(cell, 5, targetLineColor: Color.LawnGreen));
+				self.QueueActivity(move.MoveTo(cell, 5, targetLineColor: Info.TargetLineColor));
 				self.ShowTargetLines();
 			}
 		}
@@ -161,9 +175,9 @@ namespace OpenRA.Mods.Cnc.Traits
 		public string OrderID { get { return "PortableChronoTeleport"; } }
 		public int OrderPriority { get { return 5; } }
 		public bool IsQueued { get; protected set; }
-		public bool TargetOverridesSelection(Actor self, Target target, List<Actor> actorsAt, CPos xy, TargetModifiers modifiers) { return true; }
+		public bool TargetOverridesSelection(Actor self, in Target target, List<Actor> actorsAt, CPos xy, TargetModifiers modifiers) { return true; }
 
-		public bool CanTarget(Actor self, Target target, List<Actor> othersAtTarget, ref TargetModifiers modifiers, ref string cursor)
+		public bool CanTarget(Actor self, in Target target, List<Actor> othersAtTarget, ref TargetModifiers modifiers, ref string cursor)
 		{
 			if (modifiers.HasModifier(TargetModifiers.ForceMove))
 			{
@@ -211,9 +225,9 @@ namespace OpenRA.Mods.Cnc.Traits
 			}
 		}
 
-		protected override void Tick(World world)
+		protected override void SelectionChanged(World world, IEnumerable<Actor> selected)
 		{
-			if (!self.IsInWorld || self.IsDead)
+			if (!selected.Contains(self))
 				world.CancelInputMode();
 		}
 
@@ -233,8 +247,10 @@ namespace OpenRA.Mods.Cnc.Traits
 				self.CenterPosition,
 				WDist.FromCells(self.Trait<PortableChrono>().Info.MaxDistance),
 				0,
-				Color.FromArgb(128, Color.LawnGreen),
-				Color.FromArgb(96, Color.Black));
+				info.CircleColor,
+				info.CircleWidth,
+				info.CircleBorderColor,
+				info.CircleBorderWidth);
 		}
 
 		protected override string GetCursor(World world, CPos cell, int2 worldPixel, MouseInput mi)

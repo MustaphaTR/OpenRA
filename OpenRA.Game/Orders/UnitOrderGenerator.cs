@@ -70,7 +70,7 @@ namespace OpenRA.Orders
 
 			bool useSelect;
 			if (Game.Settings.Game.UseClassicMouseStyle && !InputOverridesSelection(world, worldPixel, mi))
-				useSelect = target.Type == TargetType.Actor && target.Actor.Info.HasTraitInfo<SelectableInfo>();
+				useSelect = target.Type == TargetType.Actor && target.Actor.Info.HasTraitInfo<ISelectableInfo>();
 			else
 			{
 				var ordersWithCursor = world.Selection.Actors
@@ -81,7 +81,7 @@ namespace OpenRA.Orders
 				if (cursorOrder != null)
 					return cursorOrder.Cursor;
 
-				useSelect = target.Type == TargetType.Actor && target.Actor.Info.HasTraitInfo<SelectableInfo>() &&
+				useSelect = target.Type == TargetType.Actor && target.Actor.Info.HasTraitInfo<ISelectableInfo>() &&
 				    (mi.Modifiers.HasModifier(Modifiers.Shift) || !world.Selection.Actors.Any());
 			}
 
@@ -96,7 +96,7 @@ namespace OpenRA.Orders
 		public virtual bool InputOverridesSelection(World world, int2 xy, MouseInput mi)
 		{
 			var actor = world.ScreenMap.ActorsAtMouse(xy)
-				.Where(a => !a.Actor.IsDead && a.Actor.Info.HasTraitInfo<SelectableInfo>() && (a.Actor.Owner.IsAlliedWith(world.RenderPlayer) || !world.FogObscures(a.Actor)))
+				.Where(a => !a.Actor.IsDead && a.Actor.Info.HasTraitInfo<ISelectableInfo>() && (a.Actor.Owner.IsAlliedWith(world.RenderPlayer) || !world.FogObscures(a.Actor)))
 				.WithHighestSelectionPriority(xy, mi.Modifiers);
 
 			if (actor == null)
@@ -123,6 +123,8 @@ namespace OpenRA.Orders
 
 			return false;
 		}
+
+		public virtual void SelectionChanged(World world, IEnumerable<Actor> selected) { }
 
 		/// <summary>
 		/// Returns the most appropriate order for a given actor and target.
@@ -194,15 +196,17 @@ namespace OpenRA.Orders
 			public readonly IOrderTargeter Order;
 			public readonly IIssueOrder Trait;
 			public readonly string Cursor;
-			public readonly Target Target;
+			public ref readonly Target Target => ref target;
 
-			public UnitOrderResult(Actor actor, IOrderTargeter order, IIssueOrder trait, string cursor, Target target)
+			readonly Target target;
+
+			public UnitOrderResult(Actor actor, IOrderTargeter order, IIssueOrder trait, string cursor, in Target target)
 			{
 				Actor = actor;
 				Order = order;
 				Trait = trait;
 				Cursor = cursor;
-				Target = target;
+				this.target = target;
 			}
 		}
 

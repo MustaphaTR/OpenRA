@@ -27,9 +27,11 @@ namespace OpenRA.Mods.Common.Traits
 		public readonly HashSet<string> Factions = new HashSet<string>();
 
 		[Desc("The actor at the center, usually the mobile construction vehicle.")]
+		[ActorReference]
 		public readonly string BaseActor = null;
 
 		[Desc("A group of units ready to defend or scout.")]
+		[ActorReference]
 		public readonly string[] SupportActors = { };
 
 		[Desc("A group of buildings ready to work.")]
@@ -50,14 +52,14 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Outer radius for spawning support buildings")]
 		public readonly int OuterBuildingRadius = 5;
 
-		[Desc("Initial facing of BaseActor. -1 means random.")]
-		public readonly int BaseActorFacing = 128;
+		[Desc("Initial facing of BaseActor. Leave undefined for random facings.")]
+		public readonly WAngle? BaseActorFacing = new WAngle(512);
 
 		[Desc("Offset of base actor from actual spawn position.")]
 		public readonly CVec BaseActorOffset = CVec.Zero;
 
-		[Desc("Initial facing of SupportActors. -1 means random.")]
-		public readonly int SupportActorsFacing = -1;
+		[Desc("Initial facing of SupportActors. Leave undefined for random facings.")]
+		public readonly WAngle? SupportActorsFacing = null;
 	}
 
 	public class MPStartUnits { }

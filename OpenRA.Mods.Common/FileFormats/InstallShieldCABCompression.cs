@@ -243,8 +243,7 @@ namespace OpenRA.Mods.Common.FileFormats
 						toExtract -= bytesToExtract;
 						while (!inf.IsNeedingInput)
 						{
-							if (onProgress != null)
-								onProgress((int)(100 * output.Position / file.ExpandedSize));
+							onProgress?.Invoke((int)(100 * output.Position / file.ExpandedSize));
 
 							var inflated = inf.Inflate(buffer);
 							output.Write(buffer, 0, inflated);
@@ -258,8 +257,7 @@ namespace OpenRA.Mods.Common.FileFormats
 				{
 					do
 					{
-						if (onProgress != null)
-							onProgress((int)(100 * output.Position / file.ExpandedSize));
+						onProgress?.Invoke((int)(100 * output.Position / file.ExpandedSize));
 
 						toExtract -= remainingInArchive;
 						output.Write(GetBytes(remainingInArchive), 0, (int)remainingInArchive);
@@ -394,8 +392,7 @@ namespace OpenRA.Mods.Common.FileFormats
 
 		public void ExtractFile(string filename, Stream output, Action<int> onProgress = null)
 		{
-			FileDescriptor file;
-			if (!index.TryGetValue(filename, out file))
+			if (!index.TryGetValue(filename, out var file))
 				throw new FileNotFoundException(filename);
 
 			ExtractFile(file, output, onProgress);

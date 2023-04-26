@@ -28,15 +28,24 @@ namespace OpenRA.Mods.Common.Traits.Render
 		[SequenceReference]
 		public readonly string DefaultAttackSequence = null;
 
-		// TODO: [SequenceReference] isn't smart enough to use Dictionaries.
-		[Desc("Attack sequence to use for each armament.")]
-		public readonly Dictionary<string, string> AttackSequences = new Dictionary<string, string>();
+		[SequenceReference(dictionaryReference: LintDictionaryReference.Values)]
+		[Desc("Attack sequence to use for each armament.",
+			"A dictionary of [armament name]: [sequence name(s)].",
+			"Multiple sequence names can be defined to specify per-burst animations.")]
+		public readonly Dictionary<string, string[]> AttackSequences = new Dictionary<string, string[]>();
 
 		[SequenceReference]
 		public readonly string[] IdleSequences = { };
 
 		[SequenceReference]
 		public readonly string[] StandSequences = { "stand" };
+
+		[PaletteReference(nameof(IsPlayerPalette))]
+		[Desc("Custom palette name")]
+		public readonly string Palette = null;
+
+		[Desc("Palette is a player palette BaseName")]
+		public readonly bool IsPlayerPalette = false;
 
 		public override object Create(ActorInitializer init) { return new WithInfantryBody(init, this); }
 
@@ -47,6 +56,12 @@ namespace OpenRA.Mods.Common.Traits.Render
 
 			var anim = new Animation(init.World, image, init.GetFacing());
 			anim.PlayRepeating(RenderSprites.NormalizeSequence(anim, init.GetDamageState(), StandSequences.First()));
+
+			if (IsPlayerPalette)
+				p = init.WorldRenderer.Palette(Palette + init.Get<OwnerInit>().InternalName);
+			else if (Palette != null)
+				p = init.WorldRenderer.Palette(Palette);
+
 			yield return new SpriteActorPreview(anim, () => WVec.Zero, () => 0, p, rs.Scale);
 		}
 	}
@@ -78,7 +93,7 @@ namespace OpenRA.Mods.Common.Traits.Render
 			var rs = self.Trait<RenderSprites>();
 
 			DefaultAnimation = new Animation(init.World, rs.GetImage(self), RenderSprites.MakeFacingFunc(self));
-			rs.Add(new AnimationWithOffset(DefaultAnimation, null, () => IsTraitDisabled));
+			rs.Add(new AnimationWithOffset(DefaultAnimation, null, () => IsTraitDisabled), info.Palette, info.IsPlayerPalette);
 			PlayStandAnimation(self);
 
 			move = init.Self.Trait<IMove>();
@@ -120,12 +135,21 @@ namespace OpenRA.Mods.Common.Traits.Render
 			}
 		}
 
-		public void Attacking(Actor self, Target target, Armament a)
+		void Attacking(Actor self, Armament a, Barrel barrel)
 		{
-			string sequence;
 			var info = GetDisplayInfo();
-			if (!info.AttackSequences.TryGetValue(a.Info.Name, out sequence))
-				sequence = info.DefaultAttackSequence;
+			var sequence = info.DefaultAttackSequence;
+
+			if (info.AttackSequences.TryGetValue(a.Info.Name, out var sequences) && sequences.Length > 0)
+			{
+				sequence = sequences[0];
+
+				// Find the sequence corresponding to this barrel/burst.
+				if (barrel != null && sequences.Length > 1)
+					for (var i = 0; i < sequences.Length; i++)
+						if (a.Barrels[i] == barrel)
+							sequence = sequences[i];
+			}
 
 			if (!string.IsNullOrEmpty(sequence) && DefaultAnimation.HasSequence(NormalizeInfantrySequence(self, sequence)))
 			{
@@ -134,12 +158,14 @@ namespace OpenRA.Mods.Common.Traits.Render
 			}
 		}
 
-		void INotifyAttack.PreparingAttack(Actor self, Target target, Armament a, Barrel barrel)
+		void INotifyAttack.PreparingAttack(Actor self, in Target target, Armament a, Barrel barrel)
 		{
-			Attacking(self, target, a);
+			// HACK: The FrameEndTask makes sure that this runs after Tick(), preventing that from
+			// overriding the animation when an infantry unit stops to attack
+			self.World.AddFrameEndTask(_ => Attacking(self, a, barrel));
 		}
 
-		void INotifyAttack.Attacking(Actor self, Target target, Armament a, Barrel barrel) { }
+		void INotifyAttack.Attacking(Actor self, in Target target, Armament a, Barrel barrel) { }
 
 		void ITick.Tick(Actor self)
 		{
@@ -156,12 +182,12 @@ namespace OpenRA.Mods.Common.Traits.Render
 				wasModifying = rsm.IsModifyingSequence;
 			}
 
-			if ((state != AnimationState.Moving || dirty) && move.CurrentMovementTypes.HasFlag(MovementType.Horizontal))
+			if ((state != AnimationState.Moving || dirty) && move.CurrentMovementTypes.HasMovementType(MovementType.Horizontal))
 			{
 				state = AnimationState.Moving;
 				DefaultAnimation.PlayRepeating(NormalizeInfantrySequence(self, GetDisplayInfo().MoveSequence));
 			}
-			else if (((state == AnimationState.Moving || dirty) && !move.CurrentMovementTypes.HasFlag(MovementType.Horizontal))
+			else if (((state == AnimationState.Moving || dirty) && !move.CurrentMovementTypes.HasMovementType(MovementType.Horizontal))
 				|| ((state == AnimationState.Idle || state == AnimationState.IdleAnimating) && !self.IsIdle))
 				PlayStandAnimation(self);
 

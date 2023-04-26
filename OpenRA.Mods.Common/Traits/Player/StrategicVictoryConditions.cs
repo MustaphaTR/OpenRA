@@ -22,7 +22,7 @@ namespace OpenRA.Mods.Common.Traits
 	public class StrategicPoint { }
 
 	[Desc("Allows King of the Hill (KotH) style gameplay.")]
-	public class StrategicVictoryConditionsInfo : ITraitInfo, Requires<MissionObjectivesInfo>
+	public class StrategicVictoryConditionsInfo : TraitInfo, Requires<MissionObjectivesInfo>
 	{
 		[Desc("Amount of time (in game ticks) that the player has to hold all the strategic points.", "Defaults to 7500 ticks (5 minutes at default speed).")]
 		public readonly int HoldDuration = 7500;
@@ -43,7 +43,7 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Disable the win/loss messages and audio notifications?")]
 		public readonly bool SuppressNotifications = false;
 
-		public object Create(ActorInitializer init) { return new StrategicVictoryConditions(init.Self, this); }
+		public override object Create(ActorInitializer init) { return new StrategicVictoryConditions(init.Self, this); }
 	}
 
 	public class StrategicVictoryConditions : ITick, ISync, INotifyWinStateChanged, INotifyTimeLimit
@@ -73,7 +73,7 @@ namespace OpenRA.Mods.Common.Traits
 		}
 
 		public int Total { get { return AllPoints.Count(); } }
-		int Owned { get { return AllPoints.Count(a => WorldUtils.AreMutualAllies(player, a.Owner)); } }
+		int Owned { get { return AllPoints.Count(a => a.Owner.RelationshipWith(player) == PlayerRelationship.Ally); } }
 
 		public bool Holding { get { return Owned >= info.RatioRequired * Total / 100; } }
 
@@ -119,12 +119,12 @@ namespace OpenRA.Mods.Common.Traits
 
 			var myTeam = self.World.LobbyInfo.ClientWithIndex(self.Owner.ClientIndex).Team;
 			var teams = self.World.Players.Where(p => !p.NonCombatant && p.Playable)
-				.Select(p => new Pair<Player, PlayerStatistics>(p, p.PlayerActor.TraitOrDefault<PlayerStatistics>()))
-				.OrderByDescending(p => p.Second != null ? p.Second.Experience : 0)
-				.GroupBy(p => (self.World.LobbyInfo.ClientWithIndex(p.First.ClientIndex) ?? new Session.Client()).Team)
-				.OrderByDescending(g => g.Sum(gg => gg.Second != null ? gg.Second.Experience : 0));
+				.Select(p => (Player: p, PlayerStatistics: p.PlayerActor.TraitOrDefault<PlayerStatistics>()))
+				.OrderByDescending(p => p.PlayerStatistics != null ? p.PlayerStatistics.Experience : 0)
+				.GroupBy(p => (self.World.LobbyInfo.ClientWithIndex(p.Player.ClientIndex) ?? new Session.Client()).Team)
+				.OrderByDescending(g => g.Sum(gg => gg.PlayerStatistics != null ? gg.PlayerStatistics.Experience : 0));
 
-			if (teams.First().Key == myTeam && (myTeam != 0 || teams.First().First().First == self.Owner))
+			if (teams.First().Key == myTeam && (myTeam != 0 || teams.First().First().Player == self.Owner))
 			{
 				mo.MarkCompleted(self.Owner, objectiveID);
 				return;

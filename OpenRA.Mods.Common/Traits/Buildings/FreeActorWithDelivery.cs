@@ -60,10 +60,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		public void DoDelivery(CPos location, string actorName, string carrierActorName)
 		{
-			Actor cargo;
-			Actor carrier;
-
-			CreateActors(actorName, carrierActorName, out cargo, out carrier);
+			CreateActors(actorName, carrierActorName, out var cargo, out var carrier);
 
 			var carryable = cargo.Trait<Carryable>();
 			carryable.Reserve(cargo, carrier);
@@ -85,10 +82,10 @@ namespace OpenRA.Mods.Common.Traits
 
 			var spawn = self.World.Map.CenterOfCell(location);
 
-			var initialFacing = self.World.Map.FacingBetween(location, self.Location, 0);
+			var initialFacing = self.World.Map.FacingBetween(location, self.Location, WAngle.Zero);
 
 			// If aircraft, spawn at cruise altitude
-			var aircraftInfo = self.World.Map.Rules.Actors[deliveringActorName.ToLower()].TraitInfoOrDefault<AircraftInfo>();
+			var aircraftInfo = self.World.Map.Rules.Actors[deliveringActorName.ToLowerInvariant()].TraitInfoOrDefault<AircraftInfo>();
 			if (aircraftInfo != null)
 				spawn += new WVec(0, 0, aircraftInfo.CruiseAltitude.Length);
 

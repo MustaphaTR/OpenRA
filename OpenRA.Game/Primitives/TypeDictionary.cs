@@ -41,6 +41,11 @@ namespace OpenRA.Primitives
 			return data.ContainsKey(typeof(T));
 		}
 
+		public bool Contains(Type t)
+		{
+			return data.ContainsKey(t);
+		}
+
 		public T Get<T>()
 		{
 			return (T)Get(typeof(T), true);
@@ -56,8 +61,7 @@ namespace OpenRA.Primitives
 
 		object Get(Type t, bool throwsIfMissing)
 		{
-			List<object> ret;
-			if (!data.TryGetValue(t, out ret))
+			if (!data.TryGetValue(t, out var ret))
 			{
 				if (throwsIfMissing)
 					throw new InvalidOperationException("TypeDictionary does not contain instance of type `{0}`".F(t));
@@ -71,8 +75,7 @@ namespace OpenRA.Primitives
 
 		public IEnumerable<T> WithInterface<T>()
 		{
-			List<object> objs;
-			if (data.TryGetValue(typeof(T), out objs))
+			if (data.TryGetValue(typeof(T), out var objs))
 				return objs.Cast<T>();
 			return new T[0];
 		}
@@ -89,8 +92,7 @@ namespace OpenRA.Primitives
 
 		void InnerRemove(Type t, object val)
 		{
-			List<object> objs;
-			if (!data.TryGetValue(t, out objs))
+			if (!data.TryGetValue(t, out var objs))
 				return;
 			objs.Remove(val);
 			if (objs.Count == 0)

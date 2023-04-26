@@ -18,7 +18,7 @@ namespace OpenRA.Mods.Common
 {
 	public enum BuildingType { Building, Defense, Refinery, Fragile }
 
-	public enum WaterCheck { NotChecked, EnoughWater, NotEnoughWater }
+	public enum WaterCheck { NotChecked, EnoughWater, NotEnoughWater, DontCheck }
 
 	public static class AIUtils
 	{
@@ -30,7 +30,7 @@ namespace OpenRA.Mods.Common
 			return cells.Select(a => map.FindTilesInCircle(a.Location, radius)
 				.Count(c => map.Contains(c) && terrainTypes.Contains(map.GetTerrainInfo(c).Type) &&
 					Util.AdjacentCells(world, Target.FromCell(world, c))
-						.All(ac => terrainTypes.Contains(map.GetTerrainInfo(ac).Type))))
+						.All(ac => map.Contains(ac) && terrainTypes.Contains(map.GetTerrainInfo(ac).Type))))
 							.Any(availableCells => availableCells > 0);
 		}
 
@@ -70,7 +70,7 @@ namespace OpenRA.Mods.Common
 
 		public static List<Actor> FindEnemiesByCommonName(HashSet<string> commonNames, Player player)
 		{
-			return player.World.Actors.Where(a => !a.IsDead && player.Stances[a.Owner] == Stance.Enemy &&
+			return player.World.Actors.Where(a => !a.IsDead && player.RelationshipWith(a.Owner) == PlayerRelationship.Enemy &&
 				commonNames.Contains(a.Info.Name)).ToList();
 		}
 

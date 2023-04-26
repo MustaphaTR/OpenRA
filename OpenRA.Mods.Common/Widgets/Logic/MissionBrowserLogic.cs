@@ -164,6 +164,9 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 		void OnGameStart()
 		{
 			Ui.CloseWindow();
+
+			DiscordService.UpdateStatus(DiscordState.PlayingCampaign);
+
 			onStart();
 		}
 
@@ -347,8 +350,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				player.PlayThen(() =>
 				{
 					StopVideo(player);
-					if (onComplete != null)
-						onComplete();
+					onComplete?.Invoke();
 				});
 
 				// Mute other distracting sounds

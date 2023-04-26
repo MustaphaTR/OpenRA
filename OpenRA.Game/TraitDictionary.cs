@@ -11,8 +11,10 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using OpenRA.Primitives;
+using OpenRA.Support;
 
 namespace OpenRA
 {
@@ -122,6 +124,16 @@ namespace OpenRA
 				t.Value.RemoveActor(a.ActorID);
 		}
 
+		public void ApplyToActorsWithTrait<T>(Action<Actor, T> action)
+		{
+			InnerGet<T>().ApplyToAll(action);
+		}
+
+		public void ApplyToActorsWithTraitTimed<T>(Action<Actor, T> action, string text)
+		{
+			InnerGet<T>().ApplyToAllTimed(action, text);
+		}
+
 		interface ITraitContainer
 		{
 			void Add(Actor actor, object trait);
@@ -179,13 +191,14 @@ namespace OpenRA
 				System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() { return GetEnumerator(); }
 			}
 
-			class MultipleEnumerator : IEnumerator<T>
+			struct MultipleEnumerator : IEnumerator<T>
 			{
 				readonly List<Actor> actors;
 				readonly List<T> traits;
 				readonly uint actor;
 				int index;
 				public MultipleEnumerator(TraitContainer<T> container, uint actor)
+					: this()
 				{
 					actors = container.actors;
 					traits = container.traits;
@@ -213,10 +226,11 @@ namespace OpenRA
 				Actor last = null;
 				for (var i = 0; i < actors.Count; i++)
 				{
-					if (actors[i] == last)
+					var current = actors[i];
+					if (current == last)
 						continue;
-					yield return actors[i];
-					last = actors[i];
+					yield return current;
+					last = current;
 				}
 			}
 
@@ -227,14 +241,15 @@ namespace OpenRA
 
 				for (var i = 0; i < actors.Count; i++)
 				{
-					if (actors[i] == last || !predicate(traits[i]))
+					var current = actors[i];
+					if (current == last || !predicate(traits[i]))
 						continue;
-					yield return actors[i];
-					last = actors[i];
+					yield return current;
+					last = current;
 				}
 			}
 
-			class AllEnumerable : IEnumerable<TraitPair<T>>
+			struct AllEnumerable : IEnumerable<TraitPair<T>>
 			{
 				readonly TraitContainer<T> container;
 				public AllEnumerable(TraitContainer<T> container) { this.container = container; }
@@ -242,12 +257,13 @@ namespace OpenRA
 				System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() { return GetEnumerator(); }
 			}
 
-			class AllEnumerator : IEnumerator<TraitPair<T>>
+			struct AllEnumerator : IEnumerator<TraitPair<T>>
 			{
 				readonly List<Actor> actors;
 				readonly List<T> traits;
 				int index;
 				public AllEnumerator(TraitContainer<T> container)
+					: this()
 				{
 					actors = container.actors;
 					traits = container.traits;
@@ -272,6 +288,32 @@ namespace OpenRA
 				var count = endIndex - startIndex;
 				actors.RemoveRange(startIndex, count);
 				traits.RemoveRange(startIndex, count);
+			}
+
+			public void ApplyToAll(Action<Actor, T> action)
+			{
+				for (var i = 0; i < actors.Count; i++)
+					action(actors[i], traits[i]);
+			}
+
+			public void ApplyToAllTimed(Action<Actor, T> action, string text)
+			{
+				var longTickThresholdInStopwatchTicks = PerfTimer.LongTickThresholdInStopwatchTicks;
+				var start = Stopwatch.GetTimestamp();
+				for (var i = 0; i < actors.Count; i++)
+				{
+					var actor = actors[i];
+					var trait = traits[i];
+					action(actor, trait);
+					var current = Stopwatch.GetTimestamp();
+					if (current - start > longTickThresholdInStopwatchTicks)
+					{
+						PerfTimer.LogLongTick(start, current, text, trait);
+						start = Stopwatch.GetTimestamp();
+					}
+					else
+						start = current;
+				}
 			}
 		}
 	}

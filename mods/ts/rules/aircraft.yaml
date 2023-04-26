@@ -1,15 +1,17 @@
 DPOD:
 	Inherits: ^Aircraft
 	Inherits@AUTOTARGET: ^AutoTargetGroundAssaultMove
+	Inherits@CARGOPIPS: ^CargoPips
 	Valued:
 		Cost: 10
 	Tooltip:
 		Name: Drop Pod
 	Aircraft:
 		IdleBehavior: Land
-		TurnSpeed: 5
+		Pitch: 0
+		Roll: 0
+		TurnSpeed: 20
 		Speed: 149
-		InitialFacing: 0
 	Health:
 		HP: 6000
 	Armor:
@@ -17,7 +19,6 @@ DPOD:
 	Cargo:
 		Types: Infantry
 		MaxWeight: 1
-		PipCount: 1
 		UnloadVoice: Move
 		EjectOnDeath: true
 	Armament:
@@ -26,13 +27,64 @@ DPOD:
 		Voice: Attack
 	AmmoPool:
 		Ammo: 5
-		PipCount: 5
-		PipType: Ammo
-		PipTypeEmpty: AmmoEmpty
 	-SpawnActorOnDeath:
+	WithAmmoPipsDecoration:
+		Position: BottomLeft
+		RequiresSelection: true
+		Margin: 4, 5
+		FullSequence: pip-ammo
+		EmptySequence: pip-ammoempty
+		Palette: pips
+
+DPOD2:
+	Inherits@2: ^ExistsInWorld
+	Valued:
+		Cost: 10
+	Tooltip:
+		Name: Drop Pod
+	Health:
+		HP: 6000
+	Armor:
+		Type: Light
+	Aircraft:
+		TurnSpeed: 20
+		Speed: 300
+		CruiseAltitude: 16c0
+		MaximumPitch: 110
+		LandableTerrainTypes: Clear, Road, Rail, DirtRoad, Rough
+	HiddenUnderFog:
+		Type: CenterPosition
+	BodyOrientation:
+		UseClassicPerspectiveFudge: False
+	RenderSprites:
+		Image: pod
+	WithFacingSpriteBody:
+	QuantizeFacingsFromSequence:
+	HitShape:
+	Interactable:
+	WithShadow:
+	SmokeTrailWhenDamaged:
+		Sprite: largesmoke
+		MinDamage: Undamaged
+	FallsToEarth:
+		Explosion: DropPodExplode
+		Moves: true
+		Velocity: 768
+		MaximumSpinSpeed: 0
+
+DPOD2E1:
+	Inherits: DPOD2
+	SpawnActorOnDeath:
+		Actor: E1R3
+
+DPOD2E2:
+	Inherits: DPOD2
+	SpawnActorOnDeath:
+		Actor: E2R3
 
 DSHP:
 	Inherits: ^Aircraft
+	Inherits@CARGOPIPS: ^CargoPips
 	Valued:
 		Cost: 1000
 	Tooltip:
@@ -41,9 +93,10 @@ DSHP:
 		AddToArmyValue: true
 	Aircraft:
 		IdleBehavior: Land
-		TurnSpeed: 5
+		Pitch: 0
+		Roll: 0
+		TurnSpeed: 20
 		Speed: 168
-		InitialFacing: 0
 		TakeoffSounds: dropup1.aud
 		LandingSounds: dropdwn1.aud
 		IdealSeparation: 1275
@@ -60,7 +113,6 @@ DSHP:
 	Cargo:
 		Types: Infantry
 		MaxWeight: 5
-		PipCount: 5
 		UnloadVoice: Move
 		EjectOnDeath: true
 	SpawnActorOnDeath:
@@ -84,7 +136,7 @@ ORCA:
 	Selectable:
 		Bounds: 30,24
 	Aircraft:
-		TurnSpeed: 5
+		TurnSpeed: 20
 		Speed: 186
 		TakeoffSounds: orcaup1.aud
 		LandingSounds: orcadwn1.aud
@@ -102,16 +154,13 @@ ORCA:
 		Weapon: Hellfire
 		PauseOnCondition: !ammo
 	AttackAircraft:
-		FacingTolerance: 20
+		FacingTolerance: 80
 		PersistentTargeting: false
 		Voice: Attack
 		PauseOnCondition: empdisable
 		AttackType: Hover
 	AmmoPool:
 		Ammo: 5
-		PipCount: 5
-		PipType: Ammo
-		PipTypeEmpty: AmmoEmpty
 		AmmoCondition: ammo
 	RenderSprites:
 	SpawnActorOnDeath:
@@ -122,6 +171,13 @@ ORCA:
 		RequiresCondition: empdisable
 	Rearmable:
 		RearmActors: gahpad, nahpad
+	WithAmmoPipsDecoration:
+		Position: BottomLeft
+		RequiresSelection: true
+		Margin: 4, 5
+		FullSequence: pip-ammo
+		EmptySequence: pip-ammoempty
+		Palette: pips
 
 ORCAB:
 	Inherits: ^EMPableAircraft
@@ -142,8 +198,10 @@ ORCAB:
 		Bounds: 30,24
 	Aircraft:
 		CruiseAltitude: 5c512
-		TurnSpeed: 3
+		TurnSpeed: 12
+		IdleTurnSpeed: 4
 		Speed: 96
+		IdleSpeed: 72
 		CruisingCondition: cruising
 		TakeoffSounds: orcaup1.aud
 		LandingSounds: orcadwn1.aud
@@ -161,16 +219,13 @@ ORCAB:
 		PauseOnCondition: !ammo
 	AttackAircraft:
 		Voice: Attack
-		FacingTolerance: 20
+		FacingTolerance: 80
 		PersistentTargeting: false
 		PauseOnCondition: empdisable
 	AmmoPool:
 		Ammo: 10
-		PipCount: 2
 		ReloadCount: 5
 		ReloadDelay: 200
-		PipType: Ammo
-		PipTypeEmpty: AmmoEmpty
 		AmmoCondition: ammo
 	RenderSprites:
 	Hovers@CRUISING:
@@ -183,9 +238,18 @@ ORCAB:
 		RequiresCondition: empdisable
 	Rearmable:
 		RearmActors: gahpad, nahpad
+	WithAmmoPipsDecoration:
+		Position: BottomLeft
+		RequiresSelection: true
+		Margin: 4, 5
+		PipCount: 2
+		FullSequence: pip-ammo
+		EmptySequence: pip-ammoempty
+		Palette: pips
 
 ORCATRAN:
 	Inherits: ^EMPableAircraft
+	Inherits@CARGOPIPS: ^CargoPips
 	Valued:
 		Cost: 1200
 	Tooltip:
@@ -198,9 +262,8 @@ ORCATRAN:
 		Prerequisites: ~disabled
 	RenderSprites:
 	Aircraft:
-		TurnSpeed: 5
+		TurnSpeed: 20
 		Speed: 84
-		InitialFacing: 0
 		LandableTerrainTypes: Clear, Road, Rail, DirtRoad, Rough, Tiberium, BlueTiberium, Veins
 		Crushes: crate, infantry
 		TakeoffSounds: orcaup1.aud
@@ -216,7 +279,6 @@ ORCATRAN:
 	Cargo:
 		Types: Infantry
 		MaxWeight: 5
-		PipCount: 5
 		UnloadVoice: Move
 		EjectOnDeath: true
 		AfterUnloadDelay: 40
@@ -241,9 +303,10 @@ TRNSPORT:
 		Prerequisites: ~gahpad, gadept
 		Description: VTOL aircraft capable of lifting\nand transporting vehicles.\n  Unarmed
 	Aircraft:
-		TurnSpeed: 5
+		TurnSpeed: 20
 		Speed: 149
-		InitialFacing: 0
+		Pitch: 0
+		Roll: 0
 		TakeoffSounds: dropup1.aud
 		LandingSounds: dropdwn1.aud
 	Carryall:
@@ -289,8 +352,10 @@ SCRIN:
 		VoiceSet: Scrin
 	Aircraft:
 		CruiseAltitude: 5c0
-		TurnSpeed: 3
-		Speed: 168
+		TurnSpeed: 15
+		Speed: 200
+		IdleTurnSpeed: 6
+		IdleSpeed: 100
 		TakeoffSounds: dropup1.aud
 		LandingSounds: dropdwn1.aud
 		CanHover: false
@@ -307,15 +372,12 @@ SCRIN:
 		PauseOnCondition: !ammo
 	AttackAircraft:
 		Voice: Attack
-		FacingTolerance: 20
+		FacingTolerance: 80
 		PersistentTargeting: false
 		PauseOnCondition: empdisable
 	AmmoPool:
 		Ammo: 15
-		PipCount: 3
 		ReloadCount: 5
-		PipType: Ammo
-		PipTypeEmpty: AmmoEmpty
 		AmmoCondition: ammo
 	RenderSprites:
 	DeathSounds:
@@ -327,6 +389,14 @@ SCRIN:
 		RequiresCondition: empdisable
 	Rearmable:
 		RearmActors: gahpad, nahpad
+	WithAmmoPipsDecoration:
+		Position: BottomLeft
+		RequiresSelection: true
+		Margin: 4, 5
+		PipCount: 3
+		FullSequence: pip-ammo
+		EmptySequence: pip-ammoempty
+		Palette: pips
 
 APACHE:
 	Inherits: ^EMPableAircraft
@@ -346,7 +416,11 @@ APACHE:
 	Selectable:
 		Bounds: 30,24
 	Aircraft:
-		TurnSpeed: 5
+		Pitch: -32
+		PitchSpeed: 8
+		Roll: 16
+		RollSpeed: 8
+		TurnSpeed: 20
 		Speed: 130
 		CanSlide: false
 		TakeOffOnResupply: true
@@ -361,16 +435,13 @@ APACHE:
 		Weapon: HarpyClaw
 		PauseOnCondition: !ammo
 	AttackAircraft:
-		FacingTolerance: 20
+		FacingTolerance: 80
 		PersistentTargeting: false
 		Voice: Attack
 		PauseOnCondition: empdisable
 		AttackType: Hover
 	AmmoPool:
 		Ammo: 12
-		PipCount: 4
-		PipType: Ammo
-		PipTypeEmpty: AmmoEmpty
 		AmmoCondition: ammo
 	WithIdleOverlay@ROTORAIR:
 		Offset: 85,0,598
@@ -389,6 +460,17 @@ APACHE:
 		RequiresCondition: empdisable
 	Rearmable:
 		RearmActors: gahpad, nahpad
+	WithAmmoPipsDecoration:
+		Position: BottomLeft
+		RequiresSelection: true
+		Margin: 4, 5
+		PipCount: 4
+		FullSequence: pip-ammo
+		EmptySequence: pip-ammoempty
+		Palette: pips
+	WithShadow:
+	WithVoxelBody:
+		ShowShadow: False
 
 HUNTER:
 	Inherits@2: ^ExistsInWorld
@@ -401,13 +483,15 @@ HUNTER:
 	Armor:
 		Type: Light
 	Aircraft:
-		TurnSpeed: 16
+		TurnSpeed: 64
 		Speed: 355
+		Pitch: 0
+		Roll: 0
 		CruiseAltitude: 3c128
 		CruisingCondition: cruising
 		MoveIntoShroud: true
 	AttackAircraft:
-		FacingTolerance: 128
+		FacingTolerance: 512
 		AttackType: Hover
 	Armament@PRIMARY:
 		Weapon: SuicideBomb
@@ -427,12 +511,9 @@ HUNTER:
 	Hovers@CRUISING:
 		RequiresCondition: cruising
 	QuantizeFacingsFromSequence:
-	DrawLineToTarget:
 	AppearsOnRadar:
 		UseLocation: true
 	Interactable:
-	SelectionDecorations:
-		Palette: pips
 	HitShape:
 	MapEditorData:
 		Categories: System

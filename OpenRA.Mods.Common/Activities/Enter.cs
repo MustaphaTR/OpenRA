@@ -34,7 +34,7 @@ namespace OpenRA.Mods.Common.Activities
 		bool useLastVisibleTarget;
 		EnterState lastState = EnterState.Approaching;
 
-		protected Enter(Actor self, Target target, WDist closeEnoughDist, Color? targetLineColor = null)
+		protected Enter(Actor self, in Target target, WDist closeEnoughDist, Color? targetLineColor = null)
 		{
 			move = self.Trait<IMove>();
 			this.target = target;
@@ -47,7 +47,7 @@ namespace OpenRA.Mods.Common.Activities
 		/// Called early in the activity tick to allow subclasses to update state.
 		/// Call Cancel(self, true) if it is no longer valid to enter
 		/// </summary>
-		protected virtual void TickInner(Actor self, Target target, bool targetIsDeadOrHiddenActor) { }
+		protected virtual void TickInner(Actor self, in Target target, bool targetIsDeadOrHiddenActor) { }
 
 		/// <summary>
 		/// Called when the actor is ready to transition from approaching to entering the target actor.
@@ -57,17 +57,16 @@ namespace OpenRA.Mods.Common.Activities
 		protected virtual bool TryStartEnter(Actor self, Actor targetActor) { return true; }
 
 		/// <summary>
-		/// Called when the actor has entered the target actor
-		/// Return true if the action succeeded and the actor should be Killed/Disposed
-		/// (assuming the relevant EnterBehaviour), or false if the actor should exit unharmed
+		/// Called when the actor has entered the target actor.
+		/// Actor will be be Killed/Disposed or they will enter/exit unharmed.
+		/// Depends on either the EnterBehaviour of the actor or the requirements of an overriding function.
 		/// </summary>
 		protected virtual void OnEnterComplete(Actor self, Actor targetActor) { }
 
 		public override bool Tick(Actor self)
 		{
 			// Update our view of the target
-			bool targetIsHiddenActor;
-			target = target.Recalculate(self.Owner, out targetIsHiddenActor);
+			target = target.Recalculate(self.Owner, out var targetIsHiddenActor);
 			if (!targetIsHiddenActor && target.Type == TargetType.Actor)
 				lastVisibleTarget = Target.FromTargetPositions(target);
 

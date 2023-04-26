@@ -79,7 +79,6 @@ namespace OpenRA
 				throw new InvalidOperationException("Unable to find a sequence loader for type '{0}'.".F(sequenceFormat.Type));
 
 			SpriteSequenceLoader = (ISpriteSequenceLoader)sequenceCtor.Invoke(new[] { this });
-			SpriteSequenceLoader.OnMissingSpriteError = s => Log.Write("debug", s);
 
 			var modelFormat = Manifest.Get<ModelSequenceFormat>();
 			var modelLoader = ObjectCreator.FindType(modelFormat.Type + "Loader");
@@ -108,7 +107,7 @@ namespace OpenRA
 
 			defaultSequences = Exts.Lazy(() =>
 			{
-				var items = DefaultTileSets.ToDictionary(t => t.Key, t => new SequenceProvider(DefaultFileSystem, this, t.Value, null));
+				var items = DefaultTileSets.ToDictionary(t => t.Key, t => new SequenceProvider(DefaultFileSystem, this, t.Key, null));
 				return (IReadOnlyDictionary<string, SequenceProvider>)(new ReadOnlyDictionary<string, SequenceProvider>(items));
 			});
 
@@ -177,8 +176,7 @@ namespace OpenRA
 
 		public Map PrepareMap(string uid)
 		{
-			if (LoadScreen != null)
-				LoadScreen.Display();
+			LoadScreen?.Display();
 
 			if (MapCache[uid].Status != MapStatus.Available)
 				throw new InvalidDataException("Invalid map uid: {0}".F(uid));
@@ -202,12 +200,12 @@ namespace OpenRA
 
 		public void Dispose()
 		{
-			if (LoadScreen != null)
-				LoadScreen.Dispose();
+			LoadScreen?.Dispose();
 			MapCache.Dispose();
 
-			if (ObjectCreator != null)
-				ObjectCreator.Dispose();
+			ObjectCreator?.Dispose();
+
+			Manifest.Dispose();
 		}
 	}
 

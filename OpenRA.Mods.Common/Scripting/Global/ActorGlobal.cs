@@ -10,7 +10,10 @@
 #endregion
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
+using System.Runtime.Serialization;
 using Eluant;
 using OpenRA.Mods.Common.Traits;
 using OpenRA.Primitives;
@@ -25,6 +28,86 @@ namespace OpenRA.Mods.Common.Scripting
 			: base(context) { }
 
 		[ScriptContext(ScriptContextType.Mission)]
+		ActorInit CreateInit(string initName, LuaValue value)
+		{
+			// Find the requested type
+			var initInstance = initName.Split(ActorInfo.TraitInstanceSeparator);
+			var initType = Game.ModData.ObjectCreator.FindType(initInstance[0] + "Init");
+			if (initType == null)
+				throw new LuaException("Unknown initializer type '{0}'".F(initInstance[0]));
+
+			// Construct the ActorInit.
+			var init = (ActorInit)FormatterServices.GetUninitializedObject(initType);
+			if (initInstance.Length > 1)
+				initType.GetField("InstanceName").SetValue(init, initInstance[1]);
+
+			var compositeInit = init as CompositeActorInit;
+			var tableValue = value as LuaTable;
+			if (tableValue != null && compositeInit != null)
+			{
+				var args = compositeInit.InitializeArgs();
+				var initValues = new Dictionary<string, object>();
+				foreach (var kv in tableValue)
+				{
+					using (kv.Key)
+					using (kv.Value)
+					{
+						var key = kv.Key.ToString();
+						if (!args.TryGetValue(key, out var type))
+							throw new LuaException("Unknown initializer type '{0}.{1}'".F(initInstance[0], key));
+
+						var isActorReference = type == typeof(ActorInitActorReference);
+						if (isActorReference)
+							type = kv.Value is LuaString ? typeof(string) : typeof(Actor);
+
+						if (!kv.Value.TryGetClrValue(type, out var clrValue))
+							throw new LuaException("Invalid data type for '{0}.{1}' (expected {2}, got {3})".F(initInstance[0], key, type.Name, kv.Value.WrappedClrType()));
+
+						if (isActorReference)
+							clrValue = type == typeof(string) ? new ActorInitActorReference((string)clrValue) : new ActorInitActorReference((Actor)clrValue);
+
+						initValues[key] = clrValue;
+					}
+				}
+
+				compositeInit.Initialize(initValues);
+				return init;
+			}
+
+			// HACK: Backward compatibility for legacy int facings
+			var facingInit = init as FacingInit;
+			if (facingInit != null)
+			{
+				if (value.TryGetClrValue(out int facing))
+				{
+					facingInit.Initialize(WAngle.FromFacing(facing));
+					Game.Debug("Initializing Facing with integers is deprecated. Use Angle instead.");
+					return facingInit;
+				}
+			}
+
+			var initializers = initType.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
+				.Where(m => m.Name == "Initialize" && m.GetParameters().Length == 1);
+
+			foreach (var initializer in initializers)
+			{
+				var parameterType = initializer.GetParameters().First().ParameterType;
+				var valueType = parameterType.IsEnum ? Enum.GetUnderlyingType(parameterType) : parameterType;
+
+				// Try and coerce the table value to the required type
+				if (!value.TryGetClrValue(valueType, out var clrValue))
+					continue;
+
+				initializer.Invoke(init, new[] { clrValue });
+
+				return init;
+			}
+
+			var types = initializers.Select(y => y.GetParameters()[0].ParameterType.Name).JoinWith(", ");
+			throw new LuaException("Invalid data type for '{0}' (expected one of {1})".F(initInstance[0], types));
+		}
+
+		[ScriptContext(ScriptContextType.Mission)]
 		[Desc("Create a new actor. initTable specifies a list of key-value pairs that defines the initial parameters for the actor's traits.")]
 		public Actor Create(string type, bool addToWorld, LuaTable initTable)
 		{
@@ -35,28 +118,7 @@ namespace OpenRA.Mods.Common.Scripting
 			{
 				using (kv.Key)
 				using (kv.Value)
-				{
-					// Find the requested type
-					var typeName = kv.Key.ToString();
-					var initType = Game.ModData.ObjectCreator.FindType(typeName + "Init");
-					if (initType == null)
-						throw new LuaException("Unknown initializer type '{0}'".F(typeName));
-
-					// Cast it up to an IActorInit<T>
-					var genericType = initType.GetInterfaces()
-						.First(x => x.IsGenericType && x.GetGenericTypeDefinition() == typeof(IActorInit<>));
-					var innerType = genericType.GetGenericArguments().First();
-					var valueType = innerType.IsEnum ? Enum.GetUnderlyingType(innerType) : innerType;
-
-					// Try and coerce the table value to the required type
-					object value;
-					if (!kv.Value.TryGetClrValue(valueType, out value))
-						throw new LuaException("Invalid data type for '{0}' (expected '{1}')".F(typeName, valueType.Name));
-
-					// Construct the ActorInit. Phew!
-					var test = initType.GetConstructor(new[] { innerType }).Invoke(new[] { value });
-					initDict.Add(test);
-				}
+					initDict.Add(CreateInit(kv.Key.ToString(), kv.Value));
 			}
 
 			var owner = initDict.GetOrDefault<OwnerInit>();
@@ -75,8 +137,7 @@ namespace OpenRA.Mods.Common.Scripting
 			"An optional second value can be used to exactly specify the producing queue type.")]
 		public int BuildTime(string type, string queue = null)
 		{
-			ActorInfo ai;
-			if (!Context.World.Map.Rules.Actors.TryGetValue(type, out ai))
+			if (!Context.World.Map.Rules.Actors.TryGetValue(type, out var ai))
 				throw new LuaException("Unknown actor type '{0}'".F(type));
 
 			var bi = ai.TraitInfoOrDefault<BuildableInfo>();
@@ -123,8 +184,7 @@ namespace OpenRA.Mods.Common.Scripting
 		[Desc("Returns the cruise altitude of the requested unit type (zero if it is ground-based).")]
 		public int CruiseAltitude(string type)
 		{
-			ActorInfo ai;
-			if (!Context.World.Map.Rules.Actors.TryGetValue(type, out ai))
+			if (!Context.World.Map.Rules.Actors.TryGetValue(type, out var ai))
 				throw new LuaException("Unknown actor type '{0}'".F(type));
 
 			var pi = ai.TraitInfoOrDefault<ICruiseAltitudeInfo>();
@@ -133,8 +193,7 @@ namespace OpenRA.Mods.Common.Scripting
 
 		public int Cost(string type)
 		{
-			ActorInfo ai;
-			if (!Context.World.Map.Rules.Actors.TryGetValue(type, out ai))
+			if (!Context.World.Map.Rules.Actors.TryGetValue(type, out var ai))
 				throw new LuaException("Unknown actor type '{0}'".F(type));
 
 			var vi = ai.TraitInfoOrDefault<ValuedInfo>();

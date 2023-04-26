@@ -38,8 +38,7 @@ namespace OpenRA.Mods.Common.Scripting
 			"If 'Buildable.BuildAtProductionType' is not set either, a random exit will be selected.")]
 		public void Produce(string actorType, string factionVariant = null, string productionType = null)
 		{
-			ActorInfo actorInfo;
-			if (!Self.World.Map.Rules.Actors.TryGetValue(actorType, out actorInfo))
+			if (!Self.World.Map.Rules.Actors.TryGetValue(actorType, out var actorInfo))
 				throw new LuaException("Unknown actor type '{0}'".F(actorType));
 
 			var bi = actorInfo.TraitInfo<BuildableInfo>();
@@ -58,7 +57,7 @@ namespace OpenRA.Mods.Common.Scripting
 						new FactionInit(factionVariant ?? BuildableInfo.GetInitialFaction(actorInfo, p.Faction))
 					};
 
-					if (p.Produce(Self, actorInfo, type, inits))
+					if (p.Produce(Self, actorInfo, type, inits, 0))
 						return true;
 				}
 
@@ -87,7 +86,7 @@ namespace OpenRA.Mods.Common.Scripting
 				if (rp.Path.Count > 0)
 					return rp.Path.Last();
 
-				var exit = Self.FirstExitOrDefault();
+				var exit = Self.NearestExitOrDefault(Self.CenterPosition);
 				if (exit != null)
 					return Self.Location + exit.Info.ExitCell;
 

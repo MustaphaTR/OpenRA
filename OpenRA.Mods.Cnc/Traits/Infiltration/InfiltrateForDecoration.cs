@@ -21,6 +21,7 @@ namespace OpenRA.Mods.Cnc.Traits
 	[Desc("Reveals a decoration sprite to the indicated players when infiltrated.")]
 	class InfiltrateForDecorationInfo : WithDecorationInfo
 	{
+		[Desc("The `TargetTypes` from `Targetable` that are allowed to enter.")]
 		public readonly BitSet<TargetableType> Types = default(BitSet<TargetableType>);
 
 		public override object Create(ActorInitializer init) { return new InfiltrateForDecoration(init.Self, this); }
@@ -47,8 +48,7 @@ namespace OpenRA.Mods.Cnc.Traits
 
 		protected override bool ShouldRender(Actor self)
 		{
-			return self.World.RenderPlayer == null || infiltrators.Any(i =>
-				Info.ValidStances.HasStance(i.Stances[self.World.RenderPlayer]));
+			return infiltrators.Any(i => Info.ValidRelationships.HasStance(i.RelationshipWith(self.World.RenderPlayer)));
 		}
 	}
 }

@@ -10,11 +10,10 @@
 #endregion
 
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using OpenRA.Mods.Common.Traits.BotModules.Squads;
-using OpenRA.Support;
+using OpenRA.Primitives;
 using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.Traits
@@ -97,6 +96,17 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Radius in cells that protecting squads should scan for enemies around their position.")]
 		public readonly int ProtectionScanRadius = 8;
 
+		[Desc("Enemy target types to never target.")]
+		public readonly BitSet<TargetableType> IgnoredEnemyTargetTypes = default(BitSet<TargetableType>);
+
+		public override void RulesetLoaded(Ruleset rules, ActorInfo ai)
+		{
+			base.RulesetLoaded(rules, ai);
+
+			if (DangerScanRadius <= 0)
+				throw new YamlException("DangerScanRadius must be greater than zero.");
+		}
+
 		public override object Create(ActorInitializer init) { return new SquadManagerBotModule(init.Self, this); }
 	}
 
@@ -115,6 +125,10 @@ namespace OpenRA.Mods.Common.Traits
 		public readonly Player Player;
 
 		readonly Predicate<Actor> unitCannotBeOrdered;
+		readonly List<Actor> unitsHangingAroundTheBase = new List<Actor>();
+
+		// Units that the bot already knows about. Any unit not on this list needs to be given a role.
+		readonly List<Actor> activeUnits = new List<Actor>();
 
 		public List<Squad> Squads = new List<Squad>();
 
@@ -123,10 +137,6 @@ namespace OpenRA.Mods.Common.Traits
 		IBotNotifyIdleBaseUnits[] notifyIdleBaseUnits;
 
 		CPos initialBaseCenter;
-		List<Actor> unitsHangingAroundTheBase = new List<Actor>();
-
-		// Units that the bot already knows about. Any unit not on this list needs to be given a role.
-		List<Actor> activeUnits = new List<Actor>();
 
 		int rushTicks;
 		int assignRolesTicks;
@@ -142,21 +152,35 @@ namespace OpenRA.Mods.Common.Traits
 			unitCannotBeOrdered = a => a == null || a.Owner != Player || a.IsDead || !a.IsInWorld;
 		}
 
-		public bool IsEnemyUnit(Actor a)
+		// Use for proactive targeting.
+		public bool IsPreferredEnemyUnit(Actor a)
 		{
-			return a != null && !a.IsDead && Player.Stances[a.Owner] == Stance.Enemy
-				&& !a.Info.HasTraitInfo<HuskInfo>()
-				&& !a.GetEnabledTargetTypes().IsEmpty;
+			if (a == null || a.IsDead || Player.RelationshipWith(a.Owner) != PlayerRelationship.Enemy || a.Info.HasTraitInfo<HuskInfo>() || a.Info.HasTraitInfo<AircraftInfo>())
+				return false;
+
+			var targetTypes = a.GetEnabledTargetTypes();
+			return !targetTypes.IsEmpty && !targetTypes.Overlaps(Info.IgnoredEnemyTargetTypes);
+		}
+
+		public bool IsNotHiddenUnit(Actor a)
+		{
+			var hasModifier = false;
+			var visModifiers = a.TraitsImplementing<IVisibilityModifier>();
+			foreach (var v in visModifiers)
+			{
+				if (v.IsVisible(a, Player))
+					return true;
+
+				hasModifier = true;
+			}
+
+			return !hasModifier;
 		}
 
 		protected override void Created(Actor self)
 		{
-			// Special case handling is required for the Player actor.
-			// Created is called before Player.PlayerActor is assigned,
-			// so we must query player traits from self, which refers
-			// for bot modules always to the Player actor.
-			notifyPositionsUpdated = self.TraitsImplementing<IBotPositionsUpdated>().ToArray();
-			notifyIdleBaseUnits = self.TraitsImplementing<IBotNotifyIdleBaseUnits>().ToArray();
+			notifyPositionsUpdated = self.Owner.PlayerActor.TraitsImplementing<IBotPositionsUpdated>().ToArray();
+			notifyIdleBaseUnits = self.Owner.PlayerActor.TraitsImplementing<IBotNotifyIdleBaseUnits>().ToArray();
 		}
 
 		protected override void TraitEnabled(Actor self)
@@ -183,12 +207,13 @@ namespace OpenRA.Mods.Common.Traits
 
 		internal Actor FindClosestEnemy(WPos pos)
 		{
-			return World.Actors.Where(IsEnemyUnit).ClosestTo(pos);
+			var units = World.Actors.Where(IsPreferredEnemyUnit);
+			return units.Where(IsNotHiddenUnit).ClosestTo(pos) ?? units.ClosestTo(pos);
 		}
 
 		internal Actor FindClosestEnemy(WPos pos, WDist radius)
 		{
-			return World.FindActorsInCircle(pos, radius).Where(IsEnemyUnit).ClosestTo(pos);
+			return World.FindActorsInCircle(pos, radius).Where(a => IsPreferredEnemyUnit(a) && IsNotHiddenUnit(a)).ClosestTo(pos);
 		}
 
 		void CleanSquads()
@@ -329,10 +354,7 @@ namespace OpenRA.Mods.Common.Traits
 					AIUtils.BotDebug("AI: {0} has chosen {1} to move its Dozer ({2})".F(a.Owner, dozerTargetPos, a));
 					bot.QueueOrder(new Order("Move", a, Target.FromCell(World, dozerTargetPos), true));
 				}
-				else
-					unitsHangingAroundTheBase.Add(a);
-
-				if (a.Info.HasTraitInfo<AircraftInfo>() && a.Info.HasTraitInfo<AttackBaseInfo>() && a.Info.HasTraitInfo<SelectableInfo>())
+				else if (a.Info.HasTraitInfo<AircraftInfo>() && a.Info.HasTraitInfo<AttackBaseInfo>() && a.Info.HasTraitInfo<SelectableInfo>())
 				{
 					var air = GetSquadOfType(SquadType.Air);
 					if (air == null)
@@ -348,6 +370,8 @@ namespace OpenRA.Mods.Common.Traits
 
 					ships.Units.Add(a);
 				}
+				else
+					unitsHangingAroundTheBase.Add(a);
 
 				activeUnits.Add(a);
 			}
@@ -368,8 +392,7 @@ namespace OpenRA.Mods.Common.Traits
 				var attackForce = RegisterNewSquad(bot, SquadType.Assault);
 
 				foreach (var a in unitsHangingAroundTheBase)
-					if (!a.Info.HasTraitInfo<AircraftInfo>() && !Info.NavalUnitsTypes.Contains(a.Info.Name))
-						attackForce.Units.Add(a);
+					attackForce.Units.Add(a);
 
 				unitsHangingAroundTheBase.Clear();
 				foreach (var n in notifyIdleBaseUnits)
@@ -394,7 +417,7 @@ namespace OpenRA.Mods.Common.Traits
 			{
 				// Don't rush enemy aircraft!
 				var enemies = World.FindActorsInCircle(b.CenterPosition, WDist.FromCells(Info.RushAttackScanRadius))
-					.Where(unit => IsEnemyUnit(unit) && unit.Info.HasTraitInfo<AttackBaseInfo>() && !unit.Info.HasTraitInfo<AircraftInfo>() && !Info.NavalUnitsTypes.Contains(unit.Info.Name)).ToList();
+					.Where(unit => IsPreferredEnemyUnit(unit) && unit.Info.HasTraitInfo<AttackBaseInfo>() && !unit.Info.HasTraitInfo<AircraftInfo>() && !Info.NavalUnitsTypes.Contains(unit.Info.Name)).ToList();
 
 				if (AttackOrFleeFuzzy.Rush.CanAttack(ownUnits, enemies))
 				{
@@ -441,7 +464,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		void IBotRespondToAttack.RespondToAttack(IBot bot, Actor self, AttackInfo e)
 		{
-			if (!IsEnemyUnit(e.Attacker))
+			if (!IsPreferredEnemyUnit(e.Attacker))
 				return;
 
 			// Protected priority assets, MCVs, harvesters and buildings

@@ -128,8 +128,8 @@ namespace OpenRA.Mods.Common.Traits
 				if (Info.DeliveryAircraft != null)
 				{
 					var crate = w.CreateActor(false, crateActor, new TypeDictionary { new OwnerInit(w.WorldActor.Owner), new CrateSpawnerTraitInit(this) });
-					var dropFacing = 256 * self.World.SharedRandom.Next(Info.QuantizedFacings) / Info.QuantizedFacings;
-					var delta = new WVec(0, -1024, 0).Rotate(WRot.FromFacing(dropFacing));
+					var dropFacing = new WAngle(1024 * self.World.SharedRandom.Next(info.QuantizedFacings) / info.QuantizedFacings);
+					var delta = new WVec(0, -1024, 0).Rotate(WRot.FromYaw(dropFacing));
 
 					var altitude = self.World.Map.Rules.Actors[Info.DeliveryAircraft].TraitInfo<AircraftInfo>().CruiseAltitude.Length;
 					var target = self.World.Map.CenterOfCell(p) + new WVec(0, 0, altitude);
@@ -167,8 +167,7 @@ namespace OpenRA.Mods.Common.Traits
 					continue;
 
 				// Don't drop on any actors
-				if (self.World.WorldActor.Trait<BuildingInfluence>().GetBuildingAt(p) != null
-					|| self.World.ActorMap.GetActorsAt(p).Any())
+				if (self.World.ActorMap.GetActorsAt(p).Any())
 					continue;
 
 				return p;

@@ -26,7 +26,7 @@ namespace OpenRA
 
 		readonly Cache<string, Type> typeCache;
 		readonly Cache<Type, ConstructorInfo> ctorCache;
-		readonly Pair<Assembly, string>[] assemblies;
+		readonly (Assembly Assembly, string Namespace)[] assemblies;
 
 		public ObjectCreator(Manifest manifest, InstalledMods mods)
 		{
@@ -48,8 +48,7 @@ namespace OpenRA
 				// We can't check the internal name of the assembly, so we'll work off the data instead
 				var hash = CryptoUtil.SHA1Hash(File.ReadAllBytes(resolvedPath));
 
-				Assembly assembly;
-				if (!ResolvedAssemblies.TryGetValue(hash, out assembly))
+				if (!ResolvedAssemblies.TryGetValue(hash, out var assembly))
 				{
 					assembly = Assembly.LoadFile(resolvedPath);
 					ResolvedAssemblies.Add(hash, assembly);
@@ -59,7 +58,7 @@ namespace OpenRA
 			}
 
 			AppDomain.CurrentDomain.AssemblyResolve += ResolveAssembly;
-			assemblies = assemblyList.SelectMany(asm => asm.GetNamespaces().Select(ns => Pair.New(asm, ns))).ToArray();
+			assemblies = assemblyList.SelectMany(asm => asm.GetNamespaces().Select(ns => (asm, ns))).ToArray();
 		}
 
 		Assembly ResolveAssembly(object sender, ResolveEventArgs e)
@@ -68,10 +67,7 @@ namespace OpenRA
 				if (a.FullName == e.Name)
 					return a;
 
-			if (assemblies == null)
-				return null;
-
-			return assemblies.Select(a => a.First).FirstOrDefault(a => a.FullName == e.Name);
+			return assemblies?.Select(a => a.Assembly).FirstOrDefault(a => a.FullName == e.Name);
 		}
 
 		// Only used by the linter to prevent exceptions from being thrown during a lint run
@@ -106,7 +102,7 @@ namespace OpenRA
 		public Type FindType(string className)
 		{
 			return assemblies
-				.Select(pair => pair.First.GetType(pair.Second + "." + className, false))
+				.Select(pair => pair.Assembly.GetType(pair.Namespace + "." + className, false))
 				.FirstOrDefault(t => t != null);
 		}
 
@@ -146,7 +142,7 @@ namespace OpenRA
 
 		public IEnumerable<Type> GetTypes()
 		{
-			return assemblies.Select(ma => ma.First).Distinct()
+			return assemblies.Select(ma => ma.Assembly).Distinct()
 				.SelectMany(ma => ma.GetTypes());
 		}
 

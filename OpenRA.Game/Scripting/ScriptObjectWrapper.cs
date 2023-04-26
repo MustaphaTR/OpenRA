@@ -61,8 +61,7 @@ namespace OpenRA.Scripting
 			get
 			{
 				var name = keyValue.ToString();
-				ScriptMemberWrapper wrapper;
-				if (!members.TryGetValue(name, out wrapper))
+				if (!members.TryGetValue(name, out var wrapper))
 					throw new LuaException(MemberNotFoundError(name));
 
 				return wrapper.Get(runtime);
@@ -71,8 +70,7 @@ namespace OpenRA.Scripting
 			set
 			{
 				var name = keyValue.ToString();
-				ScriptMemberWrapper wrapper;
-				if (!members.TryGetValue(name, out wrapper))
+				if (!members.TryGetValue(name, out var wrapper))
 					throw new LuaException(MemberNotFoundError(name));
 
 				wrapper.Set(runtime, value);

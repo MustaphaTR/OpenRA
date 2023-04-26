@@ -9,7 +9,6 @@
  */
 #endregion
 
-using OpenRA.Mods.Common.Activities;
 using OpenRA.Primitives;
 using OpenRA.Traits;
 
@@ -110,11 +109,7 @@ namespace OpenRA.Mods.Common.Traits
 				}
 
 				if (!inAir)
-				{
-					var pilotMobile = pilot.TraitOrDefault<Mobile>();
-					if (pilotMobile != null)
-						pilotMobile.Nudge(pilot);
-				}
+					pilot.TraitOrDefault<Mobile>()?.Nudge(pilot);
 				else
 					Game.Sound.Play(SoundType.World, Info.ChuteSound, cp);
 			});

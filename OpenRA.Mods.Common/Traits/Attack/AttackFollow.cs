@@ -27,6 +27,9 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Keep firing on targets even after attack order is cancelled")]
 		public readonly bool PersistentTargeting = true;
 
+		[Desc("Range to stay away from min and max ranges to give some leeway if the target starts moving.")]
+		public readonly WDist RangeMargin = WDist.FromCells(1);
+
 		public override object Create(ActorInitializer init) { return new AttackFollow(init.Self, this); }
 	}
 
@@ -43,7 +46,7 @@ namespace OpenRA.Mods.Common.Traits
 		bool opportunityForceAttack;
 		bool opportunityTargetIsPersistentTarget;
 
-		public void SetRequestedTarget(Actor self, Target target, bool isForceAttack = false)
+		public void SetRequestedTarget(Actor self, in Target target, bool isForceAttack = false)
 		{
 			RequestedTarget = target;
 			requestedForceAttack = isForceAttack;
@@ -76,7 +79,7 @@ namespace OpenRA.Mods.Common.Traits
 			base.Created(self);
 		}
 
-		protected bool CanAimAtTarget(Actor self, Target target, bool forceAttack)
+		protected bool CanAimAtTarget(Actor self, in Target target, bool forceAttack)
 		{
 			if (target.Type == TargetType.Actor && !target.Actor.CanBeViewedByPlayer(self.Owner))
 				return false;
@@ -107,8 +110,7 @@ namespace OpenRA.Mods.Common.Traits
 				// requestedTargetPresetForActivity will be cleared once the activity starts running and calls UpdateRequestedTarget
 				if (self.CurrentActivity != null && self.CurrentActivity.NextActivity == requestedTargetPresetForActivity)
 				{
-					bool targetIsHiddenActor;
-					RequestedTarget = RequestedTarget.Recalculate(self.Owner, out targetIsHiddenActor);
+					RequestedTarget = RequestedTarget.Recalculate(self.Owner, out _);
 				}
 
 				// Requested activity has been canceled
@@ -151,12 +153,12 @@ namespace OpenRA.Mods.Common.Traits
 			base.Tick(self);
 		}
 
-		public override Activity GetAttackActivity(Actor self, AttackSource source, Target newTarget, bool allowMove, bool forceAttack, Color? targetLineColor = null)
+		public override Activity GetAttackActivity(Actor self, AttackSource source, in Target newTarget, bool allowMove, bool forceAttack, Color? targetLineColor = null)
 		{
 			return new AttackActivity(self, newTarget, allowMove, forceAttack, targetLineColor);
 		}
 
-		public override void OnResolveAttackOrder(Actor self, Activity activity, Target target, bool queued, bool forceAttack)
+		public override void OnResolveAttackOrder(Actor self, Activity activity, in Target target, bool queued, bool forceAttack)
 		{
 			// We can improve responsiveness for turreted actors by preempting
 			// the last order (usually a move) and setting the target immediately
@@ -225,7 +227,7 @@ namespace OpenRA.Mods.Common.Traits
 			bool wasMovingWithinRange;
 			bool hasTicked;
 
-			public AttackActivity(Actor self, Target target, bool allowMove, bool forceAttack, Color? targetLineColor = null)
+			public AttackActivity(Actor self, in Target target, bool allowMove, bool forceAttack, Color? targetLineColor = null)
 			{
 				attackFollows = self.TraitsImplementing<AttackFollow>().ToArray();
 				move = allowMove ? self.TraitOrDefault<IMove>() : null;
@@ -270,7 +272,6 @@ namespace OpenRA.Mods.Common.Traits
 				if (attackFollows.All(a => a.IsTraitPaused))
 					return false;
 
-				bool targetIsHiddenActor;
 				target = target.Recalculate(self.Owner, out targetIsHiddenActor);
 				foreach (var attack in attackFollows)
 					attack.SetRequestedTarget(self, target, forceAttack);
@@ -285,12 +286,12 @@ namespace OpenRA.Mods.Common.Traits
 					lastVisibleOwner = target.Actor.Owner;
 					lastVisibleTargetTypes = target.Actor.GetEnabledTargetTypes();
 
-					// Try and sit at least one cell away from the min or max ranges to give some leeway if the target starts moving.
-					if (move != null && target.Actor.Info.HasTraitInfo<IMoveInfo>())
+					var leeway = attack.Info.RangeMargin.Length;
+					if (leeway != 0 && move != null && target.Actor.Info.HasTraitInfo<IMoveInfo>())
 					{
-						var preferMinRange = Math.Min(lastVisibleMinimumRange.Length + 1024, lastVisibleMaximumRange.Length);
-						var preferMaxRange = Math.Max(lastVisibleMaximumRange.Length - 1024, lastVisibleMinimumRange.Length);
-						lastVisibleMaximumRange = new WDist((lastVisibleMaximumRange.Length - 1024).Clamp(preferMinRange, preferMaxRange));
+						var preferMinRange = Math.Min(lastVisibleMinimumRange.Length + leeway, lastVisibleMaximumRange.Length);
+						var preferMaxRange = Math.Max(lastVisibleMaximumRange.Length - leeway, lastVisibleMinimumRange.Length);
+						lastVisibleMaximumRange = new WDist((lastVisibleMaximumRange.Length - leeway).Clamp(preferMinRange, preferMaxRange));
 					}
 				}
 

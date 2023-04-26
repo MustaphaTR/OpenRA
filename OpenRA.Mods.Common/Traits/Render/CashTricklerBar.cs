@@ -17,14 +17,14 @@ using OpenRA.Traits;
 namespace OpenRA.Mods.Common.Traits.Render
 {
 	[Desc("Display the time remaining until the next cash is given by actor's CashTrickler trait.")]
-	class CashTricklerBarInfo : ITraitInfo, Requires<CashTricklerInfo>
+	class CashTricklerBarInfo : TraitInfo, Requires<CashTricklerInfo>
 	{
 		[Desc("Defines to which players the bar is to be shown.")]
-		public readonly Stance DisplayStances = Stance.Ally;
+		public readonly PlayerRelationship DisplayRelationships = PlayerRelationship.Ally;
 
 		public readonly Color Color = Color.Magenta;
 
-		public object Create(ActorInitializer init) { return new CashTricklerBar(init.Self, this); }
+		public override object Create(ActorInitializer init) { return new CashTricklerBar(init.Self, this); }
 	}
 
 	class CashTricklerBar : ISelectionBar
@@ -43,7 +43,7 @@ namespace OpenRA.Mods.Common.Traits.Render
 		float ISelectionBar.GetValue()
 		{
 			var viewer = self.World.RenderPlayer ?? self.World.LocalPlayer;
-			if (viewer != null && !info.DisplayStances.HasStance(self.Owner.Stances[viewer]))
+			if (viewer != null && !info.DisplayRelationships.HasStance(self.Owner.RelationshipWith(viewer)))
 				return 0;
 
 			var complete = cashTricklers.Min(ct => (float)ct.Ticks / ct.Info.Interval);

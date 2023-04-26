@@ -14,18 +14,17 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using OpenRA.Graphics;
-using OpenRA.Primitives;
 using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.Traits
 {
-	public class ShroudRendererInfo : ITraitInfo
+	public class ShroudRendererInfo : TraitInfo
 	{
 		public readonly string Sequence = "shroud";
-		[SequenceReference("Sequence")]
+		[SequenceReference(nameof(Sequence))]
 		public readonly string[] ShroudVariants = { "shroud" };
 
-		[SequenceReference("Sequence")]
+		[SequenceReference(nameof(Sequence))]
 		public readonly string[] FogVariants = { "fog" };
 
 		[PaletteReference]
@@ -41,20 +40,20 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Use the upper four bits when calculating frame")]
 		public readonly bool UseExtendedIndex = false;
 
-		[SequenceReference("Sequence")]
+		[SequenceReference(nameof(Sequence))]
 		[Desc("Override for source art that doesn't define a fully shrouded tile")]
 		public readonly string OverrideFullShroud = null;
 
 		public readonly int OverrideShroudIndex = 15;
 
-		[SequenceReference("Sequence")]
+		[SequenceReference(nameof(Sequence))]
 		[Desc("Override for source art that doesn't define a fully fogged tile")]
 		public readonly string OverrideFullFog = null;
 
 		public readonly int OverrideFogIndex = 15;
 
 		public readonly BlendMode ShroudBlend = BlendMode.Alpha;
-		public object Create(ActorInitializer init) { return new ShroudRenderer(init.World, this); }
+		public override object Create(ActorInitializer init) { return new ShroudRenderer(init.World, this); }
 	}
 
 	public sealed class ShroudRenderer : IRenderShroud, IWorldLoaded, INotifyActorDisposing
@@ -85,7 +84,7 @@ namespace OpenRA.Mods.Common.Traits
 			public readonly float3 ScreenPosition;
 			public readonly byte Variant;
 
-			public TileInfo(float3 screenPosition, byte variant)
+			public TileInfo(in float3 screenPosition, byte variant)
 			{
 				ScreenPosition = screenPosition;
 				Variant = variant;
@@ -101,6 +100,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		readonly CellLayer<TileInfo> tileInfos;
 		readonly CellLayer<bool> cellsDirty;
+		bool anyCellDirty;
 		readonly Sprite[] fogSprites, shroudSprites;
 
 		Shroud shroud;
@@ -129,6 +129,7 @@ namespace OpenRA.Mods.Common.Traits
 			tileInfos = new CellLayer<TileInfo>(map);
 
 			cellsDirty = new CellLayer<bool>(map);
+			anyCellDirty = true;
 
 			// Load sprite variants
 			var variantCount = info.ShroudVariants.Length;
@@ -266,13 +267,17 @@ namespace OpenRA.Mods.Common.Traits
 			// Dirty the full projected space so the cells outside
 			// the map bounds can be initialized as fully shrouded.
 			cellsDirty.Clear(true);
+			anyCellDirty = true;
 			var tl = new PPos(0, 0);
 			var br = new PPos(map.MapSize.X - 1, map.MapSize.Y - 1);
 			UpdateShroud(new ProjectedCellRegion(map, tl, br));
 		}
 
-		void UpdateShroud(ProjectedCellRegion region)
+		void UpdateShroud(IEnumerable<PPos> region)
 		{
+			if (!anyCellDirty)
+				return;
+
 			foreach (var puv in region)
 			{
 				var uv = (MPos)puv;
@@ -292,14 +297,16 @@ namespace OpenRA.Mods.Common.Traits
 				if (fogSprite != null)
 					fogPos += fogSprite.Offset - 0.5f * fogSprite.Size;
 
-				shroudLayer.Update(uv, shroudSprite, shroudPos);
-				fogLayer.Update(uv, fogSprite, fogPos);
+				shroudLayer.Update(uv, shroudSprite, shroudPos, true);
+				fogLayer.Update(uv, fogSprite, fogPos, true);
 			}
+
+			anyCellDirty = false;
 		}
 
 		void IRenderShroud.RenderShroud(WorldRenderer wr)
 		{
-			UpdateShroud(map.ProjectedCellBounds);
+			UpdateShroud(map.ProjectedCells);
 			fogLayer.Draw(wr.Viewport);
 			shroudLayer.Draw(wr.Viewport);
 		}
@@ -308,6 +315,7 @@ namespace OpenRA.Mods.Common.Traits
 		{
 			var uv = (MPos)puv;
 			cellsDirty[uv] = true;
+			anyCellDirty = true;
 			var cell = uv.ToCPos(map);
 			foreach (var direction in CVec.Directions)
 				if (map.Contains((PPos)(cell + direction).ToMPos(map)))

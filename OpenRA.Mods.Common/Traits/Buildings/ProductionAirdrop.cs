@@ -9,10 +9,8 @@
  */
 #endregion
 
-using System;
 using System.Linq;
 using OpenRA.Activities;
-using OpenRA.Mods.Common;
 using OpenRA.Mods.Common.Activities;
 using OpenRA.Primitives;
 using OpenRA.Traits;
@@ -34,7 +32,7 @@ namespace OpenRA.Mods.Common.Traits
 		public readonly bool BaselineSpawn = false;
 
 		[Desc("Direction the aircraft should face to land.")]
-		public readonly int Facing = 64;
+		public readonly WAngle Facing = new WAngle(256);
 
 		public override object Create(ActorInitializer init) { return new ProductionAirdrop(init, this); }
 	}
@@ -44,7 +42,7 @@ namespace OpenRA.Mods.Common.Traits
 		public ProductionAirdrop(ActorInitializer init, ProductionAirdropInfo info)
 			: base(init, info) { }
 
-		public override bool Produce(Actor self, ActorInfo producee, string productionType, TypeDictionary inits)
+		public override bool Produce(Actor self, ActorInfo producee, string productionType, TypeDictionary inits, int refundableValue)
 		{
 			if (IsTraitDisabled || IsTraitPaused)
 				return false;
@@ -53,22 +51,20 @@ namespace OpenRA.Mods.Common.Traits
 			var owner = self.Owner;
 			var map = owner.World.Map;
 			var aircraftInfo = self.World.Map.Rules.Actors[info.ActorType].TraitInfo<AircraftInfo>();
-			var mpStart = owner.World.WorldActor.TraitOrDefault<MPStartLocations>();
 
 			CPos startPos;
 			CPos endPos;
-			int spawnFacing;
+			WAngle spawnFacing;
 
-			if (info.BaselineSpawn && mpStart != null)
+			if (info.BaselineSpawn)
 			{
-				var spawn = mpStart.Start[owner];
 				var bounds = map.Bounds;
 				var center = new MPos(bounds.Left + bounds.Width / 2, bounds.Top + bounds.Height / 2).ToCPos(map);
-				var spawnVec = spawn - center;
-				startPos = spawn + spawnVec * (Exts.ISqrt((bounds.Height * bounds.Height + bounds.Width * bounds.Width) / (4 * spawnVec.LengthSquared)));
+				var spawnVec = owner.HomeLocation - center;
+				startPos = owner.HomeLocation + spawnVec * (Exts.ISqrt((bounds.Height * bounds.Height + bounds.Width * bounds.Width) / (4 * spawnVec.LengthSquared)));
 				endPos = startPos;
 				var spawnDirection = new WVec((self.Location - startPos).X, (self.Location - startPos).Y, 0);
-				spawnFacing = spawnDirection.Yaw.Facing;
+				spawnFacing = spawnDirection.Yaw;
 			}
 			else
 			{
@@ -89,7 +85,10 @@ namespace OpenRA.Mods.Common.Traits
 			owner.World.AddFrameEndTask(w =>
 			{
 				if (!self.IsInWorld || self.IsDead)
+				{
+					owner.PlayerActor.Trait<PlayerResources>().GiveCash(refundableValue);
 					return;
+				}
 
 				var actor = w.CreateActor(info.ActorType, new TypeDictionary
 				{
@@ -103,7 +102,10 @@ namespace OpenRA.Mods.Common.Traits
 				actor.QueueActivity(new CallFunc(() =>
 				{
 					if (!self.IsInWorld || self.IsDead)
+					{
+						owner.PlayerActor.Trait<PlayerResources>().GiveCash(refundableValue);
 						return;
+					}
 
 					foreach (var cargo in self.TraitsImplementing<INotifyDelivery>())
 						cargo.Delivered(self);

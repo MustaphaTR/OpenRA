@@ -11,7 +11,6 @@
 
 using System.Collections.Generic;
 using System.Linq;
-using OpenRA.Activities;
 using OpenRA.Primitives;
 using OpenRA.Traits;
 
@@ -119,11 +118,11 @@ namespace OpenRA.Mods.Common.Traits
 			yield return new EditorActorDropdown("Stance", EditorStanceDisplayOrder, labels,
 				actor =>
 				{
-					var init = actor.Init<StanceInit>();
-					var stance = init != null ? init.Value(world) : InitialStance;
+					var init = actor.GetInitOrDefault<StanceInit>(this);
+					var stance = init != null ? init.Value : InitialStance;
 					return stances[(int)stance];
 				},
-				(actor, value) => actor.ReplaceInit(new StanceInit((UnitStance)stances.IndexOf(value))));
+				(actor, value) => actor.ReplaceInit(new StanceInit(this, (UnitStance)stances.IndexOf(value))));
 		}
 	}
 
@@ -145,11 +144,10 @@ namespace OpenRA.Mods.Common.Traits
 		public UnitStance PredictedStance;
 
 		UnitStance stance;
-		ConditionManager conditionManager;
 		IDisableAutoTarget[] disableAutoTarget;
 		INotifyStanceChanged[] notifyStanceChanged;
 		IEnumerable<AutoTargetPriorityInfo> activeTargetPriorities;
-		int conditionToken = ConditionManager.InvalidConditionToken;
+		int conditionToken = Actor.InvalidConditionToken;
 
 		public void SetStance(Actor self, UnitStance value)
 		{
@@ -170,15 +168,11 @@ namespace OpenRA.Mods.Common.Traits
 
 		void ApplyStanceCondition(Actor self)
 		{
-			if (conditionManager == null)
-				return;
+			if (conditionToken != Actor.InvalidConditionToken)
+				conditionToken = self.RevokeCondition(conditionToken);
 
-			if (conditionToken != ConditionManager.InvalidConditionToken)
-				conditionToken = conditionManager.RevokeCondition(self, conditionToken);
-
-			string condition;
-			if (Info.ConditionByStance.TryGetValue(stance, out condition))
-				conditionToken = conditionManager.GrantCondition(self, condition);
+			if (Info.ConditionByStance.TryGetValue(stance, out var condition))
+				conditionToken = self.GrantCondition(condition);
 		}
 
 		public AutoTarget(ActorInitializer init, AutoTargetInfo info)
@@ -187,10 +181,7 @@ namespace OpenRA.Mods.Common.Traits
 			var self = init.Self;
 			ActiveAttackBases = self.TraitsImplementing<AttackBase>().ToArray().Where(Exts.IsTraitEnabled);
 
-			if (init.Contains<StanceInit>())
-				stance = init.Get<StanceInit, UnitStance>();
-			else
-				stance = self.Owner.IsBot || !self.Owner.Playable ? info.InitialStanceAI : info.InitialStance;
+			stance = init.GetValue<StanceInit, UnitStance>(self.Owner.IsBot || !self.Owner.Playable ? info.InitialStanceAI : info.InitialStance);
 
 			PredictedStance = stance;
 
@@ -206,7 +197,6 @@ namespace OpenRA.Mods.Common.Traits
 					.OrderByDescending(ati => ati.Info.Priority).ToArray()
 					.Where(Exts.IsTraitEnabled).Select(atp => atp.Info);
 
-			conditionManager = self.TraitOrDefault<ConditionManager>();
 			disableAutoTarget = self.TraitsImplementing<IDisableAutoTarget>().ToArray();
 			notifyStanceChanged = self.TraitsImplementing<INotifyStanceChanged>().ToArray();
 			ApplyStanceCondition(self);
@@ -289,21 +279,22 @@ namespace OpenRA.Mods.Common.Traits
 				--nextScanTime;
 		}
 
-		public Target ScanForTarget(Actor self, bool allowMove, bool allowTurn)
+		public Target ScanForTarget(Actor self, bool allowMove, bool allowTurn, bool ignoreScanInterval = false)
 		{
-			if (nextScanTime <= 0 && ActiveAttackBases.Any())
+			if ((ignoreScanInterval || nextScanTime <= 0) && ActiveAttackBases.Any())
 			{
 				foreach (var dat in disableAutoTarget)
 					if (dat.DisableAutoTarget(self))
 						return Target.Invalid;
 
-				nextScanTime = self.World.SharedRandom.Next(Info.MinimumScanTimeInterval, Info.MaximumScanTimeInterval);
+				if (!ignoreScanInterval)
+					nextScanTime = self.World.SharedRandom.Next(Info.MinimumScanTimeInterval, Info.MaximumScanTimeInterval);
 
 				foreach (var ab in ActiveAttackBases)
 				{
 					// If we can't attack right now, there's no need to try and find a target.
 					var attackStances = ab.UnforcedAttackTargetStances();
-					if (attackStances != OpenRA.Traits.Stance.None)
+					if (attackStances != OpenRA.Traits.PlayerRelationship.None)
 					{
 						var range = Info.ScanRadius > 0 ? WDist.FromCells(Info.ScanRadius) : ab.GetMaximumRange();
 						return ChooseTarget(self, ab, attackStances, range, allowMove, allowTurn);
@@ -321,7 +312,7 @@ namespace OpenRA.Mods.Common.Traits
 				Attack(self, target, allowMove);
 		}
 
-		void Attack(Actor self, Target target, bool allowMove)
+		void Attack(Actor self, in Target target, bool allowMove)
 		{
 			foreach (var ab in ActiveAttackBases)
 				ab.AttackTarget(target, AttackSource.AutoTarget, false, allowMove);
@@ -335,7 +326,7 @@ namespace OpenRA.Mods.Common.Traits
 			return activeTargetPriorities.Any(ati =>
 			{
 				// Incompatible stances
-				if (!ati.ValidStances.HasStance(self.Owner.Stances[owner]))
+				if (!ati.ValidRelationships.HasStance(self.Owner.RelationshipWith(owner)))
 					return false;
 
 				// Incompatible target types
@@ -346,7 +337,7 @@ namespace OpenRA.Mods.Common.Traits
 			});
 		}
 
-		Target ChooseTarget(Actor self, AttackBase ab, Stance attackStances, WDist scanRange, bool allowMove, bool allowTurn)
+		Target ChooseTarget(Actor self, AttackBase ab, PlayerRelationship attackStances, WDist scanRange, bool allowMove, bool allowTurn)
 		{
 			var chosenTarget = Target.Invalid;
 			var chosenTargetPriority = int.MinValue;
@@ -357,8 +348,11 @@ namespace OpenRA.Mods.Common.Traits
 				return chosenTarget;
 
 			var targetsInRange = self.World.FindActorsInCircle(self.CenterPosition, scanRange)
-				.Select(Target.FromActor)
-				.Concat(self.Owner.FrozenActorLayer.FrozenActorsInCircle(self.World, self.CenterPosition, scanRange)
+				.Select(Target.FromActor);
+
+			if (allowMove || ab.Info.TargetFrozenActors)
+				targetsInRange = targetsInRange
+					.Concat(self.Owner.FrozenActorLayer.FrozenActorsInCircle(self.World, self.CenterPosition, scanRange)
 					.Select(Target.FromFrozenActor));
 
 			foreach (var target in targetsInRange)
@@ -371,7 +365,7 @@ namespace OpenRA.Mods.Common.Traits
 					// can bail early and avoid the more expensive targeting checks and armament selection. For groups of
 					// allied units, this helps significantly reduce the cost of auto target scans. This is important as
 					// these groups will continuously rescan their allies until an enemy finally comes into range.
-					if (attackStances == OpenRA.Traits.Stance.Enemy && !target.Actor.AppearsHostileTo(self))
+					if (attackStances == PlayerRelationship.Enemy && !target.Actor.AppearsHostileTo(self))
 						continue;
 
 					// Check whether we can auto-target this actor
@@ -384,7 +378,7 @@ namespace OpenRA.Mods.Common.Traits
 				}
 				else if (target.Type == TargetType.FrozenActor)
 				{
-					if (attackStances == OpenRA.Traits.Stance.Enemy && self.Owner.Stances[target.FrozenActor.Owner] == OpenRA.Traits.Stance.Ally)
+					if (attackStances == PlayerRelationship.Enemy && self.Owner.RelationshipWith(target.FrozenActor.Owner) == PlayerRelationship.Ally)
 						continue;
 
 					targetTypes = target.FrozenActor.TargetTypes;
@@ -400,7 +394,7 @@ namespace OpenRA.Mods.Common.Traits
 						return false;
 
 					// Incompatible stances
-					if (!ati.ValidStances.HasStance(self.Owner.Stances[owner]))
+					if (!ati.ValidRelationships.HasStance(self.Owner.RelationshipWith(owner)))
 						return false;
 
 					// Incompatible target types
@@ -453,13 +447,9 @@ namespace OpenRA.Mods.Common.Traits
 		}
 	}
 
-	public class StanceInit : IActorInit<UnitStance>
+	public class StanceInit : ValueActorInit<UnitStance>, ISingleInstanceInit
 	{
-		[FieldFromYamlKey]
-		readonly UnitStance value = UnitStance.AttackAnything;
-
-		public StanceInit() { }
-		public StanceInit(UnitStance init) { value = init; }
-		public UnitStance Value(World world) { return value; }
+		public StanceInit(TraitInfo info, UnitStance value)
+			: base(info, value) { }
 	}
 }

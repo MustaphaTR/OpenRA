@@ -24,7 +24,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		[Desc("Cell offset where the exiting actor enters the ActorMap relative to the topleft cell of the producing actor.")]
 		public readonly CVec ExitCell = CVec.Zero;
-		public readonly int Facing = -1;
+		public readonly WAngle? Facing = null;
 
 		[Desc("Type tags on this exit.")]
 		public readonly HashSet<string> ProductionTypes = new HashSet<string>();
@@ -46,16 +46,18 @@ namespace OpenRA.Mods.Common.Traits
 
 	public static class ExitExts
 	{
-		public static Exit FirstExitOrDefault(this Actor actor, string productionType = null)
+		public static Exit NearestExitOrDefault(this Actor actor, WPos pos, string productionType = null, Func<Exit, bool> p = null)
 		{
-			var all = actor.TraitsImplementing<Exit>()
-				.Where(Exts.IsTraitEnabled)
-				.OrderBy(e => e.Info.Priority);
+			// The .ToList() is required to work around a bug/unexpected behaviour in mono, where
+			// the ThenBy clause makes the FirstOrDefault behave differently than under .NET.
+			// This is important because p may have side-effects that trigger a desync if not
+			// called on the same exits in the same order!
+			var all = Exits(actor, productionType)
+				.OrderByDescending(e => e.Info.Priority)
+				.ThenBy(e => (actor.World.Map.CenterOfCell(actor.Location + e.Info.ExitCell) - pos).LengthSquared)
+				.ToList();
 
-			if (string.IsNullOrEmpty(productionType))
-				return all.FirstOrDefault();
-
-			return all.FirstOrDefault(e => e.Info.ProductionTypes.Count == 0 || e.Info.ProductionTypes.Contains(productionType));
+			return p != null ? all.FirstOrDefault(p) : all.FirstOrDefault();
 		}
 
 		public static IEnumerable<Exit> Exits(this Actor actor, string productionType = null)

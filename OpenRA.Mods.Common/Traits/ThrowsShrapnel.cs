@@ -43,9 +43,8 @@ namespace OpenRA.Mods.Common.Traits
 
 			WeaponInfos = Weapons.Select(w =>
 			{
-				WeaponInfo weapon;
 				var weaponToLower = w.ToLowerInvariant();
-				if (!rules.Weapons.TryGetValue(weaponToLower, out weapon))
+				if (!rules.Weapons.TryGetValue(weaponToLower, out var weapon))
 					throw new YamlException("Weapons Ruleset does not contain an entry '{0}'".F(weaponToLower));
 				return weapon;
 			}).ToArray();
@@ -70,12 +69,12 @@ namespace OpenRA.Mods.Common.Traits
 				for (var i = 0; pieces > i; i++)
 				{
 					var myFacing = self.TraitOrDefault<IFacing>();
-					var rotation = WRot.FromFacing(myFacing != null && Info.CondierFacing ? myFacing.Facing + 64 : self.World.SharedRandom.Next(1024));
+					var rotation = WRot.FromYaw(myFacing != null && Info.CondierFacing ? myFacing.Facing + new WAngle(256) : new WAngle(self.World.SharedRandom.Next(1024)));
 					var args = new ProjectileArgs
 					{
 						Weapon = wep,
-						Facing = myFacing != null && Info.CondierFacing ? myFacing.Facing : self.World.SharedRandom.Next(-1, 255),
-						CurrentMuzzleFacing = () => 0,
+						Facing = myFacing != null && Info.CondierFacing ? myFacing.Facing : new WAngle(self.World.SharedRandom.Next(1024)),
+						CurrentMuzzleFacing = () => WAngle.Zero,
 
 						DamageModifiers = self.TraitsImplementing<IFirepowerModifier>()
 							.Select(a => a.GetFirepowerModifier(Info.WeaponName)).ToArray(),

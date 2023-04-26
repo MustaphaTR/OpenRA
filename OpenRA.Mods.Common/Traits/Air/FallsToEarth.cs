@@ -16,15 +16,15 @@ using OpenRA.Traits;
 namespace OpenRA.Mods.Common.Traits
 {
 	[Desc("Causes aircraft husks that are spawned in the air to crash to the ground.")]
-	public class FallsToEarthInfo : ITraitInfo, IRulesetLoaded, Requires<AircraftInfo>
+	public class FallsToEarthInfo : TraitInfo, IRulesetLoaded, Requires<AircraftInfo>
 	{
 		[WeaponReference]
 		[Desc("Explosion weapon that triggers when hitting ground.")]
 		public readonly string Explosion = "UnitExplode";
 
-		[Desc("Limit the maximum spin (in facing units per tick) that can be achieved while crashing.",
-			"0 disables spinning. Negative values imply no limit.")]
-		public readonly int MaximumSpinSpeed = -1;
+		[Desc("Limit the maximum spin (in angle units per tick) that can be achieved while crashing.",
+			"0 disables spinning. Leave undefined for no limit.")]
+		public readonly WAngle? MaximumSpinSpeed = null;
 
 		[Desc("Does the aircraft (husk) move forward at aircraft speed?")]
 		public readonly bool Moves = false;
@@ -34,15 +34,14 @@ namespace OpenRA.Mods.Common.Traits
 
 		public WeaponInfo ExplosionWeapon { get; private set; }
 
-		public object Create(ActorInitializer init) { return new FallsToEarth(init, this); }
+		public override object Create(ActorInitializer init) { return new FallsToEarth(init, this); }
 		public void RulesetLoaded(Ruleset rules, ActorInfo ai)
 		{
 			if (string.IsNullOrEmpty(Explosion))
 				return;
 
-			WeaponInfo weapon;
 			var weaponToLower = Explosion.ToLowerInvariant();
-			if (!rules.Weapons.TryGetValue(weaponToLower, out weapon))
+			if (!rules.Weapons.TryGetValue(weaponToLower, out var weapon))
 				throw new YamlException("Weapons Ruleset does not contain an entry '{0}'".F(weaponToLower));
 
 			ExplosionWeapon = weapon;
@@ -57,7 +56,7 @@ namespace OpenRA.Mods.Common.Traits
 		public FallsToEarth(ActorInitializer init, FallsToEarthInfo info)
 		{
 			this.info = info;
-			effectiveOwner = init.Contains<EffectiveOwnerInit>() ? init.Get<EffectiveOwnerInit, Player>() : init.Self.Owner;
+			effectiveOwner = init.GetValue<EffectiveOwnerInit, Player>(info, init.Self.Owner);
 		}
 
 		// We return init.Self.Owner if there's no effective owner

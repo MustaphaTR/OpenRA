@@ -7,15 +7,14 @@ BADR:
 		HP: 30000
 	Aircraft:
 		CruiseAltitude: 2560
-		TurnSpeed: 5
+		TurnSpeed: 20
 		Speed: 180
 		Repulsable: False
 		MaximumPitch: 56
 	Cargo:
 		MaxWeight: 10
 	-Selectable:
-	SelectionDecorations:
-		RenderSelectionBars: False
+	Interactable:
 	-Voiced:
 	Tooltip:
 		Name: Badger
@@ -35,49 +34,19 @@ BADR:
 	RejectsOrders:
 	GivesExperience:
 		Experience: 1000
-	Interactable:
 
 BADR.Bomber:
-	Inherits: ^NeutralPlane
-	AttackBomber:
-	Armament:
-		Weapon: ParaBomb
-	Health:
-		HP: 30000
-	Aircraft:
-		CruiseAltitude: 2560
-		TurnSpeed: 5
-		Speed: 180
-		Repulsable: False
-		MaximumPitch: 56
-	AmmoPool:
-		Ammo: 5
-	-Selectable:
-	SelectionDecorations:
-		RenderSelectionBars: False
-	-Voiced:
-	Tooltip:
-		Name: Badger
-	Contrail@1:
-		Offset: -432,560,0
-	Contrail@2:
-		Offset: -432,-560,0
-	SpawnActorOnDeath:
-		Actor: BADR.Husk
-	SmokeTrailWhenDamaged@0:
-		Offset: -432,560,0
-		Interval: 2
-	SmokeTrailWhenDamaged@1:
-		Offset: -432,-560,0
-		Interval: 2
-	-EjectOnDeath:
+	Inherits: BADR
+	-ParaDrop:
+	-Cargo:
 	-MapEditorData:
-	RejectsOrders:
 	RenderSprites:
 		Image: badr
-	GivesExperience:
-		Experience: 1000
-	Interactable:
+	AttackBomber:
+	AmmoPool:
+		Ammo: 5
+	Armament:
+		Weapon: ParaBomb
 
 MIG:
 	Inherits: ^Plane
@@ -110,13 +79,12 @@ MIG:
 		LocalYaw: -40, 24
 		PauseOnCondition: !ammo
 	AttackAircraft:
-		FacingTolerance: 20
+		FacingTolerance: 80
 		PersistentTargeting: false
 		OpportunityFire: False
 	Aircraft:
 		CruiseAltitude: 2560
-		InitialFacing: 192
-		TurnSpeed: 4
+		TurnSpeed: 16
 		Speed: 223
 		RepulsionSpeed: 40
 		MaximumPitch: 56
@@ -129,7 +97,6 @@ MIG:
 	Selectable:
 		Bounds: 36,28,0,2
 		DecorationBounds: 40,29,0,1
-	SelectionDecorations:
 	Contrail@1:
 		Offset: -598,-683,0
 	Contrail@2:
@@ -143,6 +110,10 @@ MIG:
 		Prerequisites: aircraft.upgraded
 	Rearmable:
 		RearmActors: afld, afld.ukraine
+	WithAmmoPipsDecoration:
+		Position: BottomLeft
+		Margin: 4, 3
+		RequiresSelection: true
 
 YAK:
 	Inherits: ^Plane
@@ -181,13 +152,12 @@ YAK:
 		MuzzleSequence: muzzle
 		PauseOnCondition: !ammo
 	AttackAircraft:
-		FacingTolerance: 20
+		FacingTolerance: 80
 		PersistentTargeting: false
 		OpportunityFire: False
 	Aircraft:
 		CruiseAltitude: 2560
-		InitialFacing: 192
-		TurnSpeed: 4
+		TurnSpeed: 16
 		Speed: 178
 		RepulsionSpeed: 40
 		MaximumPitch: 56
@@ -196,10 +166,8 @@ YAK:
 		InitialStanceAI: HoldFire
 	AmmoPool:
 		Ammo: 18
-		PipCount: 6
 		ReloadDelay: 11
 		AmmoCondition: ammo
-	SelectionDecorations:
 	WithMuzzleOverlay:
 	Contrail:
 		Offset: -853,0,0
@@ -214,9 +182,15 @@ YAK:
 		DecorationBounds: 30,28,0,2
 	Rearmable:
 		RearmActors: afld, afld.ukraine
+	WithAmmoPipsDecoration:
+		Position: BottomLeft
+		Margin: 4, 3
+		RequiresSelection: true
+		PipCount: 6
 
 TRAN:
 	Inherits: ^Helicopter
+	Inherits@CARGOPIPS: ^CargoPips
 	Buildable:
 		Queue: Aircraft
 		BuildAtProductionType: Helicopter
@@ -240,7 +214,7 @@ TRAN:
 		Range: 6c0
 		Type: GroundPosition
 	Aircraft:
-		TurnSpeed: 5
+		TurnSpeed: 20
 		Speed: 128
 		AltitudeVelocity: 0c58
 	WithIdleOverlay@ROTOR1AIR:
@@ -262,11 +236,9 @@ TRAN:
 	Cargo:
 		Types: Infantry
 		MaxWeight: 8
-		PipCount: 8
 		AfterUnloadDelay: 40
 	SpawnActorOnDeath:
 		Actor: TRAN.Husk
-	SelectionDecorations:
 	Selectable:
 		DecorationBounds: 40,36
 
@@ -304,12 +276,12 @@ HELI:
 		LocalOffset: 0,213,-85, 0,-213,-85
 		PauseOnCondition: !ammo
 	AttackAircraft:
-		FacingTolerance: 20
+		FacingTolerance: 80
 		PersistentTargeting: false
 		AttackType: Hover
 		OpportunityFire: False
 	Aircraft:
-		TurnSpeed: 4
+		TurnSpeed: 16
 		Speed: 149
 	AutoTarget:
 		InitialStance: HoldFire
@@ -325,7 +297,6 @@ HELI:
 	AmmoPool:
 		Ammo: 8
 		AmmoCondition: ammo
-	SelectionDecorations:
 	SpawnActorOnDeath:
 		Actor: HELI.Husk
 	SmokeTrailWhenDamaged:
@@ -336,6 +307,10 @@ HELI:
 		DecorationBounds: 36,28
 	Rearmable:
 		RearmActors: hpad
+	WithAmmoPipsDecoration:
+		Position: BottomLeft
+		Margin: 4, 3
+		RequiresSelection: true
 
 HIND:
 	Inherits: ^Helicopter
@@ -374,12 +349,12 @@ HIND:
 		MuzzleSequence: muzzle
 		PauseOnCondition: !ammo
 	AttackAircraft:
-		FacingTolerance: 20
+		FacingTolerance: 80
 		PersistentTargeting: false
 		AttackType: Hover
 		OpportunityFire: False
 	Aircraft:
-		TurnSpeed: 4
+		TurnSpeed: 16
 		Speed: 112
 	AutoTarget:
 		InitialStance: HoldFire
@@ -392,10 +367,8 @@ HIND:
 		RequiresCondition: !airborne
 	AmmoPool:
 		Ammo: 24
-		PipCount: 6
 		ReloadDelay: 8
 		AmmoCondition: ammo
-	SelectionDecorations:
 	WithMuzzleOverlay:
 	SpawnActorOnDeath:
 		Actor: HIND.Husk
@@ -407,6 +380,11 @@ HIND:
 		DecorationBounds: 38,32
 	Rearmable:
 		RearmActors: hpad
+	WithAmmoPipsDecoration:
+		Position: BottomLeft
+		Margin: 4, 3
+		RequiresSelection: true
+		PipCount: 6
 
 U2:
 	Inherits: ^NeutralPlane
@@ -416,14 +394,12 @@ U2:
 		Name: Spy Plane
 	Aircraft:
 		CruiseAltitude: 2560
-		TurnSpeed: 7
+		TurnSpeed: 28
 		Speed: 373
 		Repulsable: False
 		MaximumPitch: 56
 	AttackBomber:
 	-Selectable:
-	SelectionDecorations:
-		RenderSelectionBars: False
 	-Voiced:
 	-Targetable@AIRBORNE:
 	Contrail@1:
@@ -476,11 +452,11 @@ MH60:
 		MuzzleSequence: muzzle
 		PauseOnCondition: !ammo
 	AttackAircraft:
-		FacingTolerance: 20
+		FacingTolerance: 80
 		PersistentTargeting: false
 		AttackType: Hover
 	Aircraft:
-		TurnSpeed: 4
+		TurnSpeed: 16
 		Speed: 112
 	AutoTarget:
 		InitialStance: HoldFire
@@ -493,10 +469,8 @@ MH60:
 		RequiresCondition: !airborne
 	AmmoPool:
 		Ammo: 24
-		PipCount: 6
 		ReloadDelay: 8
 		AmmoCondition: ammo
-	SelectionDecorations:
 	WithMuzzleOverlay:
 	SpawnActorOnDeath:
 		Actor: MH60.Husk
@@ -508,3 +482,8 @@ MH60:
 		DecorationBounds: 38,32
 	Rearmable:
 		RearmActors: hpad
+	WithAmmoPipsDecoration:
+		Position: BottomLeft
+		Margin: 4, 3
+		RequiresSelection: true
+		PipCount: 6

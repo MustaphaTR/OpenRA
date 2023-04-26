@@ -44,10 +44,9 @@ namespace OpenRA
 		public long VerticalLengthSquared { get { return (long)Z * Z; } }
 		public int VerticalLength { get { return (int)Exts.ISqrt(VerticalLengthSquared); } }
 
-		public WVec Rotate(WRot rot)
+		public WVec Rotate(in WRot rot)
 		{
-			Int32Matrix4x4 mtx;
-			rot.AsMatrix(out mtx);
+			rot.AsMatrix(out var mtx);
 			return Rotate(ref mtx);
 		}
 
@@ -111,8 +110,7 @@ namespace OpenRA
 
 		public LuaValue Add(LuaRuntime runtime, LuaValue left, LuaValue right)
 		{
-			WVec a, b;
-			if (!left.TryGetClrValue(out a) || !right.TryGetClrValue(out b))
+			if (!left.TryGetClrValue(out WVec a) || !right.TryGetClrValue(out WVec b))
 				throw new LuaException("Attempted to call WVec.Add(WVec, WVec) with invalid arguments ({0}, {1})".F(left.WrappedClrType().Name, right.WrappedClrType().Name));
 
 			return new LuaCustomClrObject(a + b);
@@ -120,8 +118,7 @@ namespace OpenRA
 
 		public LuaValue Subtract(LuaRuntime runtime, LuaValue left, LuaValue right)
 		{
-			WVec a, b;
-			if (!left.TryGetClrValue(out a) || !right.TryGetClrValue(out b))
+			if (!left.TryGetClrValue(out WVec a) || !right.TryGetClrValue(out WVec b))
 				throw new LuaException("Attempted to call WVec.Subtract(WVec, WVec) with invalid arguments ({0}, {1})".F(left.WrappedClrType().Name, right.WrappedClrType().Name));
 
 			return new LuaCustomClrObject(a - b);
@@ -134,8 +131,7 @@ namespace OpenRA
 
 		public LuaValue Equals(LuaRuntime runtime, LuaValue left, LuaValue right)
 		{
-			WVec a, b;
-			if (!left.TryGetClrValue(out a) || !right.TryGetClrValue(out b))
+			if (!left.TryGetClrValue(out WVec a) || !right.TryGetClrValue(out WVec b))
 				return false;
 
 			return a == b;
@@ -150,7 +146,7 @@ namespace OpenRA
 					case "X": return X;
 					case "Y": return Y;
 					case "Z": return Z;
-					case "Facing": return Yaw.Facing;
+					case "Facing": return new LuaCustomClrObject(Yaw);
 					default: throw new LuaException("WVec does not define a member '{0}'".F(key));
 				}
 			}

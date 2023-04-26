@@ -39,13 +39,26 @@ namespace OpenRA.Mods.Common.Scripting
 		[Desc("The player's spawnpoint ID.")]
 		public int Spawn { get { return Player.SpawnPoint; } }
 
+		[Desc("The player's home/starting location.")]
+		public CPos HomeLocation { get { return Player.HomeLocation; } }
+
 		[Desc("The player's team ID.")]
 		public int Team
 		{
 			get
 			{
 				var c = Player.World.LobbyInfo.Clients.FirstOrDefault(i => i.Index == Player.ClientIndex);
-				return c != null ? c.Team : 0;
+				return c?.Team ?? 0;
+			}
+		}
+
+		[Desc("The player's handicap level.")]
+		public int Handicap
+		{
+			get
+			{
+				var c = Player.World.LobbyInfo.Clients.FirstOrDefault(i => i.Index == Player.ClientIndex);
+				return c?.Handicap ?? 0;
 			}
 		}
 
@@ -77,8 +90,7 @@ namespace OpenRA.Mods.Common.Scripting
 		{
 			var result = new List<Actor>();
 
-			ActorInfo ai;
-			if (!Context.World.Map.Rules.Actors.TryGetValue(type, out ai))
+			if (!Context.World.Map.Rules.Actors.TryGetValue(type, out var ai))
 				throw new LuaException("Unknown actor type '{0}'".F(type));
 
 			result.AddRange(Player.World.Actors

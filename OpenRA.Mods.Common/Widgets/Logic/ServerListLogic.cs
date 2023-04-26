@@ -334,14 +334,24 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				List<GameServer> games = null;
 				if (i.Error == null)
 				{
+					games = new List<GameServer>();
 					try
 					{
 						var data = Encoding.UTF8.GetString(i.Result);
 						var yaml = MiniYaml.FromString(data);
-
-						games = yaml.Select(a => new GameServer(a.Value))
-							.Where(gs => gs.Address != null)
-							.ToList();
+						foreach (var node in yaml)
+						{
+							try
+							{
+								var gs = new GameServer(node.Value);
+								if (gs.Address != null)
+									games.Add(gs);
+							}
+							catch
+							{
+								// Ignore any invalid games advertised.
+							}
+						}
 					}
 					catch
 					{
@@ -424,9 +434,10 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				var spawns = currentMap.SpawnPoints;
 				var occupants = server.Clients
 					.Where(c => (c.SpawnPoint - 1 >= 0) && (c.SpawnPoint - 1 < spawns.Length))
-					.ToDictionary(c => spawns[c.SpawnPoint - 1], c => new SpawnOccupant(c, server.Mod != modData.Manifest.Id));
+					.ToDictionary(c => c.SpawnPoint, c => new SpawnOccupant(c, server.Mod != modData.Manifest.Id));
 
 				mapPreview.SpawnOccupants = () => occupants;
+				mapPreview.DisabledSpawnPoints = () => server.DisabledSpawnPoints;
 			}
 
 			if (server == null || !server.Clients.Any())
@@ -541,8 +552,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				foreach (var row in rows)
 					serverList.AddChild(row);
 
-				if (nextServerRow != null)
-					nextServerRow.OnClick();
+				nextServerRow?.OnClick();
 
 				playerCount = games.Sum(g => g.Players);
 			});
@@ -744,8 +754,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			if (disposing && !disposed)
 			{
 				disposed = true;
-				if (lanGameProbe != null)
-					lanGameProbe.Dispose();
+				lanGameProbe?.Dispose();
 			}
 
 			base.Dispose(disposing);

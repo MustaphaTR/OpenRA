@@ -20,16 +20,16 @@ namespace OpenRA.Mods.Common.Activities
 	{
 		readonly Aircraft aircraft;
 		readonly INotifyIdle[] tickIdles;
-		readonly int turnSpeed;
+		readonly bool idleTurn;
 		int remainingTicks;
 
-		public FlyIdle(Actor self, int ticks = -1, bool tickIdle = true)
+		public FlyIdle(Actor self, int ticks = -1, bool idleTurn = true)
 		{
 			aircraft = self.Trait<Aircraft>();
-			turnSpeed = aircraft.Info.IdleTurnSpeed > -1 ? aircraft.Info.IdleTurnSpeed : aircraft.TurnSpeed;
 			remainingTicks = ticks;
+			this.idleTurn = idleTurn;
 
-			if (tickIdle)
+			if (idleTurn)
 				tickIdles = self.TraitsImplementing<INotifyIdle>().ToArray();
 		}
 
@@ -48,15 +48,16 @@ namespace OpenRA.Mods.Common.Activities
 				foreach (var tickIdle in tickIdles)
 					tickIdle.TickIdle(self);
 
-			if (!aircraft.Info.CanHover)
+			if (aircraft.Info.IdleSpeed > 0 || (!aircraft.Info.CanHover && aircraft.Info.IdleSpeed < 0))
 			{
-				// We can't possibly turn this fast
-				var desiredFacing = aircraft.Facing + 64;
+				var speed = aircraft.Info.IdleSpeed < 0 ? aircraft.Info.Speed : aircraft.Info.IdleSpeed;
 
 				// This override is necessary, otherwise aircraft with CanSlide would circle sideways
-				var move = aircraft.FlyStep(aircraft.Facing);
+				var move = aircraft.FlyStep(speed, aircraft.Facing);
 
-				Fly.FlyTick(self, aircraft, desiredFacing, aircraft.Info.CruiseAltitude, move, turnSpeed);
+				// We can't possibly turn this fast
+				var desiredFacing = aircraft.Facing + new WAngle(256);
+				Fly.FlyTick(self, aircraft, desiredFacing, aircraft.Info.CruiseAltitude, move, idleTurn);
 			}
 
 			return false;

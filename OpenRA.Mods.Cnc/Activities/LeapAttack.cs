@@ -38,7 +38,7 @@ namespace OpenRA.Mods.Cnc.Activities
 		BitSet<TargetableType> lastVisibleTargetTypes;
 		Player lastVisibleOwner;
 
-		public LeapAttack(Actor self, Target target, bool allowMovement, bool forceAttack, AttackLeap attack, AttackLeapInfo info, Color? targetLineColor = null)
+		public LeapAttack(Actor self, in Target target, bool allowMovement, bool forceAttack, AttackLeap attack, AttackLeapInfo info, Color? targetLineColor = null)
 		{
 			this.target = target;
 			this.targetLineColor = targetLineColor;
@@ -80,8 +80,7 @@ namespace OpenRA.Mods.Cnc.Activities
 			if (IsCanceling)
 				return true;
 
-			bool targetIsHiddenActor;
-			target = target.Recalculate(self.Owner, out targetIsHiddenActor);
+			target = target.Recalculate(self.Owner, out var targetIsHiddenActor);
 			if (!targetIsHiddenActor && target.Type == TargetType.Actor)
 			{
 				lastVisibleTarget = Target.FromTargetPositions(target);
@@ -132,7 +131,7 @@ namespace OpenRA.Mods.Cnc.Activities
 
 			var destination = self.World.Map.CenterOfSubCell(target.Actor.Location, targetSubcell);
 			var origin = self.World.Map.CenterOfSubCell(self.Location, mobile.FromSubCell);
-			var desiredFacing = (destination - origin).Yaw.Facing;
+			var desiredFacing = (destination - origin).Yaw;
 			if (mobile.Facing != desiredFacing)
 			{
 				QueueChild(new Turn(self, desiredFacing));

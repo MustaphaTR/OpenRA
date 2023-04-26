@@ -25,7 +25,7 @@ namespace OpenRA.Mods.Common.Traits
 	}
 
 	[Desc("Manages Captures and Capturable traits on an actor.")]
-	public class CaptureManagerInfo : ITraitInfo
+	public class CaptureManagerInfo : TraitInfo
 	{
 		[GrantedConditionReference]
 		[Desc("Condition granted when capturing an actor.")]
@@ -47,7 +47,7 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Notification to play when this actor is being captured.")]
 		public readonly string BeingCapturedNotification = null;
 
-		public virtual object Create(ActorInitializer init) { return new CaptureManager(this); }
+		public override object Create(ActorInitializer init) { return new CaptureManager(this); }
 
 		public bool CanBeTargetedBy(FrozenActor frozenActor, Actor captor, Captures captures)
 		{
@@ -57,17 +57,15 @@ namespace OpenRA.Mods.Common.Traits
 			// TODO: FrozenActors don't yet have a way of caching conditions, so we can't filter disabled traits
 			// This therefore assumes that all Capturable traits are enabled, which is probably wrong.
 			// Actors with FrozenUnderFog should therefore not disable the Capturable trait.
-			var stance = frozenActor.Owner.Stances[captor.Owner];
+			var stance = captor.Owner.RelationshipWith(frozenActor.Owner);
 			return frozenActor.Info.TraitInfos<CapturableInfo>()
-				.Any(c => c.ValidStances.HasStance(stance) &&
-				          captures.Info.CaptureTypes.Overlaps(c.Types));
+				.Any(c => c.ValidRelationships.HasStance(stance) && captures.Info.CaptureTypes.Overlaps(c.Types));
 		}
 	}
 
 	public class CaptureManager : INotifyCreated, INotifyCapture, ITick, IDisableEnemyAutoTarget
 	{
 		readonly CaptureManagerInfo info;
-		ConditionManager conditionManager;
 		IMove move;
 		ICaptureProgressWatcher[] progressWatchers;
 
@@ -84,8 +82,8 @@ namespace OpenRA.Mods.Common.Traits
 		CaptureManager currentTargetManager;
 		int currentTargetDelay;
 		int currentTargetTotal;
-		int capturingToken = ConditionManager.InvalidConditionToken;
-		int beingCapturedToken = ConditionManager.InvalidConditionToken;
+		int capturingToken = Actor.InvalidConditionToken;
+		int beingCapturedToken = Actor.InvalidConditionToken;
 		bool enteringCurrentTarget;
 
 		HashSet<Actor> currentCaptors = new HashSet<Actor>();
@@ -99,7 +97,6 @@ namespace OpenRA.Mods.Common.Traits
 
 		void INotifyCreated.Created(Actor self)
 		{
-			conditionManager = self.TraitOrDefault<ConditionManager>();
 			move = self.TraitOrDefault<IMove>();
 			progressWatchers = self.TraitsImplementing<ICaptureProgressWatcher>().ToArray();
 
@@ -120,13 +117,13 @@ namespace OpenRA.Mods.Common.Traits
 			allyCapturableTypes = neutralCapturableTypes = enemyCapturableTypes = default(BitSet<CaptureType>);
 			foreach (var c in enabledCapturable)
 			{
-				if (c.Info.ValidStances.HasStance(Stance.Ally))
+				if (c.Info.ValidRelationships.HasStance(PlayerRelationship.Ally))
 					allyCapturableTypes = allyCapturableTypes.Union(c.Info.Types);
 
-				if (c.Info.ValidStances.HasStance(Stance.Neutral))
+				if (c.Info.ValidRelationships.HasStance(PlayerRelationship.Neutral))
 					neutralCapturableTypes = neutralCapturableTypes.Union(c.Info.Types);
 
-				if (c.Info.ValidStances.HasStance(Stance.Enemy))
+				if (c.Info.ValidRelationships.HasStance(PlayerRelationship.Enemy))
 					enemyCapturableTypes = enemyCapturableTypes.Union(c.Info.Types);
 			}
 		}
@@ -140,14 +137,14 @@ namespace OpenRA.Mods.Common.Traits
 
 		public bool CanBeTargetedBy(Actor self, Actor captor, CaptureManager captorManager)
 		{
-			var stance = self.Owner.Stances[captor.Owner];
-			if (stance.HasStance(Stance.Enemy))
+			var stance = captor.Owner.RelationshipWith(self.Owner);
+			if (stance.HasStance(PlayerRelationship.Enemy))
 				return captorManager.capturesTypes.Overlaps(enemyCapturableTypes);
 
-			if (stance.HasStance(Stance.Neutral))
+			if (stance.HasStance(PlayerRelationship.Neutral))
 				return captorManager.capturesTypes.Overlaps(neutralCapturableTypes);
 
-			if (stance.HasStance(Stance.Ally))
+			if (stance.HasStance(PlayerRelationship.Ally))
 				return captorManager.capturesTypes.Overlaps(allyCapturableTypes);
 
 			return false;
@@ -158,14 +155,14 @@ namespace OpenRA.Mods.Common.Traits
 			if (captures.IsTraitDisabled)
 				return false;
 
-			var stance = self.Owner.Stances[captor.Owner];
-			if (stance.HasStance(Stance.Enemy))
+			var stance = captor.Owner.RelationshipWith(self.Owner);
+			if (stance.HasStance(PlayerRelationship.Enemy))
 				return captures.Info.CaptureTypes.Overlaps(enemyCapturableTypes);
 
-			if (stance.HasStance(Stance.Neutral))
+			if (stance.HasStance(PlayerRelationship.Neutral))
 				return captures.Info.CaptureTypes.Overlaps(neutralCapturableTypes);
 
-			if (stance.HasStance(Stance.Ally))
+			if (stance.HasStance(PlayerRelationship.Ally))
 				return captures.Info.CaptureTypes.Overlaps(allyCapturableTypes);
 
 			return false;
@@ -215,13 +212,11 @@ namespace OpenRA.Mods.Common.Traits
 			else
 				currentTargetDelay += 1;
 
-			if (conditionManager != null && !string.IsNullOrEmpty(info.CapturingCondition) &&
-					capturingToken == ConditionManager.InvalidConditionToken)
-				capturingToken = conditionManager.GrantCondition(self, info.CapturingCondition);
+			if (capturingToken == Actor.InvalidConditionToken)
+				capturingToken = self.GrantCondition(info.CapturingCondition);
 
-			if (targetManager.conditionManager != null && !string.IsNullOrEmpty(targetManager.info.BeingCapturedCondition) &&
-					targetManager.beingCapturedToken == ConditionManager.InvalidConditionToken)
-				targetManager.beingCapturedToken = targetManager.conditionManager.GrantCondition(target, targetManager.info.BeingCapturedCondition);
+			if (targetManager.beingCapturedToken == Actor.InvalidConditionToken)
+				targetManager.beingCapturedToken = target.GrantCondition(targetManager.info.BeingCapturedCondition);
 
 			captures = enabledCaptures
 				.OrderBy(c => c.Info.CaptureDelay)
@@ -277,11 +272,11 @@ namespace OpenRA.Mods.Common.Traits
 			foreach (var w in targetManager.progressWatchers)
 				w.Update(target, self, target, 0, 0);
 
-			if (capturingToken != ConditionManager.InvalidConditionToken)
-				capturingToken = conditionManager.RevokeCondition(self, capturingToken);
+			if (capturingToken != Actor.InvalidConditionToken)
+				capturingToken = self.RevokeCondition(capturingToken);
 
-			if (targetManager.beingCapturedToken != ConditionManager.InvalidConditionToken)
-				targetManager.beingCapturedToken = targetManager.conditionManager.RevokeCondition(self, targetManager.beingCapturedToken);
+			if (targetManager.beingCapturedToken != Actor.InvalidConditionToken)
+				targetManager.beingCapturedToken = target.RevokeCondition(targetManager.beingCapturedToken);
 
 			currentTarget = null;
 			currentTargetManager = null;

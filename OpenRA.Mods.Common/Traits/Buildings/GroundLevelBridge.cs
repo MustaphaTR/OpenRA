@@ -10,7 +10,6 @@
 #endregion
 
 using System.Collections.Generic;
-using System.Linq;
 using OpenRA.GameRules;
 using OpenRA.Primitives;
 using OpenRA.Traits;
@@ -18,7 +17,7 @@ using OpenRA.Traits;
 namespace OpenRA.Mods.Common.Traits
 {
 	[Desc("Bridge actor that can't be passed underneath.")]
-	class GroundLevelBridgeInfo : ITraitInfo, IRulesetLoaded, Requires<BuildingInfo>, Requires<IHealthInfo>
+	class GroundLevelBridgeInfo : TraitInfo, IRulesetLoaded, Requires<BuildingInfo>, Requires<IHealthInfo>
 	{
 		public readonly string TerrainType = "Bridge";
 
@@ -37,15 +36,14 @@ namespace OpenRA.Mods.Common.Traits
 
 		public void RulesetLoaded(Ruleset rules, ActorInfo ai)
 		{
-			WeaponInfo weapon;
 			var weaponToLower = (DemolishWeapon ?? string.Empty).ToLowerInvariant();
-			if (!rules.Weapons.TryGetValue(weaponToLower, out weapon))
+			if (!rules.Weapons.TryGetValue(weaponToLower, out var weapon))
 				throw new YamlException("Weapons Ruleset does not contain an entry '{0}'".F(weaponToLower));
 
 			DemolishWeaponInfo = weapon;
 		}
 
-		public object Create(ActorInitializer init) { return new GroundLevelBridge(init.Self, this); }
+		public override object Create(ActorInitializer init) { return new GroundLevelBridge(init.Self, this); }
 	}
 
 	class GroundLevelBridge : IBridgeSegment, INotifyAddedToWorld, INotifyRemovedFromWorld
@@ -72,9 +70,7 @@ namespace OpenRA.Mods.Common.Traits
 			foreach (var cell in cells)
 				self.World.Map.CustomTerrain[cell] = terrainIndex;
 
-			var domainIndex = self.World.WorldActor.TraitOrDefault<DomainIndex>();
-			if (domainIndex != null)
-				domainIndex.UpdateCells(self.World, cells);
+			self.World.WorldActor.TraitOrDefault<DomainIndex>()?.UpdateCells(self.World, cells);
 		}
 
 		void INotifyAddedToWorld.AddedToWorld(Actor self)
@@ -108,7 +104,7 @@ namespace OpenRA.Mods.Common.Traits
 			health.InflictDamage(self, repairer, new Damage(-health.MaxHP), true);
 		}
 
-		void IBridgeSegment.Demolish(Actor saboteur)
+		void IBridgeSegment.Demolish(Actor saboteur, BitSet<DamageType> damageTypes)
 		{
 			self.World.AddFrameEndTask(w =>
 			{
@@ -118,7 +114,7 @@ namespace OpenRA.Mods.Common.Traits
 				// Use .FromPos since this actor is dead. Cannot use Target.FromActor
 				Info.DemolishWeaponInfo.Impact(Target.FromPos(self.CenterPosition), saboteur);
 
-				self.Kill(saboteur);
+				self.Kill(saboteur, damageTypes);
 			});
 		}
 

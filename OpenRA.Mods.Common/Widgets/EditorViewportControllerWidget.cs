@@ -52,8 +52,7 @@ namespace OpenRA.Mods.Common.Widgets
 		public void ClearBrush() { SetBrush(null); }
 		public void SetBrush(IEditorBrush brush)
 		{
-			if (CurrentBrush != null)
-				CurrentBrush.Dispose();
+			CurrentBrush?.Dispose();
 
 			CurrentBrush = brush ?? DefaultBrush;
 		}
@@ -87,7 +86,7 @@ namespace OpenRA.Mods.Common.Widgets
 		{
 			if (mi.Event == MouseInputEvent.Scroll && mi.Modifiers.HasModifier(Game.Settings.Game.ZoomModifier))
 			{
-				worldRenderer.Viewport.AdjustZoom(mi.Delta.Y * Game.Settings.Game.ZoomSpeed);
+				worldRenderer.Viewport.AdjustZoom(mi.Delta.Y * Game.Settings.Game.ZoomSpeed, mi.Location);
 				return true;
 			}
 

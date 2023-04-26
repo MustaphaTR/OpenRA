@@ -16,6 +16,8 @@ ABAN01:
 		Pieces: 5, 9
 	ThrowsShrapnel@LARGE:
 		Pieces: 2, 4
+	IsometricSelectable:
+		Height: 72
 
 ABAN02:
 	Inherits: ^CivBuilding
@@ -35,6 +37,8 @@ ABAN02:
 		Pieces: 5, 9
 	ThrowsShrapnel@LARGE:
 		Pieces: 2, 4
+	IsometricSelectable:
+		Height: 48
 
 ABAN03:
 	Inherits: ^CivBuilding
@@ -54,6 +58,8 @@ ABAN03:
 		Pieces: 5, 9
 	ThrowsShrapnel@LARGE:
 		Pieces: 2, 4
+	IsometricSelectable:
+		Height: 48
 
 ABAN04:
 	Inherits: ^CivBuilding
@@ -582,6 +588,8 @@ CA0012:
 		Type: light
 	Health:
 		HP: 10000
+	IsometricSelectable:
+		Height: 36
 
 CA0013:
 	Inherits: ^CivBuilding
@@ -595,6 +603,8 @@ CA0013:
 		Type: heavy
 	Health:
 		HP: 30000
+	IsometricSelectable:
+		Height: 48
 
 CA0014:
 	Inherits: ^CivBuilding
@@ -607,6 +617,8 @@ CA0014:
 		Type: heavy
 	Health:
 		HP: 30000
+	IsometricSelectable:
+		Height: 48
 
 CA0015:
 	Inherits: ^CivBuilding
@@ -631,6 +643,8 @@ CA0016:
 		Type: light
 	Health:
 		HP: 30000
+	IsometricSelectable:
+		Height: 48
 
 CA0017:
 	Inherits: ^CivBuilding
@@ -643,6 +657,8 @@ CA0017:
 		Type: heavy
 	Health:
 		HP: 30000
+	IsometricSelectable:
+		Height: 48
 
 CA0018:
 	Inherits: ^CivBuilding
@@ -659,6 +675,8 @@ CA0018:
 		Type: light
 	Health:
 		HP: 20000
+	IsometricSelectable:
+		Height: 48
 
 CA0019:
 	Inherits: ^CivBuilding
@@ -675,6 +693,8 @@ CA0019:
 		Type: light
 	Health:
 		HP: 20000
+	IsometricSelectable:
+		Height: 48
 
 CA0020:
 	Inherits: ^CivBuilding
@@ -691,6 +711,8 @@ CA0020:
 		Type: light
 	Health:
 		HP: 20000
+	IsometricSelectable:
+		Height: 48
 
 CA0021:
 	Inherits: ^CivBuilding
@@ -707,6 +729,8 @@ CA0021:
 		Type: light
 	Health:
 		HP: 20000
+	IsometricSelectable:
+		Height: 48
 
 CAARAY:
 	Inherits: ^CivBuilding
@@ -734,6 +758,8 @@ CAARAY:
 		Pieces: 5, 7
 	ThrowsShrapnel@LARGE:
 		Pieces: 2, 4
+	IsometricSelectable:
+		Height: 72
 
 CAARMR:
 	Inherits: ^CivBuilding
@@ -783,10 +809,10 @@ CAHOSP:
 		Name: Civilian Hospital
 	TooltipDescription@ally:
 		Description: Provides infantry with self-healing.
-		ValidStances: Ally
+		ValidRelationships: Ally
 	TooltipDescription@other:
 		Description: Capture to enable self-healing for infantry.
-		ValidStances: Neutral, Enemy
+		ValidRelationships: Neutral, Enemy
 	Building:
 		Footprint: XxX xxx xxx xxx
 		Dimensions: 3, 4
@@ -807,6 +833,8 @@ CAHOSP:
 		Pieces: 2, 4
 	MapEditorData:
 		Categories: Civilian building
+	IsometricSelectable:
+		Height: 48
 
 CAPYR01:
 	Inherits: ^CivBuilding
@@ -822,6 +850,8 @@ CAPYR01:
 		HP: 40000
 	MapEditorData:
 		ExcludeTilesets: SNOW
+	IsometricSelectable:
+		Height: 48
 
 CAPYR02:
 	Inherits: ^CivBuilding
@@ -841,6 +871,8 @@ CAPYR02:
 		Pieces: 6, 9
 	ThrowsShrapnel@LARGE:
 		Pieces: 3, 4
+	IsometricSelectable:
+		Height: 96
 
 CAPYR03:
 	Inherits: ^CivBuilding
@@ -860,6 +892,8 @@ CAPYR03:
 		Pieces: 6, 9
 	ThrowsShrapnel@LARGE:
 		Pieces: 3, 4
+	IsometricSelectable:
+		Height: 96
 
 CITY01:
 	Inherits: ^CivBuilding
@@ -879,6 +913,8 @@ CITY01:
 		Pieces: 5, 9
 	ThrowsShrapnel@LARGE:
 		Pieces: 2, 4
+	IsometricSelectable:
+		Height: 72
 
 CITY02:
 	Inherits: ^CivBuilding
@@ -898,6 +934,8 @@ CITY02:
 		Pieces: 5, 9
 	ThrowsShrapnel@LARGE:
 		Pieces: 2, 4
+	IsometricSelectable:
+		Height: 72
 
 CITY03:
 	Inherits: ^CivBuilding
@@ -917,6 +955,8 @@ CITY03:
 		Pieces: 5, 9
 	ThrowsShrapnel@LARGE:
 		Pieces: 2, 4
+	IsometricSelectable:
+		Height: 48
 
 CITY04:
 	Inherits: ^CivBuilding
@@ -936,6 +976,8 @@ CITY04:
 		Pieces: 5, 9
 	ThrowsShrapnel@LARGE:
 		Pieces: 2, 4
+	IsometricSelectable:
+		Height: 72
 
 CITY05:
 	Inherits: ^CivBuilding
@@ -955,6 +997,8 @@ CITY05:
 		Pieces: 5, 9
 	ThrowsShrapnel@LARGE:
 		Pieces: 2, 4
+	IsometricSelectable:
+		Height: 96
 
 CITY06:
 	Inherits: ^CivBuilding
@@ -974,6 +1018,8 @@ CITY06:
 		Pieces: 7, 9
 	ThrowsShrapnel@LARGE:
 		Pieces: 3, 4
+	IsometricSelectable:
+		Height: 72
 
 CITY07:
 	Inherits: ^CivBuilding
@@ -993,6 +1039,8 @@ CITY07:
 		Pieces: 7, 9
 	ThrowsShrapnel@LARGE:
 		Pieces: 3, 4
+	IsometricSelectable:
+		Height: 60
 
 CITY08:
 	Inherits: ^CivBuilding
@@ -1023,6 +1071,8 @@ CITY09:
 		HP: 40000
 	MapEditorData:
 		RequireTilesets: TEMPERATE
+	IsometricSelectable:
+		Height: 48
 
 CITY10:
 	Inherits: ^CivBuilding
@@ -1038,6 +1088,8 @@ CITY10:
 		HP: 30000
 	MapEditorData:
 		RequireTilesets: TEMPERATE
+	IsometricSelectable:
+		Height: 48
 
 CITY11:
 	Inherits: ^CivBuilding
@@ -1053,6 +1105,8 @@ CITY11:
 		HP: 50000
 	MapEditorData:
 		RequireTilesets: TEMPERATE
+	IsometricSelectable:
+		Height: 96
 
 CITY12:
 	Inherits: ^CivBuilding
@@ -1068,6 +1122,8 @@ CITY12:
 		HP: 60000
 	MapEditorData:
 		RequireTilesets: TEMPERATE
+	IsometricSelectable:
+		Height: 96
 
 CITY13:
 	Inherits: ^CivBuilding
@@ -1083,6 +1139,8 @@ CITY13:
 		HP: 50000
 	MapEditorData:
 		RequireTilesets: TEMPERATE
+	IsometricSelectable:
+		Height: 96
 
 CITY14:
 	Inherits: ^CivBuilding
@@ -1097,6 +1155,8 @@ CITY14:
 		HP: 60000
 	MapEditorData:
 		RequireTilesets: TEMPERATE
+	IsometricSelectable:
+		Height: 96
 
 CITY15:
 	Inherits: ^CivBuilding
@@ -1135,6 +1195,8 @@ CITY16:
 		Pieces: 7, 9
 	ThrowsShrapnel@LARGE:
 		Pieces: 3, 4
+	IsometricSelectable:
+		Height: 72
 
 CITY17:
 	Inherits: ^CivBuilding
@@ -1154,6 +1216,8 @@ CITY17:
 		Pieces: 7, 9
 	ThrowsShrapnel@LARGE:
 		Pieces: 3, 4
+	IsometricSelectable:
+		Height: 108
 
 CITY18:
 	Inherits: ^CivBuilding
@@ -1173,6 +1237,8 @@ CITY18:
 		Pieces: 8, 12
 	ThrowsShrapnel@LARGE:
 		Pieces: 5, 7
+	IsometricSelectable:
+		Height: 72
 
 CITY19:
 	Inherits: ^CivBuilding
@@ -1231,6 +1297,8 @@ CITY22:
 		HP: 10000
 	MapEditorData:
 		RequireTilesets: TEMPERATE
+	IsometricSelectable:
+		Height: 72
 
 CTDAM:
 	Inherits: ^CivBuilding
@@ -1278,6 +1346,8 @@ CTVEGA:
 		Pieces: 7, 9
 	ThrowsShrapnel@LARGE:
 		Pieces: 3, 4
+	IsometricSelectable:
+		Height: 72
 
 GAKODK:
 	Inherits: ^CivBuilding
@@ -1313,16 +1383,22 @@ GAOLDCC2:
 		Name: Old Temple
 	Building:
 		Footprint: xx xX
+	IsometricSelectable:
+		Height: 36
 
 GAOLDCC3:
 	Inherits: ^OldBase
 	Tooltip:
 		Name: Old Weapons Factory
+	IsometricSelectable:
+		Height: 36
 
 GAOLDCC4:
 	Inherits: ^OldBase
 	Tooltip:
 		Name: Old Refinery
+	IsometricSelectable:
+		Height: 36
 
 GAOLDCC5:
 	Inherits: ^OldBase
@@ -1371,9 +1447,6 @@ GASPOT:
 	Building:
 		Footprint: x
 		Dimensions: 1, 1
-	Selectable:
-		Bounds: 48, 30, 0, -4
-		DecorationBounds: 48, 82, 0, -25
 	Power:
 		Amount: -10
 	Armor:
@@ -1385,9 +1458,10 @@ GASPOT:
 		MaxHeightDelta: 3
 	WithIdleOverlay@LIGHTS:
 		Sequence: idle-lights
-	SelectionDecorations:
 	MapEditorData:
 		Categories: Civilian building
+	IsometricSelectable:
+		Height: 72
 
 GALITE:
 	Inherits: ^Building
@@ -1396,6 +1470,7 @@ GALITE:
 	Tooltip:
 		Name: Light Post
 	RenderSprites:
+		Image: galite
 		Palette: terraindecoration
 	-WithMakeAnimation:
 	-WithDeathAnimation:
@@ -1410,14 +1485,12 @@ GALITE:
 		MaxHeightDelta: 3
 	Power:
 		Amount: 0
-	# TODO: should use terrain lighting instead, depends on https://github.com/OpenRA/OpenRA/issues/3605
-	WithIdleOverlay@LIGHTING:
-		Sequence: lighting
-		Palette: alpha
-	Selectable:
-		Bounds: 24, 24, 0, -4
-		DecorationBounds: 25, 35, 0, -12
-	SelectionDecorations:
+	TerrainLightSource:
+		Range: 19c544
+		Intensity: 0.2
+		RedTint: 0.05
+		GreenTint: 0.05
+		BlueTint: 0.01
 	-Cloak@EXTERNALCLOAK:
 	-ExternalCondition@CLOAKGENERATOR:
 	-ExternalCondition@CRATE-CLOAK:
@@ -1426,11 +1499,179 @@ GALITE:
 	Capturable:
 		-RequiresCondition:
 
+INGALITE:
+	Interactable:
+	EditorOnlyTooltip:
+		Name: (Invisible Light Post)
+	AlwaysVisible:
+	Immobile:
+		OccupiesSpace: false
+	RenderSpritesEditorOnly:
+		Image: galite
+		Palette: terrainalpha
+	WithSpriteBody:
+	BodyOrientation:
+		QuantizedFacings: 1
+	MapEditorData:
+		Categories: System
+	RequiresSpecificOwners:
+		ValidOwnerNames: Neutral
+	TerrainLightSource:
+		Range: 19c544
+		Intensity: 0.2
+		RedTint: 0.05
+		GreenTint: 0.05
+		BlueTint: 0.01
+
+NEGLAMP:
+	Inherits: INGALITE
+	EditorOnlyTooltip:
+		Name: (Invisible Negative Light Post)
+	TerrainLightSource:
+		Range: 13c688
+		Intensity: -0.15
+		RedTint: 0.03
+		GreenTint: 0.04
+		BlueTint: 0.04
+
+REDLAMP:
+	Inherits: GALITE
+	Tooltip:
+		Name: Red Light Post
+	TerrainLightSource:
+		Range: 15c640
+		Intensity: 0.01
+		RedTint: 1.5
+		GreenTint: 0.01
+		BlueTint: 0.01
+
+NEGRED:
+	Inherits: GALITE
+	Tooltip:
+		Name: Negative Red Light Post
+	TerrainLightSource:
+		Range: 15c640
+		Intensity: -0.05
+		RedTint: -1.5
+		GreenTint: 0.01
+		BlueTint: 0.01
+
+GRENLAMP:
+	Inherits: GALITE
+	Tooltip:
+		Name: Green Light Post
+	TerrainLightSource:
+		Range: 15c640
+		Intensity: 0.01
+		RedTint: 0.01
+		GreenTint: 1.5
+		BlueTint: 0.01
+
+BLUELAMP:
+	Inherits: GALITE
+	Tooltip:
+		Name: Blue Light Post
+	TerrainLightSource:
+		Range: 15c640
+		Intensity: 0.01
+		RedTint: 0.01
+		GreenTint: 0.01
+		BlueTint: 0.7
+
+YELWLAMP:
+	Inherits: GALITE
+	Tooltip:
+		Name: Yellow Light Post
+	TerrainLightSource:
+		Range: 15c640
+		Intensity: 0.01
+		RedTint: 1.5
+		GreenTint: 1.5
+		BlueTint: 0.01
+
+INYELWLAMP:
+	Inherits: INGALITE
+	EditorOnlyTooltip:
+		Name: (Invisible Yellow Light Post)
+	TerrainLightSource:
+		Range: 15c640
+		Intensity: 0.01
+		RedTint: 1.5
+		GreenTint: 1.5
+		BlueTint: 0.01
+
+PURPLAMP:
+	Inherits: GALITE
+	Tooltip:
+		Name: Purple Light Post
+	TerrainLightSource:
+		Range: 11c736
+		Intensity: 0.01
+		RedTint: 2.0
+		GreenTint: 0.01
+		BlueTint: 2.0
+
+INPURPLAMP:
+	Inherits: INGALITE
+	EditorOnlyTooltip:
+		Name: (Invisible Purple Light Post)
+	TerrainLightSource:
+		Range: 11c736
+		Intensity: 0.01
+		RedTint: 2.0
+		GreenTint: 0.01
+		BlueTint: 2.0
+
+INORANLAMP:
+	Inherits: INGALITE
+	EditorOnlyTooltip:
+		Name: (Invisible Orange Light Post)
+	TerrainLightSource:
+		Range: 11c736
+		Intensity: 0.01
+		RedTint: 2.0
+		GreenTint: 1.4
+		BlueTint: 0.3
+
+INGRNLMP:
+	Inherits: INGALITE
+	EditorOnlyTooltip:
+		Name: (Invisible Green Light Post)
+	TerrainLightSource:
+		Range: 15c640
+		Intensity: 0.01
+		RedTint: 0.01
+		GreenTint: 1.5
+		BlueTint: 0.01
+
+INREDLMP:
+	Inherits: INGALITE
+	EditorOnlyTooltip:
+		Name: (Invisible Red Light Post)
+	TerrainLightSource:
+		Range: 15c640
+		Intensity: 0.01
+		RedTint: 1.5
+		GreenTint: 0.01
+		BlueTint: 0.01
+
+INBLULMP:
+	Inherits: INGALITE
+	EditorOnlyTooltip:
+		Name: (Invisible Blue Light Post)
+	TerrainLightSource:
+		Range: 15c640
+		Intensity: 0.01
+		RedTint: 0.01
+		GreenTint: 0.01
+		BlueTint: 0.7
+
 TSTLAMP:
 	Inherits: GALITE
-	RenderSprites:
-		Image: galite
-	Tooltip:
+	-TerrainLightSource:
+	WithIdleOverlay@LIGHTING:
+		Sequence: lighting
+		Palette: alpha
 
 GAICBM:
 	Inherits: ^Building
@@ -1449,12 +1690,14 @@ GAICBM:
 	Transforms:
 		IntoActor: icbm
 		Offset: 1,1
-		Facing: 96
+		Facing: 384
 		TransformSounds: place2.aud
 		NoTransformSounds:
 	-WithDeathAnimation:
 	MapEditorData:
 		Categories: Vehicle
+	IsometricSelectable:
+		Height: 48
 
 NAMNTK:
 	Inherits: ^CivBuilding
@@ -1472,6 +1715,8 @@ NAMNTK:
 		Palette: player
 	WithIdleOverlay@LIGHTS:
 		Sequence: idle-lights
+	IsometricSelectable:
+		Height: 36
 
 NTPYRA:
 	Inherits: ^CivBuilding
@@ -1495,6 +1740,8 @@ NTPYRA:
 		Pieces: 7, 9
 	ThrowsShrapnel@LARGE:
 		Pieces: 3, 5
+	IsometricSelectable:
+		Height: 72
 
 UFO:
 	Inherits: ^CivBuilding
@@ -1504,9 +1751,6 @@ UFO:
 		Footprint: xxxxxx xxxxxx xxxxxx xxxxxx
 	RenderSprites:
 		Palette: terraindecoration
-	Selectable:
-		Bounds: 144, 72, 0, 0
-		DecorationBounds: 144, 72, 0, 0
 	Tooltip:
 		Name: Scrin Ship
 	Health:
@@ -1515,8 +1759,9 @@ UFO:
 		Type: Heavy
 	MapEditorData:
 		RequireTilesets: TEMPERATE
-	SelectionDecorations:
 	ThrowsShrapnel@SMALL:
 		Pieces: 9, 12
 	ThrowsShrapnel@LARGE:
 		Pieces: 6, 8
+	IsometricSelectable:
+		Height: 144

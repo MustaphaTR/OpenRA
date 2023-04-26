@@ -9,15 +9,19 @@
  */
 #endregion
 
+using OpenRA.Primitives;
 using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.Traits
 {
-	public class ShakeOnDeathInfo : ITraitInfo
+	public class ShakeOnDeathInfo : TraitInfo
 	{
+		[Desc("DeathType(s) that trigger the shake. Leave empty to always trigger a shake.")]
+		public readonly BitSet<DamageType> DeathTypes = default(BitSet<DamageType>);
+
 		public readonly int Duration = 10;
 		public readonly int Intensity = 1;
-		public object Create(ActorInitializer init) { return new ShakeOnDeath(this); }
+		public override object Create(ActorInitializer init) { return new ShakeOnDeath(this); }
 	}
 
 	public class ShakeOnDeath : INotifyKilled
@@ -31,6 +35,9 @@ namespace OpenRA.Mods.Common.Traits
 
 		void INotifyKilled.Killed(Actor self, AttackInfo e)
 		{
+			if (!info.DeathTypes.IsEmpty && !e.Damage.DamageTypes.Overlaps(info.DeathTypes))
+				return;
+
 			self.World.WorldActor.Trait<ScreenShaker>().AddEffect(info.Duration, self.CenterPosition, info.Intensity);
 		}
 	}

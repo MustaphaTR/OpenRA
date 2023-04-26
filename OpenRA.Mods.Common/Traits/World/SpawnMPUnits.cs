@@ -19,7 +19,7 @@ using OpenRA.Traits;
 namespace OpenRA.Mods.Common.Traits
 {
 	[Desc("Spawn base actor at the spawnpoint and support units in an annulus around the base actor. Both are defined at MPStartUnits. Attach this to the world actor.")]
-	public class SpawnMPUnitsInfo : ITraitInfo, Requires<MPStartLocationsInfo>, Requires<MPStartUnitsInfo>, ILobbyOptions
+	public class SpawnMPUnitsInfo : TraitInfo, Requires<MPStartUnitsInfo>, ILobbyOptions
 	{
 		public readonly string StartingUnitsClass = "none";
 
@@ -53,7 +53,7 @@ namespace OpenRA.Mods.Common.Traits
 					new ReadOnlyDictionary<string, string>(startingUnits), StartingUnitsClass, DropdownLocked);
 		}
 
-		public object Create(ActorInitializer init) { return new SpawnMPUnits(this); }
+		public override object Create(ActorInitializer init) { return new SpawnMPUnits(this); }
 	}
 
 	public class SpawnMPUnits : IWorldLoaded
@@ -67,11 +67,12 @@ namespace OpenRA.Mods.Common.Traits
 
 		public void WorldLoaded(World world, WorldRenderer wr)
 		{
-			foreach (var s in world.WorldActor.Trait<MPStartLocations>().Start)
-				SpawnUnitsForPlayer(world, s.Key, s.Value);
+			foreach (var p in world.Players)
+				if (p.Playable)
+					SpawnUnitsForPlayer(world, p);
 		}
 
-		void SpawnUnitsForPlayer(World w, Player p, CPos sp)
+		void SpawnUnitsForPlayer(World w, Player p)
 		{
 			var spawnClass = p.PlayerReference.StartingUnitsClass ?? w.LobbyInfo.GlobalSettings
 				.OptionOrDefault("startingunits", info.StartingUnitsClass);
@@ -85,19 +86,20 @@ namespace OpenRA.Mods.Common.Traits
 
 			if (unitGroup.BaseActor != null)
 			{
+				var facing = unitGroup.BaseActorFacing.HasValue ? unitGroup.BaseActorFacing.Value : new WAngle(w.SharedRandom.Next(1024));
 				w.CreateActor(unitGroup.BaseActor.ToLowerInvariant(), new TypeDictionary
 				{
-					new LocationInit(sp + unitGroup.BaseActorOffset),
+					new LocationInit(p.HomeLocation + unitGroup.BaseActorOffset),
 					new OwnerInit(p),
 					new SkipMakeAnimsInit(),
-					new FacingInit(unitGroup.BaseActorFacing < 0 ? w.SharedRandom.Next(256) : unitGroup.BaseActorFacing),
+					new FacingInit(facing),
 				});
 			}
 
 			if (!unitGroup.SupportActors.Any())
 				return;
 
-			var buildingSpawnCells = w.Map.FindTilesInAnnulus(sp, unitGroup.InnerBuildingRadius + 1, unitGroup.OuterBuildingRadius);
+			var buildingSpawnCells = w.Map.FindTilesInAnnulus(p.HomeLocation, unitGroup.InnerBuildingRadius + 1, unitGroup.OuterBuildingRadius);
 
 			foreach (var b in unitGroup.SupportBuildings)
 			{
@@ -111,17 +113,18 @@ namespace OpenRA.Mods.Common.Traits
 				}
 
 				var cell = validCells.Random(w.SharedRandom);
+				var facing = unitGroup.SupportActorsFacing.HasValue ? unitGroup.SupportActorsFacing.Value : new WAngle(w.SharedRandom.Next(1024));
 
 				w.CreateActor(b.ToLowerInvariant(), new TypeDictionary
 				{
 					new OwnerInit(p),
 					new LocationInit(cell),
 					new SkipMakeAnimsInit(),
-					new FacingInit(unitGroup.SupportActorsFacing < 0 ? w.SharedRandom.Next(256) : unitGroup.SupportActorsFacing)
+					new FacingInit(facing)
 				});
 			}
 
-			var supportSpawnCells = w.Map.FindTilesInAnnulus(sp, unitGroup.InnerSupportRadius + 1, unitGroup.OuterSupportRadius);
+			var supportSpawnCells = w.Map.FindTilesInAnnulus(p.HomeLocation, unitGroup.InnerSupportRadius + 1, unitGroup.OuterSupportRadius);
 
 			foreach (var s in unitGroup.SupportActors)
 			{
@@ -136,13 +139,14 @@ namespace OpenRA.Mods.Common.Traits
 				}
 
 				var subCell = ip.SharesCell ? w.ActorMap.FreeSubCell(validCell) : 0;
+				var facing = unitGroup.SupportActorsFacing.HasValue ? unitGroup.SupportActorsFacing.Value : new WAngle(w.SharedRandom.Next(1024));
 
 				w.CreateActor(s.ToLowerInvariant(), new TypeDictionary
 				{
 					new OwnerInit(p),
 					new LocationInit(validCell),
 					new SubCellInit(subCell),
-					new FacingInit(unitGroup.SupportActorsFacing < 0 ? w.SharedRandom.Next(256) : unitGroup.SupportActorsFacing)
+					new FacingInit(facing),
 				});
 			}
 

@@ -15,14 +15,14 @@ using OpenRA.Traits;
 namespace OpenRA.Mods.Common.Traits.Render
 {
 	[Desc("Rendered together with an attack.")]
-	public class WithAttackOverlayInfo : ITraitInfo, Requires<RenderSpritesInfo>
+	public class WithAttackOverlayInfo : TraitInfo, Requires<RenderSpritesInfo>
 	{
 		[SequenceReference]
 		[FieldLoader.Require]
 		[Desc("Sequence name to use")]
 		public readonly string Sequence = null;
 
-		[PaletteReference("IsPlayerPalette")]
+		[PaletteReference(nameof(IsPlayerPalette))]
 		[Desc("Custom palette name")]
 		public readonly string Palette = null;
 
@@ -35,7 +35,7 @@ namespace OpenRA.Mods.Common.Traits.Render
 		[Desc("Should the overlay be delayed relative to preparation or actual attack?")]
 		public readonly AttackDelayType DelayRelativeTo = AttackDelayType.Preparation;
 
-		public object Create(ActorInitializer init) { return new WithAttackOverlay(init, this); }
+		public override object Create(ActorInitializer init) { return new WithAttackOverlay(init, this); }
 	}
 
 	public class WithAttackOverlay : INotifyAttack, ITick
@@ -65,7 +65,7 @@ namespace OpenRA.Mods.Common.Traits.Render
 			overlay.PlayThen(info.Sequence, () => attacking = false);
 		}
 
-		void INotifyAttack.Attacking(Actor self, Target target, Armament a, Barrel barrel)
+		void INotifyAttack.Attacking(Actor self, in Target target, Armament a, Barrel barrel)
 		{
 			if (info.DelayRelativeTo == AttackDelayType.Attack)
 			{
@@ -76,7 +76,7 @@ namespace OpenRA.Mods.Common.Traits.Render
 			}
 		}
 
-		void INotifyAttack.PreparingAttack(Actor self, Target target, Armament a, Barrel barrel)
+		void INotifyAttack.PreparingAttack(Actor self, in Target target, Armament a, Barrel barrel)
 		{
 			if (info.DelayRelativeTo == AttackDelayType.Preparation)
 			{

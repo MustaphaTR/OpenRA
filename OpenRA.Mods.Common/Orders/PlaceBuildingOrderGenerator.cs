@@ -13,7 +13,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using OpenRA.Graphics;
-using OpenRA.Mods.Common.Graphics;
 using OpenRA.Mods.Common.Traits;
 using OpenRA.Primitives;
 using OpenRA.Traits;
@@ -83,9 +82,9 @@ namespace OpenRA.Mods.Common.Orders
 			}
 		}
 
+		readonly World world;
 		readonly ProductionQueue queue;
 		readonly PlaceBuildingInfo placeBuildingInfo;
-		readonly BuildingInfluence buildingInfluence;
 		readonly ResourceLayer resourceLayer;
 		readonly Viewport viewport;
 		readonly VariantWrapper[] variants;
@@ -93,10 +92,9 @@ namespace OpenRA.Mods.Common.Orders
 
 		public PlaceBuildingOrderGenerator(ProductionQueue queue, string name, WorldRenderer worldRenderer)
 		{
-			var world = queue.Actor.World;
 			this.queue = queue;
+			world = queue.Actor.World;
 			placeBuildingInfo = queue.Actor.Owner.PlayerActor.Info.TraitInfo<PlaceBuildingInfo>();
-			buildingInfluence = world.WorldActor.Trait<BuildingInfluence>();
 			resourceLayer = world.WorldActor.TraitOrDefault<ResourceLayer>();
 			viewport = worldRenderer.Viewport;
 
@@ -222,18 +220,19 @@ namespace OpenRA.Mods.Common.Orders
 				world.CancelInputMode();
 
 			foreach (var v in variants)
-				if (v.Preview != null)
-					v.Preview.Tick();
+				v.Preview?.Tick();
 		}
+
+		void IOrderGenerator.SelectionChanged(World world, IEnumerable<Actor> selected) { }
 
 		bool AcceptsPlug(CPos cell, PlugInfo plug)
 		{
-			var host = buildingInfluence.GetBuildingAt(cell);
-			if (host == null)
-				return false;
+			foreach (var a in world.ActorMap.GetActorsAt(cell))
+				foreach (var p in a.TraitsImplementing<Pluggable>())
+					if (p.AcceptsPlug(a, plug.Type))
+						return true;
 
-			var location = host.Location;
-			return host.TraitsImplementing<Pluggable>().Any(p => p.AcceptsPlug(host, plug.Type));
+			return false;
 		}
 
 		IEnumerable<IRenderable> IOrderGenerator.Render(WorldRenderer wr, World world) { yield break; }
@@ -266,9 +265,9 @@ namespace OpenRA.Mods.Common.Orders
 				{
 					foreach (var t in BuildingUtils.GetLineBuildCells(world, topLeft, actorInfo, buildingInfo, owner))
 					{
-						var lineBuildable = world.IsCellBuildable(t.First, actorInfo, buildingInfo);
-						var lineCloseEnough = buildingInfo.IsCloseEnoughToBase(world, world.LocalPlayer, actorInfo, queue.Actor, t.First);
-						footprint.Add(t.First, MakeCellType(lineBuildable && lineCloseEnough, true));
+						var lineBuildable = world.IsCellBuildable(t.Cell, actorInfo, buildingInfo);
+						var lineCloseEnough = buildingInfo.IsCloseEnoughToBase(world, world.LocalPlayer, actorInfo, queue.Actor, t.Cell);
+						footprint.Add(t.Cell, MakeCellType(lineBuildable && lineCloseEnough, true));
 					}
 				}
 

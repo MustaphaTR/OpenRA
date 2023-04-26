@@ -12,7 +12,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net;
 using OpenRA.Graphics;
 using OpenRA.Network;
 using OpenRA.Primitives;
@@ -147,6 +146,25 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			dropdown.ShowDropDown("TEAM_DROPDOWN_TEMPLATE", 150, options, setupItem);
 		}
 
+		public static void ShowHandicapDropDown(DropDownButtonWidget dropdown, Session.Client client,
+			OrderManager orderManager)
+		{
+			Func<int, ScrollItemWidget, ScrollItemWidget> setupItem = (ii, itemTemplate) =>
+			{
+				var item = ScrollItemWidget.Setup(itemTemplate,
+					() => client.Handicap == ii,
+					() => orderManager.IssueOrder(Order.Command("handicap {0} {1}".F(client.Index, ii))));
+
+				var label = "{0}%".F(ii);
+				item.Get<LabelWidget>("LABEL").GetText = () => label;
+				return item;
+			};
+
+			// Handicaps may be set between 0 - 95% in steps of 5%
+			var options = Enumerable.Range(0, 20).Select(i => 5 * i);
+			dropdown.ShowDropDown("TEAM_DROPDOWN_TEMPLATE", 150, options, setupItem);
+		}
+
 		public static void ShowSpawnDropDown(DropDownButtonWidget dropdown, Session.Client client,
 			OrderManager orderManager, IEnumerable<int> spawnPoints)
 		{
@@ -163,15 +181,15 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 		}
 
 		/// <summary>Splits a string into two parts on the first instance of a given token.</summary>
-		static Pair<string, string> SplitOnFirstToken(string input, string token = "\\n")
+		static (string First, string Second) SplitOnFirstToken(string input, string token = "\\n")
 		{
 			if (string.IsNullOrEmpty(input))
-				return Pair.New<string, string>(null, null);
+				return (null, null);
 
 			var split = input.IndexOf(token, StringComparison.Ordinal);
 			var first = split > 0 ? input.Substring(0, split) : input;
 			var second = split > 0 ? input.Substring(split + token.Length) : null;
-			return Pair.New(first, second);
+			return (first, second);
 		}
 
 		public static void ShowFactionDropDown(DropDownButtonWidget dropdown, Session.Client client,
@@ -228,47 +246,65 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			color.AttachPanel(colorChooser, onExit);
 		}
 
-		public static Dictionary<CPos, SpawnOccupant> GetSpawnOccupants(Session lobbyInfo, MapPreview preview)
-		{
-			var spawns = preview.SpawnPoints;
-			return lobbyInfo.Clients
-				.Where(c => (c.SpawnPoint - 1 >= 0) && (c.SpawnPoint - 1 < spawns.Length))
-				.ToDictionary(c => spawns[c.SpawnPoint - 1], c => new SpawnOccupant(c));
-		}
-
-		public static Dictionary<CPos, SpawnOccupant> GetSpawnOccupants(IEnumerable<GameInformation.Player> players, MapPreview preview)
-		{
-			var spawns = preview.SpawnPoints;
-			return players
-					.Where(c => (c.SpawnPoint - 1 >= 0) && (c.SpawnPoint - 1 < spawns.Length))
-					.ToDictionary(c => spawns[c.SpawnPoint - 1], c => new SpawnOccupant(c));
-		}
-
 		public static void SelectSpawnPoint(OrderManager orderManager, MapPreviewWidget mapPreview, MapPreview preview, MouseInput mi)
 		{
-			if (mi.Button != MouseButton.Left)
+			if (orderManager.LocalClient.State == Session.ClientState.Ready)
 				return;
 
-			if (!orderManager.LocalClient.IsObserver && orderManager.LocalClient.State == Session.ClientState.Ready)
-				return;
+			if (mi.Button == MouseButton.Left)
+				SelectPlayerSpawnPoint(orderManager, mapPreview, preview, mi);
 
-			var spawnSize = ChromeProvider.GetImage("lobby-bits", "spawn-unclaimed").Size.XY;
-			var selectedSpawn = preview.SpawnPoints
-				.Select((sp, i) => Pair.New(mapPreview.ConvertToPreview(sp, preview.GridType), i))
-				.Where(a => ((a.First - mi.Location).ToFloat2() / spawnSize * 2).LengthSquared <= 1)
-				.Select(a => a.Second + 1)
-				.FirstOrDefault();
+			if (mi.Button == MouseButton.Right)
+				ClearPlayerSpawnPoint(orderManager, mapPreview, preview, mi);
+		}
+
+		static void SelectPlayerSpawnPoint(OrderManager orderManager, MapPreviewWidget mapPreview, MapPreview preview, MouseInput mi)
+		{
+			var selectedSpawn = DetermineSelectedSpawnPoint(mapPreview, preview, mi);
 
 			var locals = orderManager.LobbyInfo.Clients.Where(c => c.Index == orderManager.LocalClient.Index || (Game.IsHost && c.Bot != null));
 			var playerToMove = locals.FirstOrDefault(c => ((selectedSpawn == 0) ^ (c.SpawnPoint == 0) && !c.IsObserver));
 			SetSpawnPoint(orderManager, playerToMove, selectedSpawn);
 		}
 
-		private static void SetSpawnPoint(OrderManager orderManager, Session.Client playerToMove, int selectedSpawn)
+		static void ClearPlayerSpawnPoint(OrderManager orderManager, MapPreviewWidget mapPreview, MapPreview preview, MouseInput mi)
 		{
-			var owned = orderManager.LobbyInfo.Clients.Any(c => c.SpawnPoint == selectedSpawn);
-			if (selectedSpawn == 0 || !owned)
-				orderManager.IssueOrder(Order.Command("spawn {0} {1}".F((playerToMove ?? orderManager.LocalClient).Index, selectedSpawn)));
+			var selectedSpawn = DetermineSelectedSpawnPoint(mapPreview, preview, mi);
+			if (Game.IsHost || orderManager.LobbyInfo.Clients.FirstOrDefault(cc => cc.SpawnPoint == selectedSpawn) == orderManager.LocalClient)
+				orderManager.IssueOrder(Order.Command("clear_spawn {0}".F(selectedSpawn)));
+		}
+
+		static int DetermineSelectedSpawnPoint(MapPreviewWidget mapPreview, MapPreview preview, MouseInput mi)
+		{
+			var spawnSize = ChromeProvider.GetImage("lobby-bits", "spawn-unclaimed").Size.XY;
+			var selectedSpawn = preview.SpawnPoints
+				.Select((sp, i) => (SpawnLocation: mapPreview.ConvertToPreview(sp, preview.GridType), Index: i))
+				.Where(a => ((a.SpawnLocation - mi.Location).ToFloat2() / spawnSize * 2).LengthSquared <= 1)
+				.Select(a => a.Index + 1)
+				.FirstOrDefault();
+			return selectedSpawn;
+		}
+
+		static void SetSpawnPoint(OrderManager orderManager, Session.Client playerToMove, int selectedSpawnPoint)
+		{
+			var owned = orderManager.LobbyInfo.Clients.Any(c => c.SpawnPoint == selectedSpawnPoint) || orderManager.LobbyInfo.DisabledSpawnPoints.Contains(selectedSpawnPoint);
+			if (selectedSpawnPoint == 0 || !owned)
+				orderManager.IssueOrder(Order.Command("spawn {0} {1}".F((playerToMove ?? orderManager.LocalClient).Index, selectedSpawnPoint)));
+		}
+
+		public static List<int> AvailableSpawnPoints(int spawnPoints, Session lobbyInfo)
+		{
+			return Enumerable.Range(1, spawnPoints).Except(lobbyInfo.DisabledSpawnPoints).ToList();
+		}
+
+		public static bool InsufficientEnabledSpawnPoints(MapPreview map, Session lobbyInfo)
+		{
+			// If a map doesn't define spawn points we always have enough space
+			var spawnPoints = map.SpawnPoints.Length;
+			if (spawnPoints == 0)
+				return false;
+
+			return AvailableSpawnPoints(spawnPoints, lobbyInfo).Count < lobbyInfo.Clients.Count(c => !c.IsObserver);
 		}
 
 		public static Color LatencyColor(Session.ClientPing ping)
@@ -545,6 +581,29 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			HideChildWidget(parent, "TEAM_DROPDOWN");
 		}
 
+		public static void SetupEditableHandicapWidget(Widget parent, Session.Slot s, Session.Client c, OrderManager orderManager, MapPreview map)
+		{
+			var dropdown = parent.Get<DropDownButtonWidget>("HANDICAP_DROPDOWN");
+			dropdown.IsVisible = () => true;
+			dropdown.IsDisabled = () => s.LockTeam || orderManager.LocalClient.IsReady;
+			dropdown.OnMouseDown = _ => ShowHandicapDropDown(dropdown, c, orderManager);
+
+			var handicapLabel = new CachedTransform<int, string>(h => "{0}%".F(h));
+			dropdown.GetText = () => handicapLabel.Update(c.Handicap);
+
+			HideChildWidget(parent, "HANDICAP");
+		}
+
+		public static void SetupHandicapWidget(Widget parent, Session.Slot s, Session.Client c)
+		{
+			var team = parent.Get<LabelWidget>("HANDICAP");
+			team.IsVisible = () => true;
+
+			var handicapLabel = new CachedTransform<int, string>(h => "{0}%".F(h));
+			team.GetText = () => handicapLabel.Update(c.Handicap);
+			HideChildWidget(parent, "HANDICAP_DROPDOWN");
+		}
+
 		public static void SetupEditableSpawnWidget(Widget parent, Session.Slot s, Session.Client c, OrderManager orderManager, MapPreview map)
 		{
 			var dropdown = parent.Get<DropDownButtonWidget>("SPAWN_DROPDOWN");
@@ -554,7 +613,8 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			{
 				var spawnPoints = Enumerable.Range(0, map.SpawnPoints.Length + 1).Except(
 					orderManager.LobbyInfo.Clients.Where(
-					client => client != c && client.SpawnPoint != 0).Select(client => client.SpawnPoint));
+					client => client != c && client.SpawnPoint != 0).Select(client => client.SpawnPoint))
+					.Except(orderManager.LobbyInfo.DisabledSpawnPoints);
 				ShowSpawnDropDown(dropdown, c, orderManager, spawnPoints);
 			};
 			dropdown.GetText = () => (c.SpawnPoint == 0) ? "-" : Convert.ToChar('A' - 1 + c.SpawnPoint).ToString();

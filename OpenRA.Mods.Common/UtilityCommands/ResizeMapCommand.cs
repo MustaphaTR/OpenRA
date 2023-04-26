@@ -48,7 +48,7 @@ namespace OpenRA.Mods.Common.UtilityCommands
 		void IUtilityCommand.Run(Utility utility, string[] args)
 		{
 			var modData = Game.ModData = utility.ModData;
-			map = new Map(modData, new Folder(".").OpenPackage(args[1], modData.ModFiles));
+			map = new Map(modData, new Folder(Platform.EngineDir).OpenPackage(args[1], modData.ModFiles));
 			Console.WriteLine("Resizing map {0} from {1} to {2},{3}", map.Title, map.MapSize, width, height);
 			map.Resize(width, height);
 
@@ -57,10 +57,13 @@ namespace OpenRA.Mods.Common.UtilityCommands
 			foreach (var kv in map.ActorDefinitions)
 			{
 				var actor = new ActorReference(kv.Value.Value, kv.Value.ToDictionary());
-				var location = actor.InitDict.Get<LocationInit>().Value(null);
-				if (!map.Contains(location))
+				var locationInit = actor.GetOrDefault<LocationInit>();
+				if (locationInit == null)
+					continue;
+
+				if (!map.Contains(locationInit.Value))
 				{
-					Console.WriteLine("Removing actor {0} located at {1} due being outside of the new map boundaries.".F(actor.Type, location));
+					Console.WriteLine("Removing actor {0} located at {1} due being outside of the new map boundaries.".F(actor.Type, locationInit.Value));
 					forRemoval.Add(kv);
 				}
 			}

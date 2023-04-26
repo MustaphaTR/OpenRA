@@ -18,7 +18,7 @@ using OpenRA.Traits;
 namespace OpenRA.Mods.Common.Traits
 {
 	[Desc("Actor can be captured by units in a specified proximity.")]
-	public class ProximityCapturableInfo : ITraitInfo, IRulesetLoaded
+	public class ProximityCapturableInfo : TraitInfo, IRulesetLoaded
 	{
 		[Desc("Maximum range at which a ProximityCaptor actor can initiate the capture.")]
 		public readonly WDist Range = WDist.FromCells(5);
@@ -43,7 +43,7 @@ namespace OpenRA.Mods.Common.Traits
 				throw new YamlException("ProximityCapturable requires the `Player` actor to have the ProximityCaptor trait.");
 		}
 
-		public object Create(ActorInitializer init) { return new ProximityCapturable(init.Self, this); }
+		public override object Create(ActorInitializer init) { return new ProximityCapturable(init.Self, this); }
 	}
 
 	public class ProximityCapturable : ITick, INotifyAddedToWorld, INotifyRemovedFromWorld, INotifyOwnerChanged
@@ -120,12 +120,6 @@ namespace OpenRA.Mods.Common.Traits
 			return pc != null && pc.Types.Overlaps(Info.CaptorTypes);
 		}
 
-		bool IsClear(Actor self, Player captorOwner)
-		{
-			return actorsInRange
-				.All(a => a.Owner == captorOwner || WorldUtils.AreMutualAllies(a.Owner, captorOwner));
-		}
-
 		void UpdateOwnership()
 		{
 			if (Captured && Info.Permanent)
@@ -153,7 +147,7 @@ namespace OpenRA.Mods.Common.Traits
 			{
 				if (Info.MustBeClear)
 				{
-					var isClear = IsClear(Self, captor.Owner);
+					var isClear = actorsInRange.All(a => captor.Owner.RelationshipWith(a.Owner) == PlayerRelationship.Ally);
 
 					// An enemy unit has wandered into the area, so we've lost control of it.
 					if (Captured && !isClear)

@@ -83,11 +83,15 @@ namespace OpenRA.Mods.Common.Widgets
 
 		public string Button = "button";
 		public string Background = "panel-black";
+		public readonly string Decorations = "scrollpanel-decorations";
+		public readonly string DecorationScrollLeft = "left";
+		public readonly string DecorationScrollRight = "right";
 
 		int contentWidth = 0;
 		float listOffset = 0;
 		bool leftPressed = false;
 		bool rightPressed = false;
+		SpriteFont font;
 		Rectangle leftButtonRect;
 		Rectangle rightButtonRect;
 		Lazy<ProductionPaletteWidget> paletteWidget;
@@ -105,6 +109,16 @@ namespace OpenRA.Mods.Common.Widgets
 			IsVisible = () => queueGroup != null && Groups[queueGroup].Tabs.Count > 0;
 
 			paletteWidget = Exts.Lazy(() => Ui.Root.Get<ProductionPaletteWidget>(PaletteWidget));
+		}
+
+		public override void Initialize(WidgetArgs args)
+		{
+			base.Initialize(args);
+
+			var rb = RenderBounds;
+			leftButtonRect = new Rectangle(rb.X, rb.Y, ArrowWidth, rb.Height);
+			rightButtonRect = new Rectangle(rb.Right - ArrowWidth, rb.Y, ArrowWidth, rb.Height);
+			font = Game.Renderer.Fonts["TinyBold"];
 		}
 
 		public bool SelectNextTab(bool reverse)
@@ -170,8 +184,6 @@ namespace OpenRA.Mods.Common.Widgets
 				return;
 
 			var rb = RenderBounds;
-			leftButtonRect = new Rectangle(rb.X, rb.Y, ArrowWidth, rb.Height);
-			rightButtonRect = new Rectangle(rb.Right - ArrowWidth, rb.Y, ArrowWidth, rb.Height);
 
 			var leftDisabled = listOffset >= 0;
 			var leftHover = Ui.MouseOverWidget == this && leftButtonRect.Contains(Viewport.LastMousePos);
@@ -182,15 +194,19 @@ namespace OpenRA.Mods.Common.Widgets
 			ButtonWidget.DrawBackground(Button, leftButtonRect, leftDisabled, leftPressed, leftHover, false);
 			ButtonWidget.DrawBackground(Button, rightButtonRect, rightDisabled, rightPressed, rightHover, false);
 
-			WidgetUtils.DrawRGBA(ChromeProvider.GetImage("scrollbar", leftPressed || leftDisabled ? "left_pressed" : "left_arrow"),
+			var leftArrowImageName = WidgetUtils.GetStatefulImageName(DecorationScrollLeft, leftDisabled, leftPressed, leftHover);
+			var leftArrowImage = ChromeProvider.GetImage(Decorations, leftArrowImageName) ?? ChromeProvider.GetImage(Decorations, DecorationScrollLeft);
+			WidgetUtils.DrawRGBA(leftArrowImage,
 				new float2(leftButtonRect.Left + 2, leftButtonRect.Top + 2));
-			WidgetUtils.DrawRGBA(ChromeProvider.GetImage("scrollbar", rightPressed || rightDisabled ? "right_pressed" : "right_arrow"),
+
+			var rightArrowImageName = WidgetUtils.GetStatefulImageName(DecorationScrollRight, rightDisabled, rightPressed, rightHover);
+			var rightArrowImage = ChromeProvider.GetImage(Decorations, rightArrowImageName) ?? ChromeProvider.GetImage(Decorations, DecorationScrollRight);
+			WidgetUtils.DrawRGBA(rightArrowImage,
 				new float2(rightButtonRect.Left + 2, rightButtonRect.Top + 2));
 
 			// Draw tab buttons
 			Game.Renderer.EnableScissor(new Rectangle(leftButtonRect.Right, rb.Y + 1, rightButtonRect.Left - leftButtonRect.Right - 1, rb.Height));
 			var origin = new int2(leftButtonRect.Right - 1 + (int)listOffset, leftButtonRect.Y);
-			var font = Game.Renderer.Fonts["TinyBold"];
 			contentWidth = 0;
 
 			foreach (var tab in tabs)

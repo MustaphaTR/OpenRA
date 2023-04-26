@@ -23,8 +23,8 @@ namespace OpenRA.Mods.Common.Activities
 		Cargo enterCargo;
 		Aircraft enterAircraft;
 
-		public RideTransport(Actor self, Target target)
-			: base(self, target, WDist.Zero, Color.Green)
+		public RideTransport(Actor self, in Target target, Color? targetLineColor)
+			: base(self, target, WDist.Zero, targetLineColor)
 		{
 			passenger = self.Trait<Passenger>();
 		}

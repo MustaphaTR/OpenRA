@@ -17,20 +17,20 @@ using OpenRA.Traits;
 namespace OpenRA.Mods.Cnc.Traits.Render
 {
 	[Desc("Rendered together with AttackCharge.")]
-	public class WithTeslaChargeOverlayInfo : ITraitInfo, Requires<RenderSpritesInfo>
+	public class WithTeslaChargeOverlayInfo : TraitInfo, Requires<RenderSpritesInfo>
 	{
 		[SequenceReference]
 		[Desc("Sequence name to use")]
 		public readonly string Sequence = "active";
 
-		[PaletteReference("IsPlayerPalette")]
+		[PaletteReference(nameof(IsPlayerPalette))]
 		[Desc("Custom palette name")]
 		public readonly string Palette = null;
 
 		[Desc("Custom palette is a player palette BaseName")]
 		public readonly bool IsPlayerPalette = false;
 
-		public object Create(ActorInitializer init) { return new WithTeslaChargeOverlay(init, this); }
+		public override object Create(ActorInitializer init) { return new WithTeslaChargeOverlay(init, this); }
 	}
 
 	public class WithTeslaChargeOverlay : INotifyTeslaCharging, INotifyDamageStateChanged, INotifySold
@@ -53,7 +53,7 @@ namespace OpenRA.Mods.Cnc.Traits.Render
 				info.Palette, info.IsPlayerPalette);
 		}
 
-		void INotifyTeslaCharging.Charging(Actor self, Target target)
+		void INotifyTeslaCharging.Charging(Actor self, in Target target)
 		{
 			charging = true;
 			overlay.PlayThen(RenderSprites.NormalizeSequence(overlay, self.GetDamageState(), info.Sequence), () => charging = false);

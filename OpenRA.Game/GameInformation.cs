@@ -35,6 +35,7 @@ namespace OpenRA
 		/// <summary>Gets the game's duration, from the time the game started until the replay recording stopped.</summary>
 		public TimeSpan Duration { get { return EndTimeUtc > StartTimeUtc ? EndTimeUtc - StartTimeUtc : TimeSpan.Zero; } }
 		public IList<Player> Players { get; private set; }
+		public HashSet<int> DisabledSpawnPoints = new HashSet<int>();
 		public MapPreview MapPreview { get { return Game.ModData.MapCache[MapUid]; } }
 		public IEnumerable<Player> HumanPlayers { get { return Players.Where(p => p.IsHuman); } }
 		public bool IsSinglePlayer { get { return HumanPlayers.Count() == 1; } }
@@ -118,11 +119,14 @@ namespace OpenRA
 				IsBot = runtimePlayer.IsBot,
 				FactionName = runtimePlayer.Faction.Name,
 				FactionId = runtimePlayer.Faction.InternalName,
+				DisplayFactionName = runtimePlayer.DisplayFaction.Name,
+				DisplayFactionId = runtimePlayer.DisplayFaction.InternalName,
 				Color = runtimePlayer.Color,
 				Team = client.Team,
+				Handicap = client.Handicap,
 				SpawnPoint = runtimePlayer.SpawnPoint,
 				IsRandomFaction = runtimePlayer.Faction.InternalName != client.Faction,
-				IsRandomSpawnPoint = runtimePlayer.SpawnPoint != client.SpawnPoint,
+				IsRandomSpawnPoint = runtimePlayer.DisplaySpawnPoint == 0,
 				Fingerprint = client.Fingerprint
 			};
 
@@ -133,9 +137,7 @@ namespace OpenRA
 		/// <summary>Gets the player information for the specified runtime player instance.</summary>
 		public Player GetPlayer(OpenRA.Player runtimePlayer)
 		{
-			Player player;
-
-			playersByRuntime.TryGetValue(runtimePlayer, out player);
+			playersByRuntime.TryGetValue(runtimePlayer, out var player);
 
 			return player;
 		}
@@ -158,9 +160,14 @@ namespace OpenRA
 			public string FactionId;
 			public Color Color;
 
+			/// <summary>The faction (including Random, etc.) that was selected in the lobby.</summary>
+			public string DisplayFactionName;
+			public string DisplayFactionId;
+
 			/// <summary>The team ID on start-up, or 0 if the player is not part of a team.</summary>
 			public int Team;
 			public int SpawnPoint;
+			public int Handicap;
 
 			/// <summary>True if the faction was chosen at random; otherwise, false.</summary>
 			public bool IsRandomFaction;
@@ -180,6 +187,9 @@ namespace OpenRA
 
 			/// <summary>The time when this player won or lost the game.</summary>
 			public DateTime OutcomeTimestampUtc;
+
+			/// <summary>The frame at which this player disconnected.</summary>
+			public int DisconnectFrame;
 
 			#endregion
 		}

@@ -12,12 +12,13 @@
 using System.Collections.Generic;
 using System.Linq;
 using OpenRA.Effects;
+using OpenRA.Primitives;
 using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.Traits
 {
 	[Desc("Allows bridges to be targeted for demolition and repair.")]
-	class BridgeHutInfo : IDemolishableInfo, ITraitInfo
+	class BridgeHutInfo : TraitInfo, IDemolishableInfo
 	{
 		[Desc("Bridge types to act on")]
 		public readonly string[] Types = { "GroundLevelBridge" };
@@ -36,7 +37,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		public bool IsValidTarget(ActorInfo actorInfo, Actor saboteur) { return false; } // TODO: bridges don't support frozen under fog
 
-		public object Create(ActorInitializer init) { return new BridgeHut(init.World, this); }
+		public override object Create(ActorInitializer init) { return new BridgeHut(init.World, this); }
 	}
 
 	class BridgeHut : INotifyCreated, IDemolishable, ITick
@@ -60,6 +61,7 @@ namespace OpenRA.Mods.Common.Traits
 		int demolishStep;
 		int demolishDelay;
 		Actor demolishSaboteur;
+		BitSet<DamageType> demolishDamageTypes;
 
 		public BridgeHut(World world, BridgeHutInfo info)
 		{
@@ -170,7 +172,7 @@ namespace OpenRA.Mods.Common.Traits
 			return true;
 		}
 
-		void IDemolishable.Demolish(Actor self, Actor saboteur, int delay)
+		void IDemolishable.Demolish(Actor self, Actor saboteur, int delay, BitSet<DamageType> damageTypes)
 		{
 			// TODO: Handle using ITick
 			self.World.Add(new DelayedAction(delay, () =>
@@ -188,11 +190,12 @@ namespace OpenRA.Mods.Common.Traits
 					{
 						demolishStep = 0;
 						demolishSaboteur = saboteur;
+						demolishDamageTypes = damageTypes;
 						DemolishStep();
 					}
 					else
 						foreach (var s in segments.Values)
-							s.Demolish(saboteur);
+							s.Demolish(saboteur, damageTypes);
 				}
 			}));
 		}
@@ -214,7 +217,7 @@ namespace OpenRA.Mods.Common.Traits
 
 			if (demolishStep < segmentLocations.Count)
 				foreach (var c in segmentLocations[demolishStep])
-					segments[c].Demolish(demolishSaboteur);
+					segments[c].Demolish(demolishSaboteur, demolishDamageTypes);
 
 			demolishDelay = Info.DemolishPropagationDelay;
 

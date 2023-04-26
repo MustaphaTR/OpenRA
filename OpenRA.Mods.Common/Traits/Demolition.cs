@@ -37,13 +37,20 @@ namespace OpenRA.Mods.Common.Traits
 			"Possible values are Exit, Suicide, Dispose.")]
 		public readonly EnterBehaviour EnterBehaviour = EnterBehaviour.Exit;
 
+		[Desc("Types of damage that this trait causes. Leave empty for no damage types.")]
+		public readonly BitSet<DamageType> DamageTypes = default(BitSet<DamageType>);
+
 		[VoiceReference]
 		[Desc("Voice string when planting explosive charges.")]
 		public readonly string Voice = "Action";
 
-		public readonly Stance TargetStances = Stance.Enemy | Stance.Neutral;
-		public readonly Stance ForceTargetStances = Stance.Enemy | Stance.Neutral | Stance.Ally;
+		[Desc("Color to use for the target line.")]
+		public readonly Color TargetLineColor = Color.Crimson;
 
+		public readonly PlayerRelationship TargetRelationships = PlayerRelationship.Enemy | PlayerRelationship.Neutral;
+		public readonly PlayerRelationship ForceTargetRelationships = PlayerRelationship.Enemy | PlayerRelationship.Neutral | PlayerRelationship.Ally;
+
+		[Desc("Cursor to display when hovering over a demolishable target.")]
 		public readonly string Cursor = "c4";
 
 		public override object Create(ActorInitializer init) { return new Demolition(this); }
@@ -68,7 +75,7 @@ namespace OpenRA.Mods.Common.Traits
 			}
 		}
 
-		public Order IssueOrder(Actor self, IOrderTargeter order, Target target, bool queued)
+		public Order IssueOrder(Actor self, IOrderTargeter order, in Target target, bool queued)
 		{
 			if (order.OrderID != "C4")
 				return null;
@@ -92,7 +99,7 @@ namespace OpenRA.Mods.Common.Traits
 			}
 
 			self.QueueActivity(order.Queued, new Demolish(self, order.Target, info.EnterBehaviour, info.DetonationDelay,
-				info.Flashes, info.FlashesDelay, info.FlashInterval));
+				info.Flashes, info.FlashesDelay, info.FlashInterval, info.DamageTypes, info.TargetLineColor));
 
 			self.ShowTargetLines();
 		}
@@ -118,11 +125,11 @@ namespace OpenRA.Mods.Common.Traits
 				if (modifiers.HasModifier(TargetModifiers.ForceMove))
 					return false;
 
-				var stance = self.Owner.Stances[target.Owner];
-				if (!info.TargetStances.HasStance(stance) && !modifiers.HasModifier(TargetModifiers.ForceAttack))
+				var stance = target.Owner.RelationshipWith(self.Owner);
+				if (!info.TargetRelationships.HasStance(stance) && !modifiers.HasModifier(TargetModifiers.ForceAttack))
 					return false;
 
-				if (!info.ForceTargetStances.HasStance(stance) && modifiers.HasModifier(TargetModifiers.ForceAttack))
+				if (!info.ForceTargetRelationships.HasStance(stance) && modifiers.HasModifier(TargetModifiers.ForceAttack))
 					return false;
 
 				return target.TraitsImplementing<IDemolishable>().Any(i => i.IsValidTarget(target, self));
@@ -130,11 +137,11 @@ namespace OpenRA.Mods.Common.Traits
 
 			public override bool CanTargetFrozenActor(Actor self, FrozenActor target, TargetModifiers modifiers, ref string cursor)
 			{
-				var stance = self.Owner.Stances[target.Owner];
-				if (!info.TargetStances.HasStance(stance) && !modifiers.HasModifier(TargetModifiers.ForceAttack))
+				var stance = target.Owner.RelationshipWith(self.Owner);
+				if (!info.TargetRelationships.HasStance(stance) && !modifiers.HasModifier(TargetModifiers.ForceAttack))
 					return false;
 
-				if (!info.ForceTargetStances.HasStance(stance) && modifiers.HasModifier(TargetModifiers.ForceAttack))
+				if (!info.ForceTargetRelationships.HasStance(stance) && modifiers.HasModifier(TargetModifiers.ForceAttack))
 					return false;
 
 				return target.Info.TraitInfos<IDemolishableInfo>().Any(i => i.IsValidTarget(target.Info, self));

@@ -249,7 +249,8 @@ namespace OpenRA.Mods.Common.Widgets
 
 			var position = GetTextPosition(text, font, rb);
 
-			var hover = Ui.MouseOverWidget == this || Children.Any(c => c == Ui.MouseOverWidget);
+			// PERF: Avoid LINQ by using Children.Find(...) != null instead of Children.Any(...)
+			var hover = Ui.MouseOverWidget == this || Children.Find(c => c == Ui.MouseOverWidget) != null;
 			DrawBackground(rb, disabled, Depressed, hover, highlighted);
 			if (Contrast)
 				font.DrawTextWithContrast(text, position + stateOffset,
@@ -292,13 +293,10 @@ namespace OpenRA.Mods.Common.Widgets
 			if (string.IsNullOrEmpty(baseName))
 				return;
 
-			var variant = highlighted ? "-highlighted" : "";
-			var state = disabled ? "-disabled" :
-						pressed ? "-pressed" :
-						hover ? "-hover" :
-						"";
+			var variantName = highlighted ? baseName + "-highlighted" : baseName;
+			var imageName = WidgetUtils.GetStatefulImageName(variantName, disabled, pressed, hover);
 
-			WidgetUtils.DrawPanel(baseName + variant + state, rect);
+			WidgetUtils.DrawPanel(imageName, rect);
 		}
 	}
 }

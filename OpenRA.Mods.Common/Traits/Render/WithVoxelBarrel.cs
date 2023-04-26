@@ -30,7 +30,7 @@ namespace OpenRA.Mods.Common.Traits.Render
 		public readonly WVec LocalOffset = WVec.Zero;
 
 		[Desc("Rotate the barrel relative to the body")]
-		public readonly WRot LocalOrientation = WRot.Zero;
+		public readonly WRot LocalOrientation = WRot.None;
 
 		[Desc("Defines if the Voxel should have a shadow.")]
 		public readonly bool ShowShadow = true;
@@ -51,15 +51,11 @@ namespace OpenRA.Mods.Common.Traits.Render
 
 			var model = init.World.ModelCache.GetModelSequence(image, Sequence);
 
-			var turretFacing = Turreted.TurretFacingFromInit(init, t.InitialFacing, t.Turret);
-			Func<WRot> turretOrientation = () => body.QuantizeOrientation(WRot.FromYaw(WAngle.FromFacing(turretFacing()) - orientation().Yaw), facings);
+			var turretOrientation = t.PreviewOrientation(init, orientation, facings);
+			Func<WVec> barrelOffset = () => body.LocalToWorld(t.Offset + LocalOffset.Rotate(turretOrientation()));
+			Func<WRot> barrelOrientation = () => LocalOrientation.Rotate(turretOrientation());
 
-			Func<WRot> quantizedTurret = () => body.QuantizeOrientation(turretOrientation(), facings);
-			Func<WRot> quantizedBody = () => body.QuantizeOrientation(orientation(), facings);
-			Func<WVec> barrelOffset = () => body.LocalToWorld((t.Offset + LocalOffset.Rotate(quantizedTurret())).Rotate(quantizedBody()));
-
-			yield return new ModelAnimation(model, barrelOffset, () => new[] { turretOrientation(), orientation() },
-				() => false, () => 0, ShowShadow);
+			yield return new ModelAnimation(model, barrelOffset, barrelOrientation, () => false, () => 0, ShowShadow);
 		}
 	}
 
@@ -88,22 +84,20 @@ namespace OpenRA.Mods.Common.Traits.Render
 
 		WVec BarrelOffset()
 		{
-			var b = self.Orientation;
-			var qb = body.QuantizeOrientation(self, b);
+			// Barrel offset in turret coordinates
 			var localOffset = Info.LocalOffset + new WVec(-armament.Recoil, WDist.Zero, WDist.Zero);
-			var turretLocalOffset = turreted != null ? turreted.Offset : WVec.Zero;
-			var turretOrientation = turreted != null ? turreted.WorldOrientation(self) - b + WRot.FromYaw(b.Yaw - qb.Yaw) : WRot.Zero;
 
-			return body.LocalToWorld((turretLocalOffset + localOffset.Rotate(turretOrientation)).Rotate(qb));
+			// Turret coordinates to body coordinates
+			var bodyOrientation = body.QuantizeOrientation(self, self.Orientation);
+			localOffset = localOffset.Rotate(turreted.WorldOrientation) + turreted.Offset.Rotate(bodyOrientation);
+
+			// Body coordinates to world coordinates
+			return body.LocalToWorld(localOffset);
 		}
 
-		IEnumerable<WRot> BarrelRotation()
+		WRot BarrelRotation()
 		{
-			var b = self.Orientation;
-			var qb = body.QuantizeOrientation(self, b);
-			yield return Info.LocalOrientation;
-			yield return turreted.WorldOrientation(self) - b + WRot.FromYaw(b.Yaw - qb.Yaw);
-			yield return qb;
+			return Info.LocalOrientation.Rotate(turreted.WorldOrientation);
 		}
 	}
 }

@@ -3,6 +3,8 @@ V19:
 	Selectable:
 		Bounds: 24,24
 	CashTrickler:
+		Amount: 10
+		RequiresCondition: enabled
 	Building:
 		Footprint: x
 		Dimensions: 1,1
@@ -12,13 +14,15 @@ V19:
 		Name: Oil Derrick
 	TooltipDescription@ally:
 		Description: Provides additional funds.
-		ValidStances: Ally
+		ValidRelationships: Ally
 	TooltipDescription@other:
 		Description: Capture to receive additional funds.
-		ValidStances: Neutral, Enemy
+		ValidRelationships: Neutral, Enemy
 	SpawnActorOnDeath:
 		Actor: V19.Husk
 	UpdatesDerrickCount:
+	GrantConditionOnCombatantOwner:
+		Condition: enabled
 
 V19.Husk:
 	Inherits: ^CivBuildingHusk
@@ -48,10 +52,10 @@ HOSP:
 		Name: Hospital
 	TooltipDescription@ally:
 		Description: Provides infantry with self-healing.
-		ValidStances: Ally
+		ValidRelationships: Ally
 	TooltipDescription@other:
 		Description: Capture to enable self-healing for infantry.
-		ValidStances: Neutral, Enemy
+		ValidRelationships: Neutral, Enemy
 	SpawnActorOnDeath:
 		Actor: HOSP.Husk
 	WithBuildingBib:
@@ -83,11 +87,11 @@ BIO:
 	Tooltip:
 		Name: Biological Lab
 	TooltipDescription@ally:
-		Description: Produces Bio-Lab units.
-		ValidStances: Ally
+		Description: Provides infantry with Tiberium immunity. Produces Visceroids.
+		ValidRelationships: Ally
 	TooltipDescription@other:
-		Description: Capture to produce Bio-Lab units.
-		ValidStances: Neutral, Enemy
+		Description: Capture to enable Tiberium immunity for infantry. Produces Visceroids.
+		ValidRelationships: Neutral, Enemy
 	Exit@1:
 		SpawnOffset: 0,-426,0
 		ExitCell: 0,-1

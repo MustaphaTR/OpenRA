@@ -30,8 +30,8 @@ namespace OpenRA.Mods.Common.Traits
 		"Ignored if 0 (actors are selected regardless of vertical distance).")]
 		public readonly WDist MaximumVerticalOffset = WDist.Zero;
 
-		[Desc("What diplomatic stances are affected.")]
-		public readonly Stance ValidStances = Stance.Ally;
+		[Desc("What player relationships are affected.")]
+		public readonly PlayerRelationship ValidRelationships = PlayerRelationship.Ally;
 
 		[Desc("Condition is applied permanently to this actor.")]
 		public readonly bool AffectsParent = false;
@@ -110,8 +110,8 @@ namespace OpenRA.Mods.Common.Traits
 			if (tokens.ContainsKey(a))
 				return;
 
-			var stance = self.Owner.Stances[a.Owner];
-			if (!Info.ValidStances.HasStance(stance))
+			var stance = self.Owner.RelationshipWith(a.Owner);
+			if (!Info.ValidRelationships.HasStance(stance))
 				return;
 
 			var external = a.TraitsImplementing<ExternalCondition>()
@@ -134,8 +134,8 @@ namespace OpenRA.Mods.Common.Traits
 			// Work around for actors produced within the region not triggering until the second tick
 			if ((produced.CenterPosition - self.CenterPosition).HorizontalLengthSquared <= Info.Range.LengthSquared)
 			{
-				var stance = self.Owner.Stances[produced.Owner];
-				if (!Info.ValidStances.HasStance(stance))
+				var stance = self.Owner.RelationshipWith(produced.Owner);
+				if (!Info.ValidRelationships.HasStance(stance))
 					return;
 
 				var external = produced.TraitsImplementing<ExternalCondition>()
@@ -151,8 +151,7 @@ namespace OpenRA.Mods.Common.Traits
 			if (a.Disposed)
 				return;
 
-			int token;
-			if (!tokens.TryGetValue(a, out token))
+			if (!tokens.TryGetValue(a, out var token))
 				return;
 
 			tokens.Remove(a);

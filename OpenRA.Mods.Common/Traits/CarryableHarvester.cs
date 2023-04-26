@@ -10,14 +10,13 @@
 #endregion
 
 using System.Linq;
-using OpenRA.Activities;
 using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.Traits
 {
-	public class CarryableHarvesterInfo : ITraitInfo
+	public class CarryableHarvesterInfo : TraitInfo
 	{
-		public object Create(ActorInitializer init) { return new CarryableHarvester(); }
+		public override object Create(ActorInitializer init) { return new CarryableHarvester(); }
 	}
 
 	public class CarryableHarvester : INotifyCreated, INotifyHarvesterAction

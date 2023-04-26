@@ -23,7 +23,7 @@ namespace OpenRA.Mods.Common.Activities
 	{
 		public readonly string ToActor;
 		public CVec Offset = CVec.Zero;
-		public int Facing = 96;
+		public WAngle Facing = new WAngle(384);
 		public string[] Sounds = { };
 		public string Notification = null;
 		public int ForceHealthPercentage = 0;
@@ -170,7 +170,7 @@ namespace OpenRA.Mods.Common.Activities
 		readonly Target target;
 		readonly Color? targetLineColor;
 
-		public IssueOrderAfterTransform(string orderString, Target target, Color? targetLineColor = null)
+		public IssueOrderAfterTransform(string orderString, in Target target, Color? targetLineColor = null)
 		{
 			this.orderString = orderString;
 			this.target = target;

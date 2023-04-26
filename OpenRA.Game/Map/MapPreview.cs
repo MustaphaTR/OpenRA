@@ -89,7 +89,7 @@ namespace OpenRA
 			public bool DefinesUnsafeCustomRules { get; private set; }
 			public bool RulesLoaded { get; private set; }
 
-			public void SetRulesetGenerator(ModData modData, Func<Pair<Ruleset, bool>> generator)
+			public void SetRulesetGenerator(ModData modData, Func<(Ruleset Ruleset, bool DefinesUnsafeCustomRules)> generator)
 			{
 				InvalidCustomRules = false;
 				RulesLoaded = false;
@@ -106,8 +106,8 @@ namespace OpenRA
 					try
 					{
 						var ret = generator();
-						DefinesUnsafeCustomRules = ret.Second;
-						return ret.First;
+						DefinesUnsafeCustomRules = ret.DefinesUnsafeCustomRules;
+						return ret.Ruleset;
 					}
 					catch (Exception e)
 					{
@@ -223,7 +223,7 @@ namespace OpenRA
 				if (yamlStream == null)
 					throw new FileNotFoundException("Required file map.yaml not present in this map");
 
-				yaml = new MiniYaml(null, MiniYaml.FromStream(yamlStream, "map.yaml")).ToDictionary();
+				yaml = new MiniYaml(null, MiniYaml.FromStream(yamlStream, "map.yaml", stringPool: cache.StringPool)).ToDictionary();
 			}
 
 			Package = p;
@@ -233,8 +233,7 @@ namespace OpenRA
 			newData.GridType = gridType;
 			newData.Class = classification;
 
-			MiniYaml temp;
-			if (yaml.TryGetValue("MapFormat", out temp))
+			if (yaml.TryGetValue("MapFormat", out var temp))
 			{
 				var format = FieldLoader.GetValue<int>("MapFormat", temp.Value);
 				if (format != Map.SupportedMapFormat)
@@ -269,14 +268,13 @@ namespace OpenRA
 			try
 			{
 				// Actor definitions may change if the map format changes
-				MiniYaml actorDefinitions;
-				if (yaml.TryGetValue("Actors", out actorDefinitions))
+				if (yaml.TryGetValue("Actors", out var actorDefinitions))
 				{
 					var spawns = new List<CPos>();
 					foreach (var kv in actorDefinitions.Nodes.Where(d => d.Value.Value == "mpspawn"))
 					{
 						var s = new ActorReference(kv.Value.Value, kv.Value.ToDictionary());
-						spawns.Add(s.InitDict.Get<LocationInit>().Value(null));
+						spawns.Add(s.Get<LocationInit>().Value);
 					}
 
 					newData.SpawnPoints = spawns.ToArray();
@@ -293,8 +291,7 @@ namespace OpenRA
 			try
 			{
 				// Player definitions may change if the map format changes
-				MiniYaml playerDefinitions;
-				if (yaml.TryGetValue("Players", out playerDefinitions))
+				if (yaml.TryGetValue("Players", out var playerDefinitions))
 				{
 					newData.Players = new MapPlayers(playerDefinitions.Nodes);
 					newData.PlayerCount = newData.Players.Players.Count(x => x.Value.Playable);
@@ -318,7 +315,7 @@ namespace OpenRA
 					voiceDefinitions, notificationDefinitions, musicDefinitions, sequenceDefinitions, modelSequenceDefinitions);
 				var flagged = Ruleset.DefinesUnsafeCustomRules(modData, this, ruleDefinitions,
 					weaponDefinitions, voiceDefinitions, notificationDefinitions, sequenceDefinitions);
-				return Pair.New(rules, flagged);
+				return (rules, flagged);
 			});
 
 			if (p.Contains("map.png"))
@@ -331,8 +328,7 @@ namespace OpenRA
 
 		MiniYaml LoadRuleSection(Dictionary<string, MiniYaml> yaml, string section)
 		{
-			MiniYaml node;
-			if (!yaml.TryGetValue(section, out node))
+			if (!yaml.TryGetValue(section, out var node))
 				return null;
 
 			return node;
@@ -402,7 +398,7 @@ namespace OpenRA
 							voiceDefinitions, notificationDefinitions, musicDefinitions, sequenceDefinitions, modelSequenceDefinitions);
 						var flagged = Ruleset.DefinesUnsafeCustomRules(modData, this, ruleDefinitions,
 							weaponDefinitions, voiceDefinitions, notificationDefinitions, sequenceDefinitions);
-						return Pair.New(rules, flagged);
+						return (rules, flagged);
 					});
 				}
 				catch (Exception e)
@@ -416,8 +412,7 @@ namespace OpenRA
 				if (innerData.Preview != null)
 					cache.CacheMinimap(this);
 
-				if (parseMetadata != null)
-					parseMetadata(this);
+				parseMetadata?.Invoke(this);
 			}
 
 			// Update the status and class unconditionally
@@ -526,9 +521,7 @@ namespace OpenRA
 		public void Delete()
 		{
 			Invalidate();
-			var deleteFromPackage = parentPackage as IReadWritePackage;
-			if (deleteFromPackage != null)
-				deleteFromPackage.Delete(Package.Name);
+			(parentPackage as IReadWritePackage)?.Delete(Package.Name);
 		}
 
 		Stream IReadOnlyFileSystem.Open(string filename)

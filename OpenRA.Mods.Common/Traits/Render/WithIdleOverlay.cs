@@ -20,18 +20,21 @@ namespace OpenRA.Mods.Common.Traits.Render
 	[Desc("Renders a decorative animation on units and buildings.")]
 	public class WithIdleOverlayInfo : PausableConditionalTraitInfo, IRenderActorPreviewSpritesInfo, Requires<RenderSpritesInfo>, Requires<BodyOrientationInfo>
 	{
-		[SequenceReference]
+		[Desc("Image used for this decoration. Defaults to the actor's type.")]
+		public readonly string Image = null;
+
+		[SequenceReference(nameof(Image), allowNullImage: true)]
 		[Desc("Animation to play when the actor is created.")]
 		public readonly string StartSequence = null;
 
-		[SequenceReference]
+		[SequenceReference(nameof(Image), allowNullImage: true)]
 		[Desc("Sequence name to use")]
 		public readonly string Sequence = "idle-overlay";
 
 		[Desc("Position relative to body")]
 		public readonly WVec Offset = WVec.Zero;
 
-		[PaletteReference("IsPlayerPalette")]
+		[PaletteReference(nameof(IsPlayerPalette))]
 		[Desc("Custom palette name")]
 		public readonly string Palette = null;
 
@@ -40,6 +43,8 @@ namespace OpenRA.Mods.Common.Traits.Render
 
 		[Desc("Set this to true, if you want this overlay to render in a preview, even tho it isn't enabled by default.")]
 		public readonly bool RenderInPreview = false;
+
+		public readonly bool IsDecoration = false;
 
 		public override object Create(ActorInitializer init) { return new WithIdleOverlay(init.Self, this); }
 
@@ -51,20 +56,22 @@ namespace OpenRA.Mods.Common.Traits.Render
 			if (Palette != null)
 				p = init.WorldRenderer.Palette(Palette);
 
-			Func<int> facing;
-			if (init.Contains<DynamicFacingInit>())
-				facing = init.Get<DynamicFacingInit, Func<int>>();
+			Func<WAngle> facing;
+			var dynamicfacingInit = init.GetOrDefault<DynamicFacingInit>();
+			if (dynamicfacingInit != null)
+				facing = dynamicfacingInit.Value;
 			else
 			{
-				var f = init.Contains<FacingInit>() ? init.Get<FacingInit, int>() : 0;
+				var f = init.GetValue<FacingInit, WAngle>(WAngle.Zero);
 				facing = () => f;
 			}
 
-			var anim = new Animation(init.World, image, facing);
+			var anim = new Animation(init.World, Image ?? image, facing);
+			anim.IsDecoration = IsDecoration;
 			anim.PlayRepeating(RenderSprites.NormalizeSequence(anim, init.GetDamageState(), Sequence));
 
 			var body = init.Actor.TraitInfo<BodyOrientationInfo>();
-			Func<WRot> orientation = () => body.QuantizeOrientation(WRot.FromFacing(facing()), facings);
+			Func<WRot> orientation = () => body.QuantizeOrientation(WRot.FromYaw(facing()), facings);
 			Func<WVec> offset = () => body.LocalToWorld(Offset.Rotate(orientation()));
 			Func<int> zOffset = () =>
 			{
@@ -86,7 +93,9 @@ namespace OpenRA.Mods.Common.Traits.Render
 			var rs = self.Trait<RenderSprites>();
 			var body = self.Trait<BodyOrientation>();
 
-			overlay = new Animation(self.World, rs.GetImage(self), () => IsTraitPaused);
+			var image = info.Image ?? rs.GetImage(self);
+			overlay = new Animation(self.World, image, () => IsTraitPaused);
+			overlay.IsDecoration = info.IsDecoration;
 			if (info.StartSequence != null)
 				overlay.PlayThen(RenderSprites.NormalizeSequence(overlay, self.GetDamageState(), info.StartSequence),
 					() => overlay.PlayRepeating(RenderSprites.NormalizeSequence(overlay, self.GetDamageState(), info.Sequence)));

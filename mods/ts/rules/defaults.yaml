@@ -5,7 +5,6 @@
 	GivesExperience:
 		PlayerExperienceModifier: 1
 	ScriptTriggers:
-	ConditionManager:
 	RenderDebugState:
 
 ^SpriteActor:
@@ -52,26 +51,26 @@
 	ReloadDelayMultiplier@ELITE:
 		RequiresCondition: rank-elite
 		Modifier: 75
-	SelfHealing@ELITE:
+	ChangesHealth@ELITE:
 		Step: 200
 		Delay: 100
-		HealIfBelow: 100
+		StartIfBelow: 100
 		DamageCooldown: 125
 		RequiresCondition: rank-elite
 	WithDecoration@VETERAN:
+		RequiresCondition: rank-veteran
+		Position: BottomRight
+		Margin: 3, 4
 		Image: rank
 		Sequence: veteran
 		Palette: ra
-		ReferencePoint: Bottom, Right
-		RequiresCondition: rank-veteran
-		ZOffset: 256
 	WithDecoration@ELITE:
+		RequiresCondition: rank-elite
+		Position: BottomRight
+		Margin: 3, 4
 		Image: rank
 		Sequence: elite
 		Palette: ra
-		ReferencePoint: Bottom, Right
-		RequiresCondition: rank-elite
-		ZOffset: 256
 
 ^InfantryExperienceHospitalOverrides:
 	WithDecoration@VETERAN:
@@ -183,6 +182,11 @@
 		RequiresCondition: stance-attackanything || assault-move
 	AttackMove:
 		AssaultMoveCondition: assault-move
+
+^PlayerHandicaps:
+	HandicapFirepowerMultiplier:
+	HandicapDamageMultiplier:
+	HandicapProductionTimeMultiplier:
 
 ^2x1Shape:
 	HitShape:
@@ -303,10 +307,8 @@
 	Inherits@2: ^SpriteActor
 	Inherits@3: ^Cloakable
 	Inherits@selection: ^SelectableBuilding
+	Inherits@handicaps: ^PlayerHandicaps
 	Huntable:
-	WithTextControlGroupDecoration:
-	SelectionDecorations:
-		Palette: pips
 	Targetable:
 		TargetTypes: Ground, Building, C4
 	HitShape:
@@ -397,7 +399,7 @@
 	WithBuildingRepairDecoration:
 		Image: allyrepair
 		Sequence: repair
-		ReferencePoint: Center
+		Position: Center
 		Palette: mouse
 
 ^CivBuilding:
@@ -505,7 +507,6 @@
 		RequiresCondition: !being-demolished
 		SellSounds: cashturn.aud
 	ScriptTriggers:
-	ConditionManager:
 	Health:
 	HitShape:
 		Type: Rectangle
@@ -543,13 +544,11 @@
 	Inherits@4: ^Cloakable
 	Inherits@CRATESTATS: ^CrateStatModifiers
 	Inherits@selection: ^SelectableCombatUnit
+	Inherits@handicaps: ^PlayerHandicaps
 	Huntable:
 	OwnerLostAction:
 		Action: Kill
 		DeathTypes: BulletDeath
-	DrawLineToTarget:
-		QueuedLineWidth: 2
-		QueuedMarkerWidth: 3
 	Health:
 		HP: 5000
 	Armor:
@@ -563,10 +562,9 @@
 	Mobile:
 		Voice: Move
 		Speed: 71
+		AlwaysTurnInPlace: true
 		Locomotor: foot
-	WithTextControlGroupDecoration:
-	SelectionDecorations:
-		Palette: pips
+	TurnOnIdle:
 	Selectable:
 		DecorationBounds: 15,23,0,-9
 		Bounds: 24,24,0,-9
@@ -600,10 +598,10 @@
 	Guard:
 		Voice: Move
 	Guardable:
-	SelfHealing@HOSPITAL:
+	ChangesHealth@HOSPITAL:
 		Step: 500
 		Delay: 100
-		HealIfBelow: 100
+		StartIfBelow: 100
 		DamageCooldown: 125
 		RequiresCondition: hospitalheal
 	GrantConditionOnPrerequisite@HOSPITAL:
@@ -616,11 +614,12 @@
 		RequiresCondition: hospital && damaged
 		Condition: hospitalheal
 	WithDecoration@REDCROSS:
+		RequiresCondition: hospitalheal
+		Position: BottomRight
+		Margin: 3, 4
 		Image: pips
 		Sequence: medic
 		Palette: pips
-		ReferencePoint: Bottom, Right
-		RequiresCondition: hospitalheal
 		BlinkInterval: 32
 		BlinkPattern: Off, On
 	RevealOnFire:
@@ -633,6 +632,13 @@
 		Categories: Infantry
 	GrantConditionOnTunnelLayer:
 		Condition: inside-tunnel
+	WithDecoration@UNDERGROUND:
+		RequiresCondition: inside-tunnel
+		Position: Center
+		Image: typeglyphs
+		Sequence: infantry
+		Palette: player
+		IsPlayerPalette: true
 
 ^RegularInfantryDeath:
 	WithDeathAnimation@normal:
@@ -755,22 +761,17 @@
 	Inherits@5: ^DamagedByVeins
 	Inherits@CRATESTATS: ^CrateStatModifiers
 	Inherits@selection: ^SelectableCombatUnit
+	Inherits@handicaps: ^PlayerHandicaps
 	Huntable:
 	OwnerLostAction:
 		Action: Kill
-	DrawLineToTarget:
-		QueuedLineWidth: 2
-		QueuedMarkerWidth: 3
 	Mobile:
 		PauseOnCondition: empdisable || being-captured || carried
 		Locomotor: wheeled
-		TurnSpeed: 5
+		TurnSpeed: 20
 		Voice: Move
 	Selectable:
 		Bounds: 40,24
-	WithTextControlGroupDecoration:
-	SelectionDecorations:
-		Palette: pips
 	Voiced:
 		VoiceSet: Vehicle
 	Targetable:
@@ -834,6 +835,13 @@
 		Categories: Vehicle
 	GrantConditionOnTunnelLayer:
 		Condition: inside-tunnel
+	WithDecoration@UNDERGROUND:
+		RequiresCondition: inside-tunnel
+		Position: Center
+		Image: typeglyphs
+		Sequence: vehicle
+		Palette: player
+		IsPlayerPalette: true
 
 ^Tank:
 	Inherits: ^Vehicle
@@ -860,12 +868,10 @@
 	Inherits@2: ^ExistsInWorld
 	Inherits@3: ^Cloakable
 	Inherits@selection: ^SelectableCombatUnit
+	Inherits@handicaps: ^PlayerHandicaps
 	Huntable:
 	OwnerLostAction:
 		Action: Kill
-	DrawLineToTarget:
-		QueuedLineWidth: 2
-		QueuedMarkerWidth: 3
 	AppearsOnRadar:
 		UseLocation: true
 	Targetable@GROUND:
@@ -874,15 +880,10 @@
 	Targetable@AIRBORNE:
 		TargetTypes: Air
 		RequiresCondition: airborne
-	Selectable:
-	WithTextControlGroupDecoration:
-	SelectionDecorations:
-		Palette: pips
 	Repairable:
 		RepairActors: gadept
 		Voice: Move
 	Aircraft:
-		InitialFacing: 224
 		AirborneCondition: airborne
 		CruisingCondition: cruising
 		CruiseAltitude: 4c704
@@ -896,6 +897,10 @@
 		CanHover: true
 		CanSlide: true
 		VTOL: true
+		Pitch: -64
+		PitchSpeed: 16
+		Roll: 56
+		RollSpeed: 14
 	Voiced:
 		VoiceSet: Heli
 	HiddenUnderFog:
@@ -946,7 +951,7 @@
 		Type: Heavy
 	HiddenUnderFog:
 		Type: GroundPosition
-		AlwaysVisibleStances: None
+		AlwaysVisibleRelationships: None
 	ScriptTriggers:
 	Interactable:
 	Tooltip:
@@ -954,7 +959,7 @@
 	FallsToEarth:
 		Moves: true
 		Velocity: 112
-		MaximumSpinSpeed: 10
+		MaximumSpinSpeed: 40
 	HitShape:
 
 ^Visceroid:
@@ -962,20 +967,15 @@
 	Inherits@2: ^SpriteActor
 	Inherits@3: ^HealsOnTiberium
 	Inherits@selection: ^SelectableCombatUnit
+	Inherits@handicaps: ^PlayerHandicaps
 	Huntable:
-	DrawLineToTarget:
-		QueuedLineWidth: 2
-		QueuedMarkerWidth: 3
 	Health:
 	Armor:
 		Type: Light
 	Mobile:
 		Speed: 113
-		TurnSpeed: 16
+		TurnSpeed: 64
 		Locomotor: visceroid
-	WithTextControlGroupDecoration:
-	SelectionDecorations:
-		Palette: pips
 	Selectable:
 		Bounds: 26,26,0,-3
 	Targetable:
@@ -1017,6 +1017,7 @@
 		ResourceType: Tiberium
 		Interval: 55
 	WithIdleAnimation:
+		Interval: 500, 1000
 	MapEditorData:
 		Categories: Resource spawn
 
@@ -1117,15 +1118,13 @@
 	Inherits@2: ^ExistsInWorld
 	Inherits@3: ^Cloakable
 	Inherits@selection: ^SelectableCombatUnit
+	Inherits@handicaps: ^PlayerHandicaps
 	Huntable:
 	RenderVoxels:
 	RenderSprites:
 	WithVoxelBody:
-	DrawLineToTarget:
-		QueuedLineWidth: 2
-		QueuedMarkerWidth: 3
 	Mobile:
-		TurnSpeed: 5
+		TurnSpeed: 20
 		Voice: Move
 		Speed: 113
 		PauseOnCondition: empdisable
@@ -1143,9 +1142,6 @@
 		RequiresCondition: !inside-tunnel
 	Selectable:
 		Bounds: 40,24
-	WithTextControlGroupDecoration:
-	SelectionDecorations:
-		Palette: pips
 	Voiced:
 		VoiceSet: Vehicle
 	Targetable:
@@ -1324,7 +1320,7 @@
 		Sequence: offline
 		Palette: mouse
 		RequiresCondition: powerdown
-		ReferencePoint: Center
+		Position: Center
 		Offsets:
 			repairing: 12, 0
 	PowerMultiplier@POWERDOWN:
@@ -1343,25 +1339,66 @@
 		RequiresCondition: lowpower || powerdown
 		Condition: disabled
 
+^Selectable:
+	Selectable:
+	SelectionDecorations:
+	WithTextControlGroupDecoration:
+		Margin: 2, 0
+	DrawLineToTarget:
+		QueuedLineWidth: 2
+		QueuedMarkerWidth: 3
+
 ^SelectableCombatUnit:
+	Inherits@selectiondecorations: ^Selectable
 	Selectable:
 		Priority: 10
 		PriorityModifiers: Ctrl
 
 ^SelectableSupportUnit:
+	Inherits@selectiondecorations: ^Selectable
 	Selectable:
 		Priority: 8
 		PriorityModifiers: Ctrl, Alt
 
 ^SelectableEconomicUnit:
+	Inherits@selectiondecorations: ^Selectable
 	Selectable:
 		Priority: 6
 		PriorityModifiers: Ctrl, Alt
 
-^SelectableCombatBuilding:
-	Selectable:
-		Priority: 4
+^CargoPips:
+	WithCargoPipsDecoration:
+		Position: BottomLeft
+		RequiresSelection: true
+		Palette: pips
+		Margin: 5, 2
+		CustomPipSequences:
+			red: pip-red
+			green: pip-green
+			yellow: pip-yellow
 
 ^SelectableBuilding:
-	Selectable:
+	IsometricSelectable:
 		Priority: 2
+	IsometricSelectionDecorations:
+	WithTextControlGroupDecoration:
+		Margin: 1, 1
+	DrawLineToTarget:
+		QueuedLineWidth: 2
+		QueuedMarkerWidth: 3
+
+^SelectableCombatBuilding:
+	Inherits@selectiondecorations: ^SelectableBuilding
+	IsometricSelectable:
+		Priority: 4
+
+^PrimaryBuilding:
+	PrimaryBuilding:
+		PrimaryCondition: primary
+		SelectionNotification: PrimaryBuildingSelected
+	WithTextDecoration@primary:
+		RequiresCondition: primary
+		Position: Top
+		RequiresSelection: true
+		Text: PRIMARY
+		Color: E0D048

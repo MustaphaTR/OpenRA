@@ -22,7 +22,7 @@ namespace OpenRA.Mods.Common.Traits.Render
 	public enum RangeCircleMode { Maximum, Minimum }
 
 	[Desc("Draw a circle indicating my weapon's range.")]
-	class RenderRangeCircleInfo : ITraitInfo, IPlaceBuildingDecorationInfo, IRulesetLoaded, Requires<AttackBaseInfo>
+	class RenderRangeCircleInfo : TraitInfo, IPlaceBuildingDecorationInfo, IRulesetLoaded, Requires<AttackBaseInfo>
 	{
 		public readonly string RangeCircleType = null;
 
@@ -35,8 +35,14 @@ namespace OpenRA.Mods.Common.Traits.Render
 		[Desc("Color of the circle.")]
 		public readonly Color Color = Color.FromArgb(128, Color.Yellow);
 
-		[Desc("Color of the border of the circle.")]
+		[Desc("Range circle line width.")]
+		public readonly float Width = 1;
+
+		[Desc("Color of the border.")]
 		public readonly Color BorderColor = Color.FromArgb(96, Color.Black);
+
+		[Desc("Range circle border width.")]
+		public readonly float BorderWidth = 3;
 
 		// Computed range
 		Lazy<WDist> range;
@@ -51,7 +57,9 @@ namespace OpenRA.Mods.Common.Traits.Render
 				range.Value,
 				0,
 				Color,
-				BorderColor);
+				Width,
+				BorderColor,
+				BorderWidth);
 
 			var otherRanges = w.ActorsWithTrait<RenderRangeCircle>()
 				.Where(a => a.Trait.Info.RangeCircleType == RangeCircleType)
@@ -60,7 +68,7 @@ namespace OpenRA.Mods.Common.Traits.Render
 			return otherRanges.Append(localRange);
 		}
 
-		public object Create(ActorInitializer init) { return new RenderRangeCircle(init.Self, this); }
+		public override object Create(ActorInitializer init) { return new RenderRangeCircle(init.Self, this); }
 
 		public void RulesetLoaded(Ruleset rules, ActorInfo ai)
 		{
@@ -105,7 +113,9 @@ namespace OpenRA.Mods.Common.Traits.Render
 				range,
 				0,
 				Info.Color,
-				Info.BorderColor);
+				Info.Width,
+				Info.BorderColor,
+				Info.BorderWidth);
 		}
 
 		IEnumerable<IRenderable> IRenderAnnotationsWhenSelected.RenderAnnotations(Actor self, WorldRenderer wr)

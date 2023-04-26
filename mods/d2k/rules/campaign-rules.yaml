@@ -2,6 +2,7 @@ Player:
 	-ConquestVictoryConditions:
 	MissionObjectives:
 		EarlyGameOver: true
+		GameOverDelay: 3000
 	Shroud:
 		FogCheckboxLocked: True
 		FogCheckboxEnabled: True
@@ -32,3 +33,11 @@ World:
 		TechLevelDropdownLocked: True
 		ShortGameCheckboxLocked: True
 		ShortGameCheckboxEnabled: False
+
+^AutoTargetGroundAssaultMove:
+	GrantConditionOnBotOwner@BOTOWNER:
+		Bots: campaign
+
+^AutoTargetAllAssaultMove:
+	GrantConditionOnBotOwner@BOTOWNER:
+		Bots: campaign

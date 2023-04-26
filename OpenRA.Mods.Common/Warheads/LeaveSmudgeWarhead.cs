@@ -26,14 +26,14 @@ namespace OpenRA.Mods.Common.Warheads
 		[Desc("Type of smudge to apply to terrain.")]
 		public readonly HashSet<string> SmudgeType = new HashSet<string>();
 
-		[Desc("How close to ground must the impact happen to spawn smudges.")]
-		public readonly WDist AirThreshold = new WDist(128);
-
 		[Desc("Percentual chance the smudge is created.")]
 		public readonly int Chance = 100;
 
-		public override void DoImpact(Target target, WarheadArgs args)
+		public override void DoImpact(in Target target, WarheadArgs args)
 		{
+			if (target.Type == TargetType.Invalid)
+				return;
+
 			var firedBy = args.SourceActor;
 			var world = firedBy.World;
 
@@ -63,8 +63,7 @@ namespace OpenRA.Mods.Common.Warheads
 				if (cellActors.Any(a => !IsValidAgainst(a, firedBy)))
 					continue;
 
-				SmudgeLayer smudgeLayer;
-				if (!smudgeLayers.TryGetValue(smudgeType, out smudgeLayer))
+				if (!smudgeLayers.TryGetValue(smudgeType, out var smudgeLayer))
 					throw new NotImplementedException("Unknown smudge type `{0}`".F(smudgeType));
 
 				smudgeLayer.AddSmudge(sc);

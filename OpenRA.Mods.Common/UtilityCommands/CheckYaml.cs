@@ -81,7 +81,7 @@ namespace OpenRA.Mods.Common.UtilityCommands
 					maps = modData.MapCache.EnumerateMapsWithoutCaching().ToList();
 				}
 				else
-					maps.Add(new Map(modData, new Folder(".").OpenPackage(args[1], modData.ModFiles)));
+					maps.Add(new Map(modData, new Folder(Platform.EngineDir).OpenPackage(args[1], modData.ModFiles)));
 
 				foreach (var testMap in maps)
 				{
@@ -134,7 +134,7 @@ namespace OpenRA.Mods.Common.UtilityCommands
 				try
 				{
 					var customRulesPass = (ILintRulesPass)modData.ObjectCreator.CreateBasic(customRulesPassType);
-					customRulesPass.Run(EmitError, EmitWarning, rules);
+					customRulesPass.Run(EmitError, EmitWarning, modData, rules);
 				}
 				catch (Exception e)
 				{

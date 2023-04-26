@@ -64,8 +64,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 
 			menu = widget.Get("INGAME_MENU");
 			mpe = world.WorldActor.TraitOrDefault<MenuPaletteEffect>();
-			if (mpe != null)
-				mpe.Fade(mpe.Info.MenuEffect);
+			mpe?.Fade(mpe.Info.MenuEffect);
 
 			menu.Get<LabelWidget>("VERSION_LABEL").Text = modData.Manifest.Metadata.Version;
 
@@ -74,20 +73,17 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			buttonContainer.RemoveChild(buttonTemplate);
 			buttonContainer.IsVisible = () => !hideMenu;
 
-			MiniYaml buttonStrideNode;
-			if (logicArgs.TryGetValue("ButtonStride", out buttonStrideNode))
+			if (logicArgs.TryGetValue("ButtonStride", out var buttonStrideNode))
 				buttonStride = FieldLoader.GetValue<int2>("ButtonStride", buttonStrideNode.Value);
 
 			var scriptContext = world.WorldActor.TraitOrDefault<LuaScript>();
 			hasError = scriptContext != null && scriptContext.FatalErrorOccurred;
 
-			MiniYaml buttonsNode;
-			if (logicArgs.TryGetValue("Buttons", out buttonsNode))
+			if (logicArgs.TryGetValue("Buttons", out var buttonsNode))
 			{
-				Action createHandler;
 				var buttonIds = FieldLoader.GetValue<string[]>("Buttons", buttonsNode.Value);
 				foreach (var button in buttonIds)
-					if (buttonHandlers.TryGetValue(button, out createHandler))
+					if (buttonHandlers.TryGetValue(button, out var createHandler))
 						createHandler();
 			}
 
@@ -161,9 +157,9 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 		void CloseMenu()
 		{
 			Ui.CloseWindow();
-			if (mpe != null)
-				mpe.Fade(MenuPaletteEffect.EffectType.None);
+			mpe?.Fade(MenuPaletteEffect.EffectType.None);
 			onExit();
+			Ui.ResetTooltips();
 		}
 
 		ButtonWidget AddButton(string id, string text)

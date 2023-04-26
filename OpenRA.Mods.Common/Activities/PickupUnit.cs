@@ -9,7 +9,6 @@
  */
 #endregion
 
-using System;
 using System.Collections.Generic;
 using OpenRA.Activities;
 using OpenRA.Mods.Common.Traits;
@@ -49,12 +48,16 @@ namespace OpenRA.Mods.Common.Activities
 
 		protected override void OnFirstRun(Actor self)
 		{
+			// The cargo might have become invalid while we were moving towards it.
+			if (cargo.IsDead || carryable.IsTraitDisabled || !cargo.AppearsFriendlyTo(self))
+				return;
+
 			if (carryall.ReserveCarryable(self, cargo))
 			{
 				// Fly to the target and wait for it to be locked for pickup
 				// These activities will be cancelled and replaced by Land once the target has been locked
 				QueueChild(new Fly(self, Target.FromActor(cargo)));
-				QueueChild(new FlyIdle(self, tickIdle: false));
+				QueueChild(new FlyIdle(self, idleTurn: false));
 			}
 		}
 
@@ -113,7 +116,7 @@ namespace OpenRA.Mods.Common.Activities
 
 		public override IEnumerable<TargetLineNode> TargetLineNodes(Actor self)
 		{
-			yield return new TargetLineNode(Target.FromActor(cargo), Color.Yellow);
+			yield return new TargetLineNode(Target.FromActor(cargo), carryall.Info.TargetLineColor);
 		}
 
 		class AttachUnit : Activity

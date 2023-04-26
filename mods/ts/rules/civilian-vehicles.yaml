@@ -9,7 +9,7 @@
 		Name: Mammoth Tank
 	Mobile:
 		Speed: 56
-		TurnSpeed: 5
+		TurnSpeed: 20
 	Health:
 		HP: 60000
 	Armor:
@@ -19,7 +19,7 @@
 		MaxHeightDelta: 3
 		RequiresCondition: !inside-tunnel
 	Turreted:
-		TurnSpeed: 3
+		TurnSpeed: 12
 	Armament@PRIMARY:
 		Weapon: 120mmx
 		LocalOffset: 707,85,509, 707,-120,509
@@ -31,10 +31,10 @@
 	AttackTurreted:
 		Voice: Attack
 		PauseOnCondition: empdisable
-	SelfHealing:
+	ChangesHealth:
 		Step: 500
 		Delay: 10
-		HealIfBelow: 50
+		StartIfBelow: 50
 		DamageCooldown: 200
 	WithVoxelTurret:
 	WithVoxelBarrel:
@@ -77,7 +77,7 @@ ICBM:
 		Type: Light
 	Mobile:
 		Speed: 85
-		TurnSpeed: 5
+		TurnSpeed: 20
 	RevealsShroud:
 		RequiresCondition: !inside-tunnel
 		Range: 7c0
@@ -85,19 +85,20 @@ ICBM:
 	Transforms:
 		IntoActor: gaicbm
 		Offset: -1,-1
-		Facing: 96
+		Facing: 384
 		TransformSounds:
 		NoTransformSounds:
 		Voice: Move
 
 BUS:
 	Inherits: ^CivilianVoxelCrusher
+	Inherits@CARGOPIPS: ^CargoPips
 	Valued:
 		Cost: 800
 	Tooltip:
 		Name: School Bus
 	Mobile:
-		TurnSpeed: 5
+		TurnSpeed: 20
 		Speed: 113
 		PauseOnCondition: empdisable || loading || being-captured || carried
 	Health:
@@ -111,19 +112,19 @@ BUS:
 	Cargo:
 		Types: Infantry
 		MaxWeight: 20
-		PipCount: 5
 		UnloadVoice: Unload
 		LoadingCondition: loading
 		EjectOnDeath: true
 
 PICK:
 	Inherits: ^CivilianVoxelVehicle
+	Inherits@CARGOPIPS: ^CargoPips
 	Valued:
 		Cost: 800
 	Tooltip:
 		Name: Pickup
 	Mobile:
-		TurnSpeed: 5
+		TurnSpeed: 20
 		Speed: 113
 		PauseOnCondition: empdisable || loading || being-captured || carried
 	Health:
@@ -137,19 +138,19 @@ PICK:
 	Cargo:
 		Types: Infantry
 		MaxWeight: 2
-		PipCount: 5
 		UnloadVoice: Unload
 		LoadingCondition: loading
 		EjectOnDeath: true
 
 CAR:
 	Inherits: ^CivilianVoxelVehicle
+	Inherits@CARGOPIPS: ^CargoPips
 	Valued:
 		Cost: 800
 	Tooltip:
 		Name: Automobile
 	Mobile:
-		TurnSpeed: 5
+		TurnSpeed: 20
 		Speed: 113
 		PauseOnCondition: empdisable || loading || being-captured || carried
 	Health:
@@ -163,19 +164,19 @@ CAR:
 	Cargo:
 		Types: Infantry
 		MaxWeight: 4
-		PipCount: 5
 		UnloadVoice: Unload
 		LoadingCondition: loading
 		EjectOnDeath: true
 
 WINI:
 	Inherits: ^CivilianVoxelVehicle
+	Inherits@CARGOPIPS: ^CargoPips
 	Valued:
 		Cost: 800
 	Tooltip:
 		Name: Recreational Vehicle
 	Mobile:
-		TurnSpeed: 5
+		TurnSpeed: 20
 		Speed: 113
 		PauseOnCondition: empdisable || loading || being-captured || carried
 	Health:
@@ -189,40 +190,39 @@ WINI:
 	Cargo:
 		Types: Infantry
 		MaxWeight: 5
-		PipCount: 5
 		UnloadVoice: Unload
 		LoadingCondition: loading
 		EjectOnDeath: true
 
 LOCOMOTIVE:
 	Inherits: ^Train
+	Inherits@CARGOPIPS: ^CargoPips
 	Valued:
 		Cost: 800
 	Tooltip:
 		Name: Train Locomotive
 	Cargo:
 		MaxWeight: 2
-		PipCount: 2
 		EjectOnDeath: true
 
 TRAINCAR:
 	Inherits: ^Train
+	Inherits@CARGOPIPS: ^CargoPips
 	Valued:
 		Cost: 800
 	Tooltip:
 		Name: Passenger Car
 	Cargo:
 		MaxWeight: 10
-		PipCount: 5
 		EjectOnDeath: true
 
 CARGOCAR:
 	Inherits: ^Train
+	Inherits@CARGOPIPS: ^CargoPips
 	Valued:
 		Cost: 800
 	Tooltip:
 		Name: Cargo Car
 	Cargo:
 		MaxWeight: 10
-		PipCount: 5
 		EjectOnDeath: true

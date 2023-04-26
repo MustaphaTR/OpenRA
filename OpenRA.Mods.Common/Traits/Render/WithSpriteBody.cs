@@ -59,9 +59,9 @@ namespace OpenRA.Mods.Common.Traits.Render
 		readonly Animation boundsAnimation;
 
 		public WithSpriteBody(ActorInitializer init, WithSpriteBodyInfo info)
-			: this(init, info, () => 0) { }
+			: this(init, info, () => WAngle.Zero) { }
 
-		protected WithSpriteBody(ActorInitializer init, WithSpriteBodyInfo info, Func<int> baseFacing)
+		protected WithSpriteBody(ActorInitializer init, WithSpriteBodyInfo info, Func<WAngle> baseFacing)
 			: base(info)
 		{
 			rs = init.Self.Trait<RenderSprites>();
@@ -100,8 +100,7 @@ namespace OpenRA.Mods.Common.Traits.Render
 			DefaultAnimation.PlayThen(NormalizeSequence(self, name), () =>
 			{
 				CancelCustomAnimation(self);
-				if (after != null)
-					after();
+				after?.Invoke();
 			});
 		}
 
@@ -115,8 +114,7 @@ namespace OpenRA.Mods.Common.Traits.Render
 			DefaultAnimation.PlayBackwardsThen(NormalizeSequence(self, name), () =>
 			{
 				CancelCustomAnimation(self);
-				if (after != null)
-					after();
+				after?.Invoke();
 			});
 		}
 

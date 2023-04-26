@@ -10,7 +10,7 @@ MultiCluster:
 		MaximumLaunchAngle: 255
 		RangeLimit: 10c0
 		AllowSnapping: false
-		VerticalRateOfTurn: 16
+		VerticalRateOfTurn: 64
 	Warhead@1Dam: SpreadDamage
 		Spread: 216
 		Damage: 13000
@@ -47,7 +47,7 @@ ClusterMissile:
 		ExplosionPalette: effect-ignore-lighting-alpha75
 		ImpactSounds: expnew19.aud
 		ImpactActors: false
-		ValidTargets: Ground Water, Air
+		ValidTargets: Ground, Water, Air
 	Warhead@Cluster: FireCluster
 		Weapon: MultiCluster
 		RandomClusterCount: 10

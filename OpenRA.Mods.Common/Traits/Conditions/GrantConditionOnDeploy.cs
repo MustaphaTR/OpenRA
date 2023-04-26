@@ -43,8 +43,8 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Cursor to display when unable to (un)deploy the actor.")]
 		public readonly string DeployBlockedCursor = "deploy-blocked";
 
-		[Desc("Facing that the actor must face before deploying. Set to -1 to deploy regardless of facing.")]
-		public readonly int Facing = -1;
+		[Desc("Facing that the actor must face before deploying. Leave undefined to deploy regardless of facing.")]
+		public readonly WAngle? Facing = null;
 
 		[Desc("Play a randomly selected sound from this list when deploying.")]
 		public readonly string[] DeploySounds = null;
@@ -75,9 +75,9 @@ namespace OpenRA.Mods.Common.Traits
 			yield return new EditorActorCheckbox("Deployed", EditorDeployedDisplayOrder,
 				actor =>
 				{
-					var init = actor.Init<DeployStateInit>();
+					var init = actor.GetInitOrDefault<DeployStateInit>();
 					if (init != null)
-						return init.Value(world) == DeployState.Deployed;
+						return init.Value == DeployState.Deployed;
 
 					return false;
 				},
@@ -97,14 +97,11 @@ namespace OpenRA.Mods.Common.Traits
 	{
 		readonly Actor self;
 		readonly bool checkTerrainType;
-		readonly bool canTurn;
-		readonly IMove move;
 
 		DeployState deployState;
-		ConditionManager conditionManager;
 		INotifyDeployTriggered[] notify;
-		int deployedToken = ConditionManager.InvalidConditionToken;
-		int undeployedToken = ConditionManager.InvalidConditionToken;
+		int deployedToken = Actor.InvalidConditionToken;
+		int undeployedToken = Actor.InvalidConditionToken;
 
 		public DeployState DeployState { get { return deployState; } }
 
@@ -113,17 +110,20 @@ namespace OpenRA.Mods.Common.Traits
 		{
 			self = init.Self;
 			checkTerrainType = info.AllowedTerrainTypes.Count > 0;
-			canTurn = self.Info.HasTraitInfo<IFacingInfo>();
-			move = self.TraitOrDefault<IMove>();
-			if (init.Contains<DeployStateInit>())
-				deployState = init.Get<DeployStateInit, DeployState>();
+			deployState = init.GetValue<DeployStateInit, DeployState>(DeployState.Undeployed);
 		}
 
 		protected override void Created(Actor self)
 		{
-			conditionManager = self.TraitOrDefault<ConditionManager>();
 			notify = self.TraitsImplementing<INotifyDeployTriggered>().ToArray();
 			base.Created(self);
+
+			if (Info.Facing.HasValue && deployState != DeployState.Undeployed)
+			{
+				var facing = self.TraitOrDefault<IFacing>();
+				if (facing != null)
+					facing.Facing = Info.Facing.Value;
+			}
 
 			switch (deployState)
 			{
@@ -131,21 +131,12 @@ namespace OpenRA.Mods.Common.Traits
 					OnUndeployCompleted();
 					break;
 				case DeployState.Deploying:
-					if (canTurn)
-						self.Trait<IFacing>().Facing = Info.Facing;
-
 					Deploy(true);
 					break;
 				case DeployState.Deployed:
-					if (canTurn)
-						self.Trait<IFacing>().Facing = Info.Facing;
-
 					OnDeployCompleted();
 					break;
 				case DeployState.Undeploying:
-					if (canTurn)
-						self.Trait<IFacing>().Facing = Info.Facing;
-
 					Undeploy(true);
 					break;
 			}
@@ -184,7 +175,7 @@ namespace OpenRA.Mods.Common.Traits
 			}
 		}
 
-		public Order IssueOrder(Actor self, IOrderTargeter order, Target target, bool queued)
+		public Order IssueOrder(Actor self, IOrderTargeter order, in Target target, bool queued)
 		{
 			if (order.OrderID == "GrantConditionOnDeploy")
 				return new Order(order.OrderID, self, target, queued);
@@ -246,16 +237,8 @@ namespace OpenRA.Mods.Common.Traits
 			if (Info.CanDeployOnRamps)
 				return true;
 
-			var ramp = 0;
-			if (self.World.Map.Contains(location))
-			{
-				var tile = self.World.Map.Tiles[location];
-				var ti = self.World.Map.Rules.TileSet.GetTileInfo(tile);
-				if (ti != null)
-					ramp = ti.RampType;
-			}
-
-			return ramp == 0;
+			var map = self.World.Map;
+			return !map.Ramp.Contains(location) || map.Ramp[location] == 0;
 		}
 
 		int deployNotificationCount = 0;
@@ -334,43 +317,40 @@ namespace OpenRA.Mods.Common.Traits
 
 		void OnDeployStarted()
 		{
-			if (undeployedToken != ConditionManager.InvalidConditionToken)
-				undeployedToken = conditionManager.RevokeCondition(self, undeployedToken);
+			if (undeployedToken != Actor.InvalidConditionToken)
+				undeployedToken = self.RevokeCondition(undeployedToken);
 
 			deployState = DeployState.Deploying;
 		}
 
 		void OnDeployCompleted()
 		{
-			if (conditionManager != null && !string.IsNullOrEmpty(Info.DeployedCondition) && deployedToken == ConditionManager.InvalidConditionToken)
-				deployedToken = conditionManager.GrantCondition(self, Info.DeployedCondition);
+			if (deployedToken == Actor.InvalidConditionToken)
+				deployedToken = self.GrantCondition(Info.DeployedCondition);
 
 			deployState = DeployState.Deployed;
 		}
 
 		void OnUndeployStarted()
 		{
-			if (deployedToken != ConditionManager.InvalidConditionToken)
-				deployedToken = conditionManager.RevokeCondition(self, deployedToken);
+			if (deployedToken != Actor.InvalidConditionToken)
+				deployedToken = self.RevokeCondition(deployedToken);
 
 			deployState = DeployState.Deploying;
 		}
 
 		void OnUndeployCompleted()
 		{
-			if (conditionManager != null && !string.IsNullOrEmpty(Info.UndeployedCondition) && undeployedToken == ConditionManager.InvalidConditionToken)
-				undeployedToken = conditionManager.GrantCondition(self, Info.UndeployedCondition);
+			if (undeployedToken == Actor.InvalidConditionToken)
+				undeployedToken = self.GrantCondition(Info.UndeployedCondition);
 
 			deployState = DeployState.Undeployed;
 		}
 	}
 
-	public class DeployStateInit : IActorInit<DeployState>
+	public class DeployStateInit : ValueActorInit<DeployState>, ISingleInstanceInit
 	{
-		[FieldFromYamlKey]
-		readonly DeployState value = DeployState.Deployed;
-		public DeployStateInit() { }
-		public DeployStateInit(DeployState init) { value = init; }
-		public DeployState Value(World world) { return value; }
+		public DeployStateInit(DeployState value)
+			: base(value) { }
 	}
 }

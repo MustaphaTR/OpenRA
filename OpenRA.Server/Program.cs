@@ -10,6 +10,7 @@
 #endregion
 
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Threading;
@@ -22,6 +23,11 @@ namespace OpenRA.Server
 		static void Main(string[] args)
 		{
 			var arguments = new Arguments(args);
+
+			var engineDirArg = arguments.GetValue("Engine.EngineDir", null);
+			if (!string.IsNullOrEmpty(engineDirArg))
+				Platform.OverrideEngineDir(engineDirArg);
+
 			var supportDirArg = arguments.GetValue("Engine.SupportDir", null);
 			if (!string.IsNullOrEmpty(supportDirArg))
 				Platform.OverrideSupportDir(supportDirArg);
@@ -53,7 +59,7 @@ namespace OpenRA.Server
 			var envModSearchPaths = Environment.GetEnvironmentVariable("MOD_SEARCH_PATHS");
 			var modSearchPaths = !string.IsNullOrWhiteSpace(envModSearchPaths) ?
 				FieldLoader.GetValue<string[]>("MOD_SEARCH_PATHS", envModSearchPaths) :
-				new[] { Path.Combine(".", "mods") };
+				new[] { Path.Combine(Platform.EngineDir, "mods") };
 
 			var mods = new InstalledMods(modSearchPaths, explicitModPaths);
 
@@ -66,7 +72,9 @@ namespace OpenRA.Server
 
 				settings.Map = modData.MapCache.ChooseInitialMap(settings.Map, new MersenneTwister());
 
-				var server = new Server(new IPEndPoint(IPAddress.Any, settings.ListenPort), settings, modData, ServerType.Dedicated);
+				var endpoints = new List<IPEndPoint> { new IPEndPoint(IPAddress.IPv6Any, settings.ListenPort), new IPEndPoint(IPAddress.Any, settings.ListenPort) };
+				var server = new Server(endpoints, settings, modData, ServerType.Dedicated);
+
 				GC.Collect();
 				while (true)
 				{

@@ -24,9 +24,8 @@ namespace OpenRA
 		public readonly byte TerrainType = byte.MaxValue;
 		public readonly byte Height;
 		public readonly byte RampType;
-		public readonly Color LeftColor;
-		public readonly Color RightColor;
-
+		public readonly Color MinColor;
+		public readonly Color MaxColor;
 		public readonly float ZOffset = 0.0f;
 		public readonly float ZRamp = 1.0f;
 	}
@@ -55,13 +54,6 @@ namespace OpenRA
 
 		readonly TerrainTileInfo[] tileInfo;
 
-		public TerrainTemplateInfo(ushort id, string[] images, int2 size, byte[] tiles)
-		{
-			Id = id;
-			Images = images;
-			Size = size;
-		}
-
 		public TerrainTemplateInfo(TileSet tileSet, MiniYaml my)
 		{
 			FieldLoader.Load(this, my);
@@ -73,9 +65,11 @@ namespace OpenRA
 				tileInfo = new TerrainTileInfo[Size.X * Size.Y];
 				foreach (var node in nodes)
 				{
-					int key;
-					if (!int.TryParse(node.Key, out key) || key < 0 || key >= tileInfo.Length)
-						throw new InvalidDataException("Invalid tile key '{0}' on template '{1}' of tileset '{2}'.".F(node.Key, Id, tileSet.Id));
+					if (!int.TryParse(node.Key, out var key))
+						throw new YamlException("Tileset `{0}` template `{1}` defines a frame `{2}` that is not a valid integer.".F(tileSet.Id, Id, node.Key));
+
+					if (key < 0 || key >= tileInfo.Length)
+						throw new YamlException("Tileset `{0}` template `{1}` references frame {2}, but only [0..{3}] are valid for a {4}x{5} Size template.".F(tileSet.Id, Id, key, tileInfo.Length - 1, Size.X, Size.Y));
 
 					tileInfo[key] = LoadTileInfo(tileSet, node.Value);
 				}
@@ -87,9 +81,11 @@ namespace OpenRA
 				var i = 0;
 				foreach (var node in nodes)
 				{
-					int key;
-					if (!int.TryParse(node.Key, out key) || key != i++)
-						throw new InvalidDataException("Invalid tile key '{0}' on template '{1}' of tileset '{2}'.".F(node.Key, Id, tileSet.Id));
+					if (!int.TryParse(node.Key, out var key))
+						throw new YamlException("Tileset `{0}` template `{1}` defines a frame `{2}` that is not a valid integer.".F(tileSet.Id, Id, node.Key));
+
+					if (key != i++)
+						throw new YamlException("Tileset `{0}` template `{1}` is missing a definition for frame {2}.".F(tileSet.Id, Id, i - 1));
 
 					tileInfo[key] = LoadTileInfo(tileSet, node.Value);
 				}
@@ -106,11 +102,11 @@ namespace OpenRA
 
 			// Fall back to the terrain-type color if necessary
 			var overrideColor = tileSet.TerrainInfo[tile.TerrainType].Color;
-			if (tile.LeftColor == default(Color))
-				tile.GetType().GetField("LeftColor").SetValue(tile, overrideColor);
+			if (tile.MinColor == default(Color))
+				tile.GetType().GetField("MinColor").SetValue(tile, overrideColor);
 
-			if (tile.RightColor == default(Color))
-				tile.GetType().GetField("RightColor").SetValue(tile, overrideColor);
+			if (tile.MaxColor == default(Color))
+				tile.GetType().GetField("MaxColor").SetValue(tile, overrideColor);
 
 			return tile;
 		}
@@ -139,6 +135,8 @@ namespace OpenRA
 		public readonly string[] EditorTemplateOrder;
 		public readonly bool IgnoreTileSpriteOffsets;
 		public readonly bool EnableDepth = false;
+		public readonly float MinHeightColorBrightness = 1.0f;
+		public readonly float MaxHeightColorBrightness = 1.0f;
 
 		[FieldLoader.Ignore]
 		public readonly IReadOnlyDictionary<ushort, TerrainTemplateInfo> Templates;
@@ -163,14 +161,14 @@ namespace OpenRA
 				.ToArray();
 
 			if (TerrainInfo.Length >= byte.MaxValue)
-				throw new InvalidDataException("Too many terrain types.");
+				throw new YamlException("Too many terrain types.");
 
 			for (byte i = 0; i < TerrainInfo.Length; i++)
 			{
 				var tt = TerrainInfo[i].Type;
 
 				if (terrainIndexByType.ContainsKey(tt))
-					throw new InvalidDataException("Duplicate terrain type '{0}' in '{1}'.".F(tt, filepath));
+					throw new YamlException("Duplicate terrain type '{0}' in '{1}'.".F(tt, filepath));
 
 				terrainIndexByType.Add(tt, i);
 			}
@@ -215,8 +213,7 @@ namespace OpenRA
 
 		public byte GetTerrainIndex(string type)
 		{
-			byte index;
-			if (terrainIndexByType.TryGetValue(type, out index))
+			if (terrainIndexByType.TryGetValue(type, out var index))
 				return index;
 
 			throw new InvalidDataException("Tileset '{0}' lacks terrain type '{1}'".F(Id, type));
@@ -224,8 +221,7 @@ namespace OpenRA
 
 		public byte GetTerrainIndex(TerrainTile r)
 		{
-			TerrainTemplateInfo tpl;
-			if (!Templates.TryGetValue(r.Type, out tpl))
+			if (!Templates.TryGetValue(r.Type, out var tpl))
 				return defaultWalkableTerrainIndex;
 
 			if (tpl.Contains(r.Index))
@@ -240,8 +236,7 @@ namespace OpenRA
 
 		public TerrainTileInfo GetTileInfo(TerrainTile r)
 		{
-			TerrainTemplateInfo tpl;
-			if (!Templates.TryGetValue(r.Type, out tpl))
+			if (!Templates.TryGetValue(r.Type, out var tpl))
 				return null;
 
 			return tpl.Contains(r.Index) ? tpl[r.Index] : null;

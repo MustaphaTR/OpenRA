@@ -67,13 +67,15 @@ namespace OpenRA.Platforms.Default
 			inputHandler.ModifierKeys(mods);
 			MouseInput? pendingMotion = null;
 
-			SDL.SDL_Event e;
-			while (SDL.SDL_PollEvent(out e) != 0)
+			while (SDL.SDL_PollEvent(out var e) != 0)
 			{
 				switch (e.type)
 				{
 					case SDL.SDL_EventType.SDL_QUIT:
-						Game.Exit();
+						// On macOS, we'd like to restrict Cmd + Q from suddenly exiting the game.
+						if (Platform.CurrentPlatform != PlatformType.OSX || !mods.HasModifier(Modifiers.Meta))
+							Game.Exit();
+
 						break;
 
 					case SDL.SDL_EventType.SDL_WINDOWEVENT:
@@ -81,11 +83,11 @@ namespace OpenRA.Platforms.Default
 							switch (e.window.windowEvent)
 							{
 								case SDL.SDL_WindowEventID.SDL_WINDOWEVENT_FOCUS_LOST:
-									Game.HasInputFocus = false;
+									device.HasInputFocus = false;
 									break;
 
 								case SDL.SDL_WindowEventID.SDL_WINDOWEVENT_FOCUS_GAINED:
-									Game.HasInputFocus = true;
+									device.HasInputFocus = true;
 									break;
 
 								// Triggered when moving between displays with different DPI settings
@@ -157,8 +159,7 @@ namespace OpenRA.Platforms.Default
 
 					case SDL.SDL_EventType.SDL_MOUSEWHEEL:
 						{
-							int x, y;
-							SDL.SDL_GetMouseState(out x, out y);
+							SDL.SDL_GetMouseState(out var x, out var y);
 
 							var pos = EventPosition(device, x, y);
 							inputHandler.OnMouseInput(new MouseInput(MouseInputEvent.Scroll, MouseButton.None, pos, new int2(0, e.wheel.y), mods, 0));

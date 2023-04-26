@@ -55,7 +55,7 @@ namespace OpenRA.Mods.Common.Traits
 	}
 
 	[Desc("Used by Mobile. Attach these to the world actor. You can have multiple variants by adding @suffixes.")]
-	public class LocomotorInfo : ITraitInfo
+	public class LocomotorInfo : TraitInfo
 	{
 		[Desc("Locomotor ID.")]
 		public readonly string Name = "default";
@@ -105,22 +105,6 @@ namespace OpenRA.Mods.Common.Traits
 			return ret;
 		}
 
-		TerrainInfo[] LoadTilesetSpeeds(TileSet tileSet)
-		{
-			var info = new TerrainInfo[tileSet.TerrainInfo.Length];
-			for (var i = 0; i < info.Length; i++)
-				info[i] = TerrainInfo.Impassable;
-
-			foreach (var kvp in TerrainSpeeds)
-			{
-				byte index;
-				if (tileSet.TryGetTerrainIndex(kvp.Key, out index))
-					info[index] = kvp.Value;
-			}
-
-			return info;
-		}
-
 		public class TerrainInfo
 		{
 			public static readonly TerrainInfo Impassable = new TerrainInfo();
@@ -141,56 +125,9 @@ namespace OpenRA.Mods.Common.Traits
 			}
 		}
 
-		public struct WorldMovementInfo
-		{
-			internal readonly World World;
-			internal readonly TerrainInfo[] TerrainInfos;
-			internal WorldMovementInfo(World world, LocomotorInfo info)
-			{
-				// PERF: This struct allows us to cache the terrain info for the tileset used by the world.
-				// This allows us to speed up some performance-sensitive pathfinding calculations.
-				World = world;
-				TerrainInfos = info.TilesetTerrainInfo[world.Map.Rules.TileSet];
-			}
-		}
-
-		public readonly Cache<TileSet, TerrainInfo[]> TilesetTerrainInfo;
-		public readonly Cache<TileSet, int> TilesetMovementClass;
-
-		public LocomotorInfo()
-		{
-			TilesetTerrainInfo = new Cache<TileSet, TerrainInfo[]>(LoadTilesetSpeeds);
-			TilesetMovementClass = new Cache<TileSet, int>(CalculateTilesetMovementClass);
-		}
-
-		public int CalculateTilesetMovementClass(TileSet tileset)
-		{
-			// collect our ability to cross *all* terraintypes, in a bitvector
-			return TilesetTerrainInfo[tileset].Select(ti => ti.Cost < short.MaxValue).ToBits();
-		}
-
-		public uint GetMovementClass(TileSet tileset)
-		{
-			return (uint)TilesetMovementClass[tileset];
-		}
-
-		public int TileSetMovementHash(TileSet tileSet)
-		{
-			var terrainInfos = TilesetTerrainInfo[tileSet];
-
-			// Compute and return the hash using aggregate
-			return terrainInfos.Aggregate(terrainInfos.Length,
-				(current, terrainInfo) => unchecked(current * 31 + terrainInfo.Cost));
-		}
-
-		public WorldMovementInfo GetWorldMovementInfo(World world)
-		{
-			return new WorldMovementInfo(world, this);
-		}
-
 		public virtual bool DisableDomainPassabilityCheck { get { return false; } }
 
-		public virtual object Create(ActorInitializer init) { return new Locomotor(init.Self, this); }
+		public override object Create(ActorInitializer init) { return new Locomotor(init.Self, this); }
 	}
 
 	public class Locomotor : IWorldLoaded
@@ -210,14 +147,15 @@ namespace OpenRA.Mods.Common.Traits
 		}
 
 		public readonly LocomotorInfo Info;
+		public readonly uint MovementClass;
 		CellLayer<short> cellsCost;
 		CellLayer<CellCache> blockingCache;
 
 		readonly Dictionary<byte, CellLayer<short>> customLayerCellsCost = new Dictionary<byte, CellLayer<short>>();
 		readonly Dictionary<byte, CellLayer<CellCache>> customLayerBlockingCache = new Dictionary<byte, CellLayer<CellCache>>();
 
-		LocomotorInfo.TerrainInfo[] terrainInfos;
-		World world;
+		readonly LocomotorInfo.TerrainInfo[] terrainInfos;
+		readonly World world;
 		readonly HashSet<CPos> dirtyCells = new HashSet<CPos>();
 
 		IActorMap actorMap;
@@ -227,6 +165,15 @@ namespace OpenRA.Mods.Common.Traits
 		{
 			Info = info;
 			sharesCell = info.SharesCell;
+			world = self.World;
+
+			var tileSet = world.Map.Rules.TileSet;
+			terrainInfos = new LocomotorInfo.TerrainInfo[tileSet.TerrainInfo.Length];
+			for (var i = 0; i < terrainInfos.Length; i++)
+				if (!info.TerrainSpeeds.TryGetValue(tileSet.TerrainInfo[i].Type, out terrainInfos[i]))
+					terrainInfos[i] = LocomotorInfo.TerrainInfo.Impassable;
+
+			MovementClass = (uint)terrainInfos.Select(ti => ti.Cost < short.MaxValue).ToBits();
 		}
 
 		public short MovementCostForCell(CPos cell)
@@ -235,6 +182,14 @@ namespace OpenRA.Mods.Common.Traits
 				return short.MaxValue;
 
 			return cell.Layer == 0 ? cellsCost[cell] : customLayerCellsCost[cell.Layer][cell];
+		}
+
+		public int MovementSpeedForCell(CPos cell)
+		{
+			var index = cell.Layer == 0 ? world.Map.GetTerrainIndex(cell) :
+				world.GetCustomMovementLayers()[cell.Layer].GetTerrainIndex(cell);
+
+			return terrainInfos[index].Speed;
 		}
 
 		public short MovementCostToEnterCell(Actor actor, CPos destNode, BlockedByActor check, Actor ignoreActor)
@@ -318,6 +273,9 @@ namespace OpenRA.Mods.Common.Traits
 
 		public bool CanStayInCell(CPos cell)
 		{
+			if (!world.Map.Contains(cell))
+				return false;
+
 			return !GetCache(cell).CellFlag.HasCellFlag(CellFlag.HasTransitOnlyActor);
 		}
 
@@ -349,9 +307,9 @@ namespace OpenRA.Mods.Common.Traits
 
 			// If the check allows: We are not blocked by units that we can force to move out of the way.
 			if (check <= BlockedByActor.Immovable && cellFlag.HasCellFlag(CellFlag.HasMovableActor) &&
-				actor.Owner.Stances[otherActor.Owner] == Stance.Ally)
+				actor.Owner.RelationshipWith(otherActor.Owner) == PlayerRelationship.Ally)
 			{
-				var mobile = otherActor.TraitOrDefault<Mobile>();
+				var mobile = otherActor.OccupiesSpace as Mobile;
 				if (mobile != null && !mobile.IsTraitDisabled && !mobile.IsTraitPaused && !mobile.IsImmovable)
 					return false;
 			}
@@ -372,7 +330,7 @@ namespace OpenRA.Mods.Common.Traits
 			if (cellFlag.HasCellFlag(CellFlag.HasTransitOnlyActor))
 			{
 				// Transit only tiles should not block movement
-				var building = otherActor.TraitOrDefault<Building>();
+				var building = otherActor.OccupiesSpace as Building;
 				if (building != null && building.TransitOnlyCells().Contains(cell))
 					return false;
 			}
@@ -408,11 +366,9 @@ namespace OpenRA.Mods.Common.Traits
 
 		public void WorldLoaded(World w, WorldRenderer wr)
 		{
-			world = w;
 			var map = w.Map;
 			actorMap = w.ActorMap;
 			actorMap.CellUpdated += CellUpdated;
-			terrainInfos = Info.TilesetTerrainInfo[map.Rules.TileSet];
 
 			blockingCache = new CellLayer<CellCache>(map);
 			cellsCost = new CellLayer<short>(map);

@@ -25,14 +25,14 @@ namespace OpenRA.Mods.Cnc.Activities
 		readonly INotifyInfiltration[] notifiers;
 		Actor enterActor;
 
-		public Infiltrate(Actor self, Target target, Infiltrates infiltrates)
-			: base(self, target, WDist.Zero, Color.Crimson)
+		public Infiltrate(Actor self, in Target target, Infiltrates infiltrates, Color? targetLineColor)
+			: base(self, target, WDist.Zero, targetLineColor)
 		{
 			this.infiltrates = infiltrates;
 			notifiers = self.TraitsImplementing<INotifyInfiltration>().ToArray();
 		}
 
-		protected override void TickInner(Actor self, Target target, bool targetIsDeadOrHiddenActor)
+		protected override void TickInner(Actor self, in Target target, bool targetIsDeadOrHiddenActor)
 		{
 			if (infiltrates.IsTraitDisabled)
 				Cancel(self, true);
@@ -66,8 +66,7 @@ namespace OpenRA.Mods.Cnc.Activities
 				t.Infiltrated(targetActor, self, infiltrates.Info.Types);
 
 			var exp = self.Owner.PlayerActor.TraitOrDefault<PlayerExperience>();
-			if (exp != null)
-				exp.GiveExperience(infiltrates.Info.PlayerExperience);
+			exp?.GiveExperience(infiltrates.Info.PlayerExperience);
 
 			if (!string.IsNullOrEmpty(infiltrates.Info.Notification))
 				Game.Sound.PlayNotification(self.World.Map.Rules, self.Owner, "Speech",

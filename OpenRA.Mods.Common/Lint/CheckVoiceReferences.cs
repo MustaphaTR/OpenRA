@@ -11,17 +11,18 @@
 
 using System;
 using System.Linq;
+using OpenRA.Mods.Common.Traits;
 using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.Lint
 {
 	public class CheckVoiceReferences : ILintRulesPass
 	{
-		public void Run(Action<string> emitError, Action<string> emitWarning, Ruleset rules)
+		public void Run(Action<string> emitError, Action<string> emitWarning, ModData modData, Ruleset rules)
 		{
 			foreach (var actorInfo in rules.Actors)
 			{
-				foreach (var traitInfo in actorInfo.Value.TraitInfos<ITraitInfo>())
+				foreach (var traitInfo in actorInfo.Value.TraitInfos<TraitInfo>())
 				{
 					var fields = traitInfo.GetType().GetFields().Where(f => f.HasAttribute<VoiceSetReferenceAttribute>());
 					foreach (var field in fields)
@@ -43,7 +44,7 @@ namespace OpenRA.Mods.Common.Lint
 		{
 			var soundInfo = rules.Voices[voiceSet.ToLowerInvariant()];
 
-			foreach (var traitInfo in actorInfo.TraitInfos<ITraitInfo>())
+			foreach (var traitInfo in actorInfo.TraitInfos<TraitInfo>())
 			{
 				var fields = traitInfo.GetType().GetFields().Where(f => f.HasAttribute<VoiceReferenceAttribute>());
 				foreach (var field in fields)

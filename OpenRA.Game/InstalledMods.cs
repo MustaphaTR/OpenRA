@@ -14,7 +14,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using OpenRA.FileFormats;
 using OpenRA.FileSystem;
 using OpenRA.Graphics;
 using OpenRA.Primitives;
@@ -35,9 +34,9 @@ namespace OpenRA
 			mods = GetInstalledMods(searchPaths, explicitPaths);
 		}
 
-		static IEnumerable<Pair<string, string>> GetCandidateMods(IEnumerable<string> searchPaths)
+		static IEnumerable<(string Id, string Path)> GetCandidateMods(IEnumerable<string> searchPaths)
 		{
-			var mods = new List<Pair<string, string>>();
+			var mods = new List<(string, string)>();
 			foreach (var path in searchPaths)
 			{
 				try
@@ -48,7 +47,7 @@ namespace OpenRA
 
 					var directory = new DirectoryInfo(resolved);
 					foreach (var subdir in directory.EnumerateDirectories())
-						mods.Add(Pair.New(subdir.Name, subdir.FullName));
+						mods.Add((subdir.Name, subdir.FullName));
 				}
 				catch (Exception e)
 				{
@@ -79,8 +78,7 @@ namespace OpenRA
 				Log.Write("debug", "Load mod '{0}': {1}".F(path, e));
 			}
 
-			if (package != null)
-				package.Dispose();
+			package?.Dispose();
 
 			return null;
 		}
@@ -89,13 +87,13 @@ namespace OpenRA
 		{
 			var ret = new Dictionary<string, Manifest>();
 			var candidates = GetCandidateMods(searchPaths)
-				.Concat(explicitPaths.Select(p => Pair.New(Path.GetFileNameWithoutExtension(p), p)));
+				.Concat(explicitPaths.Select(p => (Id: Path.GetFileNameWithoutExtension(p), Path: p)));
 
 			foreach (var pair in candidates)
 			{
-				var mod = LoadMod(pair.First, pair.Second);
+				var mod = LoadMod(pair.Id, pair.Path);
 				if (mod != null)
-					ret[pair.First] = mod;
+					ret[pair.Id] = mod;
 			}
 
 			return ret;

@@ -18,12 +18,12 @@ using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.Traits
 {
-	public class ActorMapInfo : ITraitInfo
+	public class ActorMapInfo : TraitInfo
 	{
 		[Desc("Size of partition bins (cells)")]
 		public readonly int BinSize = 10;
 
-		public object Create(ActorInitializer init) { return new ActorMap(init.World, this); }
+		public override object Create(ActorInitializer init) { return new ActorMap(init.World, this); }
 	}
 
 	public class ActorMap : IActorMap, ITick, INotifyCreated
@@ -216,21 +216,32 @@ namespace OpenRA.Mods.Common.Traits
 			}
 		}
 
-		sealed class ActorsAtEnumerator : IEnumerator<Actor>
+		struct ActorsAtEnumerator : IEnumerator<Actor>
 		{
 			InfluenceNode node;
-			public ActorsAtEnumerator(InfluenceNode node) { this.node = node; }
+			Actor current;
+
+			public ActorsAtEnumerator(InfluenceNode node)
+			{
+				this.node = node;
+				current = null;
+			}
+
 			public void Reset() { throw new NotSupportedException(); }
-			public Actor Current { get; private set; }
-			object IEnumerator.Current { get { return Current; } }
+			public Actor Current
+			{
+				get { return current; }
+			}
+
+			object IEnumerator.Current { get { return current; } }
 			public void Dispose() { }
 			public bool MoveNext()
 			{
 				while (node != null)
 				{
-					Current = node.Actor;
+					current = node.Actor;
 					node = node.Next;
-					if (!Current.Disposed)
+					if (!current.Disposed)
 						return true;
 				}
 
@@ -238,7 +249,7 @@ namespace OpenRA.Mods.Common.Traits
 			}
 		}
 
-		sealed class ActorsAtEnumerable : IEnumerable<Actor>
+		struct ActorsAtEnumerable : IEnumerable<Actor>
 		{
 			readonly InfluenceNode node;
 			public ActorsAtEnumerable(InfluenceNode node) { this.node = node; }
@@ -359,20 +370,18 @@ namespace OpenRA.Mods.Common.Traits
 		{
 			foreach (var c in ios.OccupiedCells())
 			{
-				var uv = c.First.ToMPos(map);
+				var uv = c.Cell.ToMPos(map);
 				if (!influence.Contains(uv))
 					continue;
 
-				var layer = c.First.Layer == 0 ? influence : customInfluence[c.First.Layer];
-				layer[uv] = new InfluenceNode { Next = layer[uv], SubCell = c.Second, Actor = self };
+				var layer = c.Cell.Layer == 0 ? influence : customInfluence[c.Cell.Layer];
+				layer[uv] = new InfluenceNode { Next = layer[uv], SubCell = c.SubCell, Actor = self };
 
-				List<CellTrigger> triggers;
-				if (cellTriggerInfluence.TryGetValue(c.First, out triggers))
+				if (cellTriggerInfluence.TryGetValue(c.Cell, out var triggers))
 					foreach (var t in triggers)
 						t.Dirty = true;
 
-				if (CellUpdated != null)
-					CellUpdated(c.First);
+				CellUpdated?.Invoke(c.Cell);
 			}
 		}
 
@@ -380,22 +389,20 @@ namespace OpenRA.Mods.Common.Traits
 		{
 			foreach (var c in ios.OccupiedCells())
 			{
-				var uv = c.First.ToMPos(map);
+				var uv = c.Cell.ToMPos(map);
 				if (!influence.Contains(uv))
 					continue;
 
-				var layer = c.First.Layer == 0 ? influence : customInfluence[c.First.Layer];
+				var layer = c.Cell.Layer == 0 ? influence : customInfluence[c.Cell.Layer];
 				var temp = layer[uv];
 				RemoveInfluenceInner(ref temp, self);
 				layer[uv] = temp;
 
-				List<CellTrigger> triggers;
-				if (cellTriggerInfluence.TryGetValue(c.First, out triggers))
+				if (cellTriggerInfluence.TryGetValue(c.Cell, out var triggers))
 					foreach (var t in triggers)
 						t.Dirty = true;
 
-				if (CellUpdated != null)
-					CellUpdated(c.First);
+				CellUpdated?.Invoke(c.Cell);
 			}
 		}
 
@@ -416,7 +423,7 @@ namespace OpenRA.Mods.Common.Traits
 				return;
 
 			foreach (var c in ios.OccupiedCells())
-				CellUpdated(c.First);
+				CellUpdated(c.Cell);
 		}
 
 		void ITick.Tick(Actor self)
@@ -476,8 +483,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		public void RemoveCellTrigger(int id)
 		{
-			CellTrigger trigger;
-			if (!cellTriggers.TryGetValue(id, out trigger))
+			if (!cellTriggers.TryGetValue(id, out var trigger))
 				return;
 
 			foreach (var c in trigger.Footprint)
@@ -503,8 +509,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		public void RemoveProximityTrigger(int id)
 		{
-			ProximityTrigger t;
-			if (!proximityTriggers.TryGetValue(id, out t))
+			if (!proximityTriggers.TryGetValue(id, out var t))
 				return;
 
 			foreach (var bin in BinsInBox(t.TopLeft, t.BottomRight))
@@ -515,8 +520,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		public void UpdateProximityTrigger(int id, WPos newPos, WDist newRange, WDist newVRange)
 		{
-			ProximityTrigger t;
-			if (!proximityTriggers.TryGetValue(id, out t))
+			if (!proximityTriggers.TryGetValue(id, out var t))
 				return;
 
 			foreach (var bin in BinsInBox(t.TopLeft, t.BottomRight))

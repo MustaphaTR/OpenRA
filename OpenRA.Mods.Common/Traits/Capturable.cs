@@ -22,9 +22,10 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("CaptureTypes (from the Captures trait) that are able to capture this.")]
 		public readonly BitSet<CaptureType> Types = default(BitSet<CaptureType>);
 
-		[Desc("What diplomatic stances can be captured by this actor.")]
-		public readonly Stance ValidStances = Stance.Neutral | Stance.Enemy;
+		[Desc("What player relationships the target's owner needs to be captured by this actor.")]
+		public readonly PlayerRelationship ValidRelationships = PlayerRelationship.Neutral | PlayerRelationship.Enemy;
 
+		[Desc("Cancel the actor's current activity when getting captured.")]
 		public readonly bool CancelActivity = false;
 
 		public override object Create(ActorInitializer init) { return new Capturable(init.Self, this); }
@@ -43,11 +44,7 @@ namespace OpenRA.Mods.Common.Traits
 		void INotifyCapture.OnCapture(Actor self, Actor captor, Player oldOwner, Player newOwner, BitSet<CaptureType> captureTypes)
 		{
 			if (Info.CancelActivity)
-			{
-				var stop = new Order("Stop", self, false);
-				foreach (var t in self.TraitsImplementing<IResolveOrder>())
-					t.ResolveOrder(self, stop);
-			}
+				self.CancelActivity();
 		}
 
 		protected override void TraitEnabled(Actor self) { captureManager.RefreshCapturable(self); }

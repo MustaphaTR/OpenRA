@@ -11,31 +11,36 @@
 
 using System.Linq;
 using OpenRA.Effects;
+using OpenRA.Primitives;
 using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.Traits
 {
 	[Desc("Allows bridges to be targeted for demolition and repair.")]
-	class LegacyBridgeHutInfo : IDemolishableInfo, ITraitInfo
+	class LegacyBridgeHutInfo : TraitInfo, IDemolishableInfo
 	{
 		public bool IsValidTarget(ActorInfo actorInfo, Actor saboteur) { return false; } // TODO: bridges don't support frozen under fog
 
-		public object Create(ActorInitializer init) { return new LegacyBridgeHut(init); }
+		public override object Create(ActorInitializer init) { return new LegacyBridgeHut(init, this); }
 	}
 
 	class LegacyBridgeHut : IDemolishable
 	{
-		public readonly Bridge FirstBridge;
-		public readonly Bridge Bridge;
+		public Bridge FirstBridge { get; private set; }
+		public Bridge Bridge { get; private set; }
 		public DamageState BridgeDamageState { get { return Bridge.AggregateDamageState(); } }
 		public bool Repairing { get { return repairDirections > 0; } }
 		int repairDirections = 0;
 
-		public LegacyBridgeHut(ActorInitializer init)
+		public LegacyBridgeHut(ActorInitializer init, LegacyBridgeHutInfo info)
 		{
-			Bridge = init.Get<ParentActorInit>().ActorValue.Trait<Bridge>();
-			Bridge.AddHut(this);
-			FirstBridge = Bridge.Enumerate(0, true).Last();
+			var bridge = init.Get<ParentActorInit>().Value;
+			init.World.AddFrameEndTask(_ =>
+			{
+				Bridge = bridge.Actor(init.World).Value.Trait<Bridge>();
+				Bridge.AddHut(this);
+				FirstBridge = Bridge.Enumerate(0, true).Last();
+			});
 		}
 
 		public void Repair(Actor repairer)
@@ -49,7 +54,7 @@ namespace OpenRA.Mods.Common.Traits
 			return BridgeDamageState != DamageState.Dead;
 		}
 
-		void IDemolishable.Demolish(Actor self, Actor saboteur, int delay)
+		void IDemolishable.Demolish(Actor self, Actor saboteur, int delay, BitSet<DamageType> damageTypes)
 		{
 			// TODO: Handle using ITick
 			self.World.Add(new DelayedAction(delay, () =>
@@ -62,7 +67,7 @@ namespace OpenRA.Mods.Common.Traits
 					.Select(t => t.GetDamageModifier(self, null));
 
 				if (Util.ApplyPercentageModifiers(100, modifiers) > 0)
-					Bridge.Do((b, d) => b.Demolish(saboteur, d));
+					Bridge.Do((b, d) => b.Demolish(saboteur, d, damageTypes));
 			}));
 		}
 	}

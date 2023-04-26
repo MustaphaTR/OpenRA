@@ -35,6 +35,7 @@ namespace OpenRA.Mods.Common.Traits
 		public readonly BitSet<ArmorType> ArmorTypes = default(BitSet<ArmorType>);
 
 		[FieldLoader.LoadUsing("LoadShape")]
+		[Desc("Engine comes with support for `Circle`, `Capsule`, `Polygon` and `Rectangle`. Defaults to `Circle` when left empty.")]
 		public readonly IHitShape Type;
 
 		static object LoadShape(MiniYaml yaml)
@@ -89,11 +90,16 @@ namespace OpenRA.Mods.Common.Traits
 		IEnumerable<WPos> ITargetablePositions.TargetablePositions(Actor self)
 		{
 			if (IsTraitDisabled)
-				yield break;
+				return Enumerable.Empty<WPos>();
 
+			return TargetablePositions(self);
+		}
+
+		IEnumerable<WPos> TargetablePositions(Actor self)
+		{
 			if (Info.UseTargetableCellsOffsets && targetableCells != null)
 				foreach (var c in targetableCells.TargetableCells())
-					yield return self.World.Map.CenterOfCell(c.First);
+					yield return self.World.Map.CenterOfCell(c.Cell);
 
 			foreach (var o in Info.TargetableOffsets)
 			{
@@ -109,11 +115,7 @@ namespace OpenRA.Mods.Common.Traits
 
 			if (turret != null)
 			{
-				// WorldOrientation is quantized to satisfy the *Fudges.
-				// Need to then convert back to a pseudo-local coordinate space, apply offsets,
-				// then rotate back at the end
-				var turretOrientation = turret.WorldOrientation(self) - quantizedBodyOrientation;
-				localOffset = localOffset.Rotate(turretOrientation);
+				localOffset = localOffset.Rotate(turret.LocalOrientation);
 				localOffset += turret.Offset;
 			}
 
@@ -122,27 +124,15 @@ namespace OpenRA.Mods.Common.Traits
 
 		public WDist DistanceFromEdge(Actor self, WPos pos)
 		{
-			var origin = self.CenterPosition;
-			var orientation = self.Orientation;
-			if (turret != null)
-			{
-				origin += turret.Position(self);
-				orientation = turret.WorldOrientation(self);
-			}
-
+			var origin = turret != null ? self.CenterPosition + turret.Position(self) : self.CenterPosition;
+			var orientation = turret != null ? turret.WorldOrientation : self.Orientation;
 			return Info.Type.DistanceFromEdge(pos, origin, orientation);
 		}
 
 		public IEnumerable<IRenderable> RenderDebugOverlay(Actor self, WorldRenderer wr)
 		{
-			var origin = self.CenterPosition;
-			var orientation = self.Orientation;
-			if (turret != null)
-			{
-				origin += turret.Position(self);
-				orientation = turret.WorldOrientation(self);
-			}
-
+			var origin = turret != null ? self.CenterPosition + turret.Position(self) : self.CenterPosition;
+			var orientation = turret != null ? turret.WorldOrientation : self.Orientation;
 			return Info.Type.RenderDebugOverlay(wr, origin, orientation);
 		}
 	}

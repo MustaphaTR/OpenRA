@@ -10,7 +10,6 @@
 #endregion
 
 using System.Linq;
-using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.Traits
 {
@@ -37,11 +36,9 @@ namespace OpenRA.Mods.Common.Traits
 			if (IsTraitDisabled || other.IsDead)
 				return;
 
-			var external = other.TraitsImplementing<ExternalCondition>()
-				.FirstOrDefault(t => t.Info.Condition == Info.Condition && t.CanGrantCondition(other, self));
-
-			if (external != null)
-				external.GrantCondition(other, self, Info.Duration);
+			other.TraitsImplementing<ExternalCondition>()
+				.FirstOrDefault(t => t.Info.Condition == Info.Condition && t.CanGrantCondition(other, self))
+				?.GrantCondition(other, self, Info.Duration);
 		}
 	}
 }

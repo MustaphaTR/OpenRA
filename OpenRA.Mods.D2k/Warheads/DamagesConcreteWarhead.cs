@@ -9,7 +9,6 @@
  */
 #endregion
 
-using System.Collections.Generic;
 using OpenRA.GameRules;
 using OpenRA.Mods.Common.Warheads;
 using OpenRA.Mods.D2k.Traits;
@@ -24,7 +23,7 @@ namespace OpenRA.Mods.D2k.Warheads
 		[FieldLoader.Require]
 		public readonly int Damage = 0;
 
-		public override void DoImpact(Target target, WarheadArgs args)
+		public override void DoImpact(in Target target, WarheadArgs args)
 		{
 			if (target.Type == TargetType.Invalid)
 				return;

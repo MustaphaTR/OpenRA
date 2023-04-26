@@ -9,7 +9,6 @@
  */
 #endregion
 
-using OpenRA.Activities;
 using OpenRA.Mods.Common.Traits;
 using OpenRA.Mods.Common.Traits.Render;
 
@@ -19,8 +18,9 @@ namespace OpenRA.Mods.Common.Activities
 	{
 		readonly WithSpriteBody wsb;
 		readonly WithDockingAnimationInfo wda;
+		protected bool dockAnimPlayed;
 
-		public SpriteHarvesterDockSequence(Actor self, Actor refinery, int dockAngle, bool isDragRequired, WVec dragOffset, int dragLength)
+		public SpriteHarvesterDockSequence(Actor self, Actor refinery, WAngle dockAngle, bool isDragRequired, WVec dragOffset, int dragLength)
 			: base(self, refinery, dockAngle, isDragRequired, dragOffset, dragLength)
 		{
 			wsb = self.Trait<WithSpriteBody>();
@@ -31,21 +31,35 @@ namespace OpenRA.Mods.Common.Activities
 		{
 			foreach (var trait in self.TraitsImplementing<INotifyHarvesterAction>())
 				trait.Docked();
+			foreach (var nd in Refinery.TraitsImplementing<INotifyDocking>())
+				nd.Docked(Refinery, self);
 
 			wsb.PlayCustomAnimation(self, wda.DockSequence, () => wsb.PlayCustomAnimationRepeating(self, wda.DockLoopSequence));
+			dockAnimPlayed = true;
 			dockingState = DockingState.Loop;
 		}
 
 		public override void OnStateUndock(Actor self)
 		{
+			// If dock animation hasn't played, we didn't actually dock and have to skip the undock anim and notification
+			if (!dockAnimPlayed)
+			{
+				dockingState = DockingState.Complete;
+				return;
+			}
+
+			dockingState = DockingState.Wait;
 			wsb.PlayCustomAnimationBackwards(self, wda.DockSequence,
 				() =>
 				{
 					dockingState = DockingState.Complete;
 					foreach (var trait in self.TraitsImplementing<INotifyHarvesterAction>())
 						trait.Undocked();
+
+					if (Refinery.IsInWorld && !Refinery.IsDead)
+						foreach (var nd in Refinery.TraitsImplementing<INotifyDocking>())
+							nd.Undocked(Refinery, self);
 				});
-			dockingState = DockingState.Wait;
 		}
 	}
 }

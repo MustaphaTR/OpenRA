@@ -30,7 +30,7 @@ namespace OpenRA.Mods.Cnc.Traits
 		[Desc("Effect sequence sprite image")]
 		public readonly string Effect = "ionsfx";
 
-		[SequenceReference("Effect")]
+		[SequenceReference(nameof(Effect))]
 		[Desc("Effect sequence to display")]
 		public readonly string EffectSequence = "idle";
 
@@ -52,9 +52,8 @@ namespace OpenRA.Mods.Cnc.Traits
 		public override object Create(ActorInitializer init) { return new IonCannonPower(init.Self, this); }
 		public override void RulesetLoaded(Ruleset rules, ActorInfo ai)
 		{
-			WeaponInfo weapon;
 			var weaponToLower = (Weapon ?? string.Empty).ToLowerInvariant();
-			if (!rules.Weapons.TryGetValue(weaponToLower, out weapon))
+			if (!rules.Weapons.TryGetValue(weaponToLower, out var weapon))
 				throw new YamlException("Weapons Ruleset does not contain an entry '{0}'".F(weaponToLower));
 
 			WeaponInfo = weapon;

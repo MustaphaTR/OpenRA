@@ -28,7 +28,7 @@ namespace OpenRA.Mods.Common.Activities
 		bool useLastVisibleTarget;
 		bool wasMovingWithinRange;
 
-		public Follow(Actor self, Target target, WDist minRange, WDist maxRange,
+		public Follow(Actor self, in Target target, WDist minRange, WDist maxRange,
 			WPos? initialTargetPosition, Color? targetLineColor = null)
 		{
 			this.target = target;
@@ -51,8 +51,7 @@ namespace OpenRA.Mods.Common.Activities
 			if (IsCanceling)
 				return true;
 
-			bool targetIsHiddenActor;
-			target = target.Recalculate(self.Owner, out targetIsHiddenActor);
+			target = target.Recalculate(self.Owner, out var targetIsHiddenActor);
 			if (!targetIsHiddenActor && target.Type == TargetType.Actor)
 				lastVisibleTarget = Target.FromTargetPositions(target);
 

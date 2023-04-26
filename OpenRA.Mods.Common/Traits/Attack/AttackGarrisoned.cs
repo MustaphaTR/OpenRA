@@ -123,7 +123,7 @@ namespace OpenRA.Mods.Common.Traits
 		FirePort SelectFirePort(Actor self, WAngle targetYaw)
 		{
 			// Pick a random port that faces the target
-			var bodyYaw = facing != null ? WAngle.FromFacing(facing.Facing) : WAngle.Zero;
+			var bodyYaw = facing != null ? facing.Facing : WAngle.Zero;
 			var indices = Enumerable.Range(0, Info.Ports.Length).Shuffle(self.World.SharedRandom);
 			foreach (var i in indices)
 			{
@@ -143,7 +143,7 @@ namespace OpenRA.Mods.Common.Traits
 			return coords.Value.LocalToWorld(p.Offset.Rotate(bodyOrientation));
 		}
 
-		public override void DoAttack(Actor self, Target target)
+		public override void DoAttack(Actor self, in Target target)
 		{
 			if (!CanAttack(self, target))
 				return;
@@ -161,8 +161,7 @@ namespace OpenRA.Mods.Common.Traits
 				if (port == null)
 					return;
 
-				var muzzleFacing = targetYaw.Angle / 4;
-				paxFacing[a.Actor].Facing = muzzleFacing;
+				paxFacing[a.Actor].Facing = targetYaw;
 				paxPos[a.Actor].SetVisualPosition(a.Actor, pos + PortOffset(self, port));
 
 				var barrel = a.CheckFire(a.Actor, facing, target);
@@ -172,12 +171,8 @@ namespace OpenRA.Mods.Common.Traits
 				if (a.Info.MuzzleSequence != null)
 				{
 					// Muzzle facing is fixed once the firing starts
-					var muzzleAnim = new Animation(self.World, paxRender[a.Actor].GetImage(a.Actor), () => muzzleFacing);
+					var muzzleAnim = new Animation(self.World, paxRender[a.Actor].GetImage(a.Actor), () => targetYaw);
 					var sequence = a.Info.MuzzleSequence;
-
-					if (a.Info.MuzzleSplitFacings > 0)
-						sequence += Util.QuantizeFacing(muzzleFacing, a.Info.MuzzleSplitFacings).ToString();
-
 					var muzzleFlash = new AnimationWithOffset(muzzleAnim,
 						() => PortOffset(self, port),
 						() => false,

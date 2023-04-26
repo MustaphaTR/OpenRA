@@ -44,9 +44,12 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 		SoundDevice soundDevice;
 		PanelType settingsPanel = PanelType.Display;
 
+		ScrollPanelWidget hotkeyList;
 		ButtonWidget selectedHotkeyButton;
 		HotkeyEntryWidget hotkeyEntryWidget;
 		HotkeyDefinition duplicateHotkeyDefinition, selectedHotkeyDefinition;
+		int validHotkeyEntryWidth;
+		int invalidHotkeyEntryWidth;
 		bool isHotkeyValid;
 		bool isHotkeyDefault;
 
@@ -172,7 +175,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			ss.OnChange += x => field.SetValue(group, (int)x);
 		}
 
-		void BindHotkeyPref(HotkeyDefinition hd, Widget template, Widget parent)
+		void BindHotkeyPref(HotkeyDefinition hd, Widget template)
 		{
 			var key = template.Clone() as Widget;
 			key.Id = hd.Name;
@@ -209,7 +212,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				hotkeyEntryWidget.TakeKeyboardFocus();
 			};
 
-			parent.AddChild(key);
+			hotkeyList.AddChild(key);
 		}
 
 		void RegisterSettingsPanel(PanelType type, Func<Widget, Action> init, Func<Widget, Action> reset, string panelID, string buttonID)
@@ -243,6 +246,8 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			BindCheckboxPref(panel, "FRAME_LIMIT_CHECKBOX", ds, "CapFramerate");
 			BindIntSliderPref(panel, "FRAME_LIMIT_SLIDER", ds, "MaxFramerate");
 			BindCheckboxPref(panel, "PLAYER_STANCE_COLORS_CHECKBOX", gs, "UsePlayerStanceColors");
+			if (panel.GetOrNull<CheckboxWidget>("PAUSE_SHELLMAP_CHECKBOX") != null)
+				BindCheckboxPref(panel, "PAUSE_SHELLMAP_CHECKBOX", gs, "PauseShellmap");
 
 			var languageDropDownButton = panel.GetOrNull<DropDownButtonWidget>("LANGUAGE_DROPDOWNBUTTON");
 			if (languageDropDownButton != null)
@@ -264,9 +269,10 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 
 			var glProfileLabel = new CachedTransform<GLProfile, string>(p => p.ToString());
 			var glProfileDropdown = panel.Get<DropDownButtonWidget>("GL_PROFILE_DROPDOWN");
+			var disableProfile = Game.Renderer.SupportedGLProfiles.Length < 2 && ds.GLProfile == GLProfile.Automatic;
 			glProfileDropdown.OnMouseDown = _ => ShowGLProfileDropdown(glProfileDropdown, ds);
 			glProfileDropdown.GetText = () => glProfileLabel.Update(ds.GLProfile);
-			glProfileDropdown.IsDisabled = () => Game.Renderer.SupportedGLProfiles.Length < 2;
+			glProfileDropdown.IsDisabled = () => disableProfile;
 
 			var statusBarsDropDown = panel.Get<DropDownButtonWidget>("STATUS_BAR_DROPDOWN");
 			statusBarsDropDown.OnMouseDown = _ => ShowStatusBarsDropdown(statusBarsDropDown, gs);
@@ -367,9 +373,8 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 
 			return () =>
 			{
-				int x, y;
-				Exts.TryParseIntegerInvariant(windowWidth.Text, out x);
-				Exts.TryParseIntegerInvariant(windowHeight.Text, out y);
+				Exts.TryParseIntegerInvariant(windowWidth.Text, out var x);
+				Exts.TryParseIntegerInvariant(windowHeight.Text, out var y);
 				ds.WindowedSize = new int2(x, y);
 				nameTextfield.YieldKeyboardFocus();
 			};
@@ -578,7 +583,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 		Action InitHotkeysPanel(Widget panel)
 		{
 			var hotkeyDialogRoot = panel.Get("HOTKEY_DIALOG_ROOT");
-			var hotkeyList = panel.Get<ScrollPanelWidget>("HOTKEY_LIST");
+			hotkeyList = panel.Get<ScrollPanelWidget>("HOTKEY_LIST");
 			hotkeyList.Layout = new GridLayout(hotkeyList);
 			var hotkeyHeader = hotkeyList.Get<ScrollItemWidget>("HEADER");
 			var templates = hotkeyList.Get("TEMPLATES");
@@ -587,8 +592,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			Func<bool> returnTrue = () => true;
 			Action doNothing = () => { };
 
-			MiniYaml hotkeyGroups;
-			if (logicArgs.TryGetValue("HotkeyGroups", out hotkeyGroups))
+			if (logicArgs.TryGetValue("HotkeyGroups", out var hotkeyGroups))
 			{
 				InitHotkeyRemapDialog(panel);
 
@@ -616,7 +620,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 								if (selectedHotkeyDefinition == null)
 									selectedHotkeyDefinition = hd;
 
-								BindHotkeyPref(hd, template, hotkeyList);
+								BindHotkeyPref(hd, template);
 							}
 						}
 					}
@@ -892,7 +896,8 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				return item;
 			};
 
-			dropdown.ShowDropDown("LABEL_DROPDOWN_TEMPLATE", 500, Game.Renderer.SupportedGLProfiles, setupItem);
+			var profiles = new[] { GLProfile.Automatic }.Concat(Game.Renderer.SupportedGLProfiles);
+			dropdown.ShowDropDown("LABEL_DROPDOWN_TEMPLATE", 500, profiles, setupItem);
 		}
 
 		static void ShowTargetLinesDropdown(DropDownButtonWidget dropdown, GameSettings s)
@@ -940,7 +945,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			if (farRange.X < windowHeight)
 				validSizes.Add(WorldViewport.Far);
 
-			if (farRange.Y < windowHeight)
+			if (viewportSizes.AllowNativeZoom && farRange.Y < windowHeight)
 				validSizes.Add(WorldViewport.Native);
 
 			dropdown.ShowDropDown("LABEL_DROPDOWN_TEMPLATE", 500, validSizes, setupItem);
@@ -1057,9 +1062,21 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			clearButton.IsDisabled = () => !hotkeyEntryWidget.Key.IsValid();
 			clearButton.OnClick = ClearHotkey;
 
+			var overrideButton = panel.Get<ButtonWidget>("OVERRIDE_HOTKEY_BUTTON");
+			overrideButton.IsDisabled = () => isHotkeyValid;
+			overrideButton.IsVisible = () => !isHotkeyValid;
+			overrideButton.OnClick = OverrideHotkey;
+
 			hotkeyEntryWidget = panel.Get<HotkeyEntryWidget>("HOTKEY_ENTRY");
 			hotkeyEntryWidget.IsValid = () => isHotkeyValid;
 			hotkeyEntryWidget.OnLoseFocus = ValidateHotkey;
+			hotkeyEntryWidget.OnEscKey = () =>
+			{
+				hotkeyEntryWidget.Key = modData.Hotkeys[selectedHotkeyDefinition.Name].GetValue();
+			};
+
+			validHotkeyEntryWidth = hotkeyEntryWidget.Bounds.Width;
+			invalidHotkeyEntryWidth = validHotkeyEntryWidth - (clearButton.Bounds.X - overrideButton.Bounds.X);
 		}
 
 		void ValidateHotkey()
@@ -1069,7 +1086,15 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			isHotkeyDefault = hotkeyEntryWidget.Key == selectedHotkeyDefinition.Default || (!hotkeyEntryWidget.Key.IsValid() && !selectedHotkeyDefinition.Default.IsValid());
 
 			if (isHotkeyValid)
+			{
+				hotkeyEntryWidget.Bounds.Width = validHotkeyEntryWidth;
 				SaveHotkey();
+			}
+			else
+			{
+				hotkeyEntryWidget.Bounds.Width = invalidHotkeyEntryWidth;
+				hotkeyEntryWidget.TakeKeyboardFocus();
+			}
 		}
 
 		void SaveHotkey()
@@ -1088,6 +1113,15 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 		void ClearHotkey()
 		{
 			hotkeyEntryWidget.Key = Hotkey.Invalid;
+			hotkeyEntryWidget.YieldKeyboardFocus();
+		}
+
+		void OverrideHotkey()
+		{
+			var duplicateHotkeyButton = hotkeyList.Get<ContainerWidget>(duplicateHotkeyDefinition.Name).Get<ButtonWidget>("HOTKEY");
+			WidgetUtils.TruncateButtonToTooltip(duplicateHotkeyButton, Hotkey.Invalid.DisplayString());
+			modData.Hotkeys.Set(duplicateHotkeyDefinition.Name, Hotkey.Invalid);
+			Game.Settings.Save();
 			hotkeyEntryWidget.YieldKeyboardFocus();
 		}
 	}

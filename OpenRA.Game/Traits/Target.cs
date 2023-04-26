@@ -16,7 +16,7 @@ using System.Linq;
 namespace OpenRA.Traits
 {
 	public enum TargetType : byte { Invalid, Actor, Terrain, FrozenActor }
-	public struct Target
+	public readonly struct Target
 	{
 		public static readonly Target[] None = { };
 		public static readonly Target Invalid = default(Target);
@@ -83,7 +83,7 @@ namespace OpenRA.Traits
 		}
 
 		public static Target FromPos(WPos p) { return new Target(p); }
-		public static Target FromTargetPositions(Target t) { return new Target(t.CenterPosition, t.Positions.ToArray()); }
+		public static Target FromTargetPositions(in Target t) { return new Target(t.CenterPosition, t.Positions.ToArray()); }
 		public static Target FromCell(World w, CPos c, SubCell subCell = SubCell.FullCell) { return new Target(w, c, subCell); }
 		public static Target FromActor(Actor a) { return a != null ? new Target(a) : Invalid; }
 		public static Target FromFrozenActor(FrozenActor fa) { return new Target(fa); }

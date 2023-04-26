@@ -26,6 +26,7 @@ varying vec2 vTexSampler;
 varying vec4 vColorFraction;
 varying vec4 vRGBAFraction;
 varying vec4 vPalettedFraction;
+varying vec4 vTint;
 
 uniform vec2 Texture0Size;
 uniform vec2 Texture1Size;
@@ -46,6 +47,7 @@ in vec2 vTexSampler;
 in vec4 vColorFraction;
 in vec4 vRGBAFraction;
 in vec4 vPalettedFraction;
+in vec4 vTint;
 
 out vec4 fragColor;
 #endif
@@ -179,7 +181,7 @@ void main()
 		// Offset the sampling point to simulate bilinear intepolation in window coordinates instead of texture coordinates
 		// https://csantosbh.wordpress.com/2014/01/25/manual-texture-filtering-for-pixelated-games-in-webgl/
 		// https://csantosbh.wordpress.com/2014/02/05/automatically-detecting-the-texture-filter-threshold-for-pixelated-magnifications/
-		// ik is defined as 1/k from the articles, set to 1/0.7 because it looks good 
+		// ik is defined as 1/k from the articles, set to 1/0.7 because it looks good
 		float ik = 1.43;
 		vec2 interp = clamp(offset * ik * AntialiasPixelsPerTexel, 0.0, .5) + clamp((offset - 1.0) * ik * AntialiasPixelsPerTexel + .5, 0.0, .5);
 		coords = (floor(coords.st * textureSize) + interp) / textureSize;
@@ -227,8 +229,8 @@ void main()
 	}
 	else
 	#if __VERSION__ == 120
-		gl_FragColor = c;
+		gl_FragColor = c * vTint;
 		#else
-		fragColor = c;
+		fragColor = c * vTint;
 		#endif
 }

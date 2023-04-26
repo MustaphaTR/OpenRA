@@ -23,7 +23,6 @@ namespace OpenRA.Mods.Common.Widgets
 	{
 		public readonly string TooltipTemplate = "SUPPORT_POWER_TOOLTIP";
 		public readonly string TooltipContainer;
-		readonly Animation icon;
 		readonly World world;
 		readonly WorldRenderer worldRenderer;
 		readonly Dictionary<string, Animation> clocks;
@@ -45,6 +44,7 @@ namespace OpenRA.Mods.Common.Widgets
 
 		readonly List<SupportPowersWidget.SupportPowerIcon> supportPowerIconsIcons = new List<SupportPowersWidget.SupportPowerIcon>();
 		readonly List<Rectangle> supportPowerIconsBounds = new List<Rectangle>();
+		Animation icon;
 		int lastIconIdx;
 		int currentTooltipToken;
 
@@ -54,7 +54,6 @@ namespace OpenRA.Mods.Common.Widgets
 			this.world = world;
 			this.worldRenderer = worldRenderer;
 			clocks = new Dictionary<string, Animation>();
-			icon = new Animation(world, "icon");
 
 			// Timers in replays should be synced to the effective game time, not the playback time.
 			timestep = world.Timestep;
@@ -126,6 +125,7 @@ namespace OpenRA.Mods.Common.Widgets
 					continue;
 
 				var level = item.GetLevel();
+				icon = new Animation(worldRenderer.World, item.Info.IconImage);
 				icon.Play(item.Info.Icons.First(i => i.Key == level).Value);
 				var location = new float2(RenderBounds.Location) + new float2(power.i * (IconWidth + IconSpacing), 0);
 

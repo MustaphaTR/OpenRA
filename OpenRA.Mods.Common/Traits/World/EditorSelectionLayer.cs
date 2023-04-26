@@ -16,7 +16,7 @@ using OpenRA.Traits;
 namespace OpenRA.Mods.Common.Traits
 {
 	[Desc("Required for the map editor to work. Attach this to the world actor.")]
-	public class EditorSelectionLayerInfo : ITraitInfo
+	public class EditorSelectionLayerInfo : TraitInfo
 	{
 		[PaletteReference]
 		[Desc("Palette to use for rendering the placement sprite.")]
@@ -25,15 +25,15 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Sequence image where the selection overlay types are defined.")]
 		public readonly string Image = "editor-overlay";
 
-		[SequenceReference("Image")]
+		[SequenceReference(nameof(Image))]
 		[Desc("Sequence to use for the copy overlay.")]
 		public readonly string CopySequence = "copy";
 
-		[SequenceReference("Image")]
+		[SequenceReference(nameof(Image))]
 		[Desc("Sequence to use for the paste overlay.")]
 		public readonly string PasteSequence = "paste";
 
-		public virtual object Create(ActorInitializer init) { return new EditorSelectionLayer(init.Self, this); }
+		public override object Create(ActorInitializer init) { return new EditorSelectionLayer(init.Self, this); }
 	}
 
 	public class EditorSelectionLayer : IWorldLoaded, IRenderAboveShroud
@@ -89,12 +89,12 @@ namespace OpenRA.Mods.Common.Traits
 			if (CopyRegion != null)
 				foreach (var c in CopyRegion)
 					yield return new SpriteRenderable(copySprite, wr.World.Map.CenterOfCell(c),
-						WVec.Zero, -511, palette, 1f, true);
+						WVec.Zero, -511, palette, 1f, true, true);
 
 			if (PasteRegion != null)
 				foreach (var c in PasteRegion)
 					yield return new SpriteRenderable(pasteSprite, wr.World.Map.CenterOfCell(c),
-						WVec.Zero, -511, palette, 1f, true);
+						WVec.Zero, -511, palette, 1f, true, true);
 		}
 
 		bool IRenderAboveShroud.SpatiallyPartitionable { get { return false; } }

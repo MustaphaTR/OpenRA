@@ -25,7 +25,7 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Enable the building's idle animation.")]
 		public readonly bool Animated = true;
 
-		[PaletteReference("OverridePaletteIsPlayerPalette")]
+		[PaletteReference(nameof(OverridePaletteIsPlayerPalette))]
 		[Desc("Custom palette name.")]
 		public readonly string OverridePalette = null;
 
@@ -68,8 +68,8 @@ namespace OpenRA.Mods.Common.Traits
 
 			if (!string.IsNullOrEmpty(info.OverridePalette))
 			{
-				var owner = init.Get<OwnerInit>().Value(wr.World);
-				palette = wr.Palette(info.OverridePaletteIsPlayerPalette ? info.OverridePalette + owner.InternalName : info.OverridePalette);
+				var ownerName = init.Get<OwnerInit>().InternalName;
+				palette = wr.Palette(info.OverridePaletteIsPlayerPalette ? info.OverridePalette + ownerName : info.OverridePalette);
 			}
 		}
 
@@ -95,7 +95,7 @@ namespace OpenRA.Mods.Common.Traits
 				foreach (var r in RenderFootprint(wr, topLeft, footprint, info.FootprintUnderPreview))
 					yield return r;
 
-			foreach (var r in previewRenderables.OrderBy(WorldRenderer.RenderableScreenZPositionComparisonKey))
+			foreach (var r in previewRenderables.OrderBy(WorldRenderer.RenderableZPositionComparisonKey))
 				yield return r;
 
 			if (info.FootprintOverPreview != PlaceBuildingCellType.None)

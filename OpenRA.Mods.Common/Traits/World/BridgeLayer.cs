@@ -9,6 +9,7 @@
  */
 #endregion
 
+using OpenRA.Primitives;
 using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.Traits
@@ -16,7 +17,7 @@ namespace OpenRA.Mods.Common.Traits
 	interface IBridgeSegment
 	{
 		void Repair(Actor repairer);
-		void Demolish(Actor saboteur);
+		void Demolish(Actor saboteur, BitSet<DamageType> damageTypes);
 
 		string Type { get; }
 		DamageState DamageState { get; }
@@ -25,9 +26,9 @@ namespace OpenRA.Mods.Common.Traits
 		CPos Location { get; }
 	}
 
-	class BridgeLayerInfo : ITraitInfo
+	class BridgeLayerInfo : TraitInfo
 	{
-		public object Create(ActorInitializer init) { return new BridgeLayer(init.World); }
+		public override object Create(ActorInitializer init) { return new BridgeLayer(init.World); }
 	}
 
 	class BridgeLayer

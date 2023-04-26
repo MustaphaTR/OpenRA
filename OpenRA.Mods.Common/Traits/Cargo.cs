@@ -26,9 +26,6 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("The maximum sum of Passenger.Weight that this actor can support.")]
 		public readonly int MaxWeight = 0;
 
-		[Desc("Number of pips to display when this actor is selected.")]
-		public readonly int PipCount = 0;
-
 		[Desc("`Passenger.CargoType`s that can be loaded into this actor.")]
 		public readonly HashSet<string> Types = new HashSet<string>();
 
@@ -55,7 +52,7 @@ namespace OpenRA.Mods.Common.Traits
 		public readonly WDist LoadRange = WDist.FromCells(5);
 
 		[Desc("Which direction the passenger will face (relative to the transport) when unloading.")]
-		public readonly int PassengerFacing = 128;
+		public readonly WAngle PassengerFacing = new WAngle(512);
 
 		[Desc("Delay (in ticks) before continuing after loading a passenger.")]
 		public readonly int AfterLoadDelay = 8;
@@ -81,6 +78,7 @@ namespace OpenRA.Mods.Common.Traits
 			"Condition can stack with multiple passengers.")]
 		public readonly string LoadedCondition = null;
 
+		[ActorReference(dictionaryReference: LintDictionaryReference.Keys)]
 		[Desc("Conditions to grant when specified actors are loaded inside the transport.",
 			"A dictionary of [actor id]: [condition].")]
 		public readonly Dictionary<string, string> PassengerConditions = new Dictionary<string, string>();
@@ -91,7 +89,7 @@ namespace OpenRA.Mods.Common.Traits
 		public override object Create(ActorInitializer init) { return new Cargo(init, this); }
 	}
 
-	public class Cargo : PausableConditionalTrait<CargoInfo>, IPips, IIssueOrder, IResolveOrder, IOrderVoice, INotifyCreated, INotifyKilled,
+	public class Cargo : PausableConditionalTrait<CargoInfo>, IIssueOrder, IResolveOrder, IOrderVoice, INotifyCreated, INotifyKilled,
 		INotifyOwnerChanged, INotifyAddedToWorld, ITick, INotifySold, INotifyActorDisposing, IIssueDeployOrder,
 		ITransformActorInitModifier, INotifyPassengersDamage
 	{
@@ -105,8 +103,7 @@ namespace OpenRA.Mods.Common.Traits
 		int totalWeight = 0;
 		int reservedWeight = 0;
 		Aircraft aircraft;
-		ConditionManager conditionManager;
-		int loadingToken = ConditionManager.InvalidConditionToken;
+		int loadingToken = Actor.InvalidConditionToken;
 		Stack<int> loadedTokens = new Stack<int>();
 		bool takeOffAfterLoad;
 		bool initialised;
@@ -125,14 +122,16 @@ namespace OpenRA.Mods.Common.Traits
 			self = init.Self;
 			checkTerrainType = info.UnloadTerrainTypes.Count > 0;
 
-			if (init.Contains<RuntimeCargoInit>())
+			var runtimeCargoInit = init.GetOrDefault<RuntimeCargoInit>(info);
+			var cargoInit = init.GetOrDefault<CargoInit>(info);
+			if (runtimeCargoInit != null)
 			{
-				cargo = new List<Actor>(init.Get<RuntimeCargoInit, Actor[]>());
+				cargo = runtimeCargoInit.Value.ToList();
 				totalWeight = cargo.Sum(c => GetWeight(c));
 			}
-			else if (init.Contains<CargoInit>())
+			else if (cargoInit != null)
 			{
-				foreach (var u in init.Get<CargoInit, string[]>())
+				foreach (var u in cargoInit.Value)
 				{
 					var unit = self.World.CreateActor(false, u.ToLowerInvariant(),
 						new TypeDictionary { new OwnerInit(self.Owner) });
@@ -161,19 +160,15 @@ namespace OpenRA.Mods.Common.Traits
 		void INotifyCreated.Created(Actor self)
 		{
 			aircraft = self.TraitOrDefault<Aircraft>();
-			conditionManager = self.TraitOrDefault<ConditionManager>();
 
-			if (conditionManager != null && cargo.Any())
+			if (cargo.Any())
 			{
 				foreach (var c in cargo)
-				{
-					string passengerCondition;
-					if (Info.PassengerConditions.TryGetValue(c.Info.Name, out passengerCondition))
-						passengerTokens.GetOrAdd(c.Info.Name).Push(conditionManager.GrantCondition(self, passengerCondition));
-				}
+					if (Info.PassengerConditions.TryGetValue(c.Info.Name, out var passengerCondition))
+						passengerTokens.GetOrAdd(c.Info.Name).Push(self.GrantCondition(passengerCondition));
 
 				if (!string.IsNullOrEmpty(Info.LoadedCondition))
-					loadedTokens.Push(conditionManager.GrantCondition(self, Info.LoadedCondition));
+					loadedTokens.Push(self.GrantCondition(Info.LoadedCondition));
 			}
 
 			// Defer notifications until we are certain all traits on the transport are initialised
@@ -207,7 +202,7 @@ namespace OpenRA.Mods.Common.Traits
 			}
 		}
 
-		public Order IssueOrder(Actor self, IOrderTargeter order, Target target, bool queued)
+		public Order IssueOrder(Actor self, IOrderTargeter order, in Target target, bool queued)
 		{
 			if (order.OrderID == "Unload")
 				return new Order(order.OrderID, self, queued);
@@ -266,8 +261,8 @@ namespace OpenRA.Mods.Common.Traits
 			if (!HasSpace(w))
 				return false;
 
-			if (conditionManager != null && loadingToken == ConditionManager.InvalidConditionToken && !string.IsNullOrEmpty(Info.LoadingCondition))
-				loadingToken = conditionManager.GrantCondition(self, Info.LoadingCondition);
+			if (loadingToken == Actor.InvalidConditionToken)
+				loadingToken = self.GrantCondition(Info.LoadingCondition);
 
 			reserves.Add(a);
 			reservedWeight += w;
@@ -285,8 +280,8 @@ namespace OpenRA.Mods.Common.Traits
 			reserves.Remove(a);
 			ReleaseLock(self);
 
-			if (loadingToken != ConditionManager.InvalidConditionToken)
-				loadingToken = conditionManager.RevokeCondition(self, loadingToken);
+			if (loadingToken != Actor.InvalidConditionToken)
+				loadingToken = self.RevokeCondition(loadingToken);
 		}
 
 		// Prepare for transport pickup
@@ -355,12 +350,11 @@ namespace OpenRA.Mods.Common.Traits
 			var p = passenger.Trait<Passenger>();
 			p.Transport = null;
 
-			Stack<int> passengerToken;
-			if (passengerTokens.TryGetValue(passenger.Info.Name, out passengerToken) && passengerToken.Any())
-				conditionManager.RevokeCondition(self, passengerToken.Pop());
+			if (passengerTokens.TryGetValue(passenger.Info.Name, out var passengerToken) && passengerToken.Any())
+				self.RevokeCondition(passengerToken.Pop());
 
 			if (loadedTokens.Any())
-				conditionManager.RevokeCondition(self, loadedTokens.Pop());
+				self.RevokeCondition(loadedTokens.Pop());
 
 			return passenger;
 		}
@@ -376,33 +370,6 @@ namespace OpenRA.Mods.Common.Traits
 
 			foreach (var t in passenger.TraitsImplementing<Turreted>())
 				t.TurretFacing = facing.Value.Facing + Info.PassengerFacing;
-		}
-
-		public IEnumerable<PipType> GetPips(Actor self)
-		{
-			if (IsTraitDisabled)
-				yield break;
-
-			var numPips = Info.PipCount;
-
-			for (var i = 0; i < numPips; i++)
-				yield return GetPipAt(i);
-		}
-
-		PipType GetPipAt(int i)
-		{
-			var n = i * Info.MaxWeight / Info.PipCount;
-
-			foreach (var c in cargo)
-			{
-				var pi = c.Info.TraitInfo<PassengerInfo>();
-				if (n < pi.Weight)
-					return pi.PipType;
-				else
-					n -= pi.Weight;
-			}
-
-			return PipType.Transparent;
 		}
 
 		public void Load(Actor self, Actor a)
@@ -436,8 +403,8 @@ namespace OpenRA.Mods.Common.Traits
 				reserves.Remove(a);
 				ReleaseLock(self);
 
-				if (loadingToken != ConditionManager.InvalidConditionToken)
-					loadingToken = conditionManager.RevokeCondition(self, loadingToken);
+				if (loadingToken != Actor.InvalidConditionToken)
+					loadingToken = self.RevokeCondition(loadingToken);
 			}
 
 			// Don't initialise (effectively twice) if this runs before the FrameEndTask from Created
@@ -452,12 +419,11 @@ namespace OpenRA.Mods.Common.Traits
 					npe.OnPassengerEntered(self, a);
 			}
 
-			string passengerCondition;
-			if (conditionManager != null && Info.PassengerConditions.TryGetValue(a.Info.Name, out passengerCondition))
-				passengerTokens.GetOrAdd(a.Info.Name).Push(conditionManager.GrantCondition(self, passengerCondition));
+			if (Info.PassengerConditions.TryGetValue(a.Info.Name, out var passengerCondition))
+				passengerTokens.GetOrAdd(a.Info.Name).Push(self.GrantCondition(passengerCondition));
 
-			if (conditionManager != null && !string.IsNullOrEmpty(Info.LoadedCondition))
-				loadedTokens.Push(conditionManager.GrantCondition(self, Info.LoadedCondition));
+			if (!string.IsNullOrEmpty(Info.LoadedCondition))
+				loadedTokens.Push(self.GrantCondition(Info.LoadedCondition));
 		}
 
 		void INotifyKilled.Killed(Actor self, AttackInfo e)
@@ -551,7 +517,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		void ITransformActorInitModifier.ModifyTransformActorInit(Actor self, TypeDictionary init)
 		{
-			init.Add(new RuntimeCargoInit(Passengers.ToArray()));
+			init.Add(new RuntimeCargoInit(Info, Passengers.ToArray()));
 		}
 
 		int DamageVersus(Actor victim, Dictionary<string, int> versus)
@@ -578,21 +544,15 @@ namespace OpenRA.Mods.Common.Traits
 		}
 	}
 
-	public class RuntimeCargoInit : IActorInit<Actor[]>, ISuppressInitExport
+	public class RuntimeCargoInit : ValueActorInit<Actor[]>, ISuppressInitExport
 	{
-		[FieldFromYamlKey]
-		readonly Actor[] value = { };
-		public RuntimeCargoInit() { }
-		public RuntimeCargoInit(Actor[] init) { value = init; }
-		public Actor[] Value(World world) { return value; }
+		public RuntimeCargoInit(TraitInfo info, Actor[] value)
+			: base(info, value) { }
 	}
 
-	public class CargoInit : IActorInit<string[]>
+	public class CargoInit : ValueActorInit<string[]>
 	{
-		[FieldFromYamlKey]
-		readonly string[] value = { };
-		public CargoInit() { }
-		public CargoInit(string[] init) { value = init; }
-		public string[] Value(World world) { return value; }
+		public CargoInit(TraitInfo info, string[] value)
+			: base(info, value) { }
 	}
 }

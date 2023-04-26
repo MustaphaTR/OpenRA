@@ -17,7 +17,7 @@ using OpenRA.Traits;
 namespace OpenRA.Mods.Common.Traits.Render
 {
 	[Desc("Attach this to the player actor. Required for WithProductionIconOverlay trait on actors to work.")]
-	public class ProductionIconOverlayManagerInfo : ITraitInfo, Requires<TechTreeInfo>, IRulesetLoaded
+	public class ProductionIconOverlayManagerInfo : TraitInfo, Requires<TechTreeInfo>, IRulesetLoaded
 	{
 		[FieldLoader.Require]
 		[Desc("Type of the overlay. Prerequisites from WithProductionIconOverlay traits with matching types determine when this overlay will be enabled.")]
@@ -27,7 +27,7 @@ namespace OpenRA.Mods.Common.Traits.Render
 		[Desc("Image used for the overlay.")]
 		public readonly string Image = null;
 
-		[SequenceReference("Image")]
+		[SequenceReference(nameof(Image))]
 		[Desc("Sequence used for the overlay (cannot be animated).")]
 		public readonly string Sequence = null;
 
@@ -45,7 +45,7 @@ namespace OpenRA.Mods.Common.Traits.Render
 				throw new YamlException("Multiple 'ProductionIconOverlayManager's with type '{0}' exist.".F(Type));
 		}
 
-		public object Create(ActorInitializer init) { return new ProductionIconOverlayManager(init, this); }
+		public override object Create(ActorInitializer init) { return new ProductionIconOverlayManager(init, this); }
 	}
 
 	public class ProductionIconOverlayManager : ITechTreeElement, IProductionIconOverlay
@@ -86,25 +86,14 @@ namespace OpenRA.Mods.Common.Traits.Render
 		string IProductionIconOverlay.Palette { get { return info.Palette; } }
 		float2 IProductionIconOverlay.Offset(float2 iconSize)
 		{
-			float x = 0;
-			float y = 0;
-			if (info.ReferencePoint.HasFlag(ReferencePoints.Top))
-				y -= iconSize.Y / 2 - sprite.Size.Y / 2;
-			else if (info.ReferencePoint.HasFlag(ReferencePoints.Bottom))
-				y += iconSize.Y / 2 - sprite.Size.Y / 2;
-
-			if (info.ReferencePoint.HasFlag(ReferencePoints.Left))
-				x -= iconSize.X / 2 - sprite.Size.X / 2;
-			else if (info.ReferencePoint.HasFlag(ReferencePoints.Right))
-				x += iconSize.X / 2 - sprite.Size.X / 2;
-
+			var x = (sprite.Size.X - iconSize.X) / 2;
+			var y = (sprite.Size.Y - iconSize.Y) / 2;
 			return new float2(x, y);
 		}
 
 		bool IProductionIconOverlay.IsOverlayActive(ActorInfo ai)
 		{
-			bool isActive;
-			if (!overlayActive.TryGetValue(ai, out isActive))
+			if (!overlayActive.TryGetValue(ai, out var isActive))
 				return false;
 
 			return isActive;

@@ -26,7 +26,7 @@ namespace OpenRA.Activities
 		public readonly Color Color;
 		public readonly Sprite Tile;
 
-		public TargetLineNode(Target target, Color color, Sprite tile = null)
+		public TargetLineNode(in Target target, Color color, Sprite tile = null)
 		{
 			// Note: Not all activities are drawable. In that case, pass Target.Invalid as target,
 			// if "yield break" in TargetLineNode(Actor self) is not feasible.
@@ -185,8 +185,7 @@ namespace OpenRA.Activities
 		/// </summary>
 		internal void OnActorDisposeOuter(Actor self)
 		{
-			if (ChildActivity != null)
-				ChildActivity.OnActorDisposeOuter(self);
+			ChildActivity?.OnActorDisposeOuter(self);
 
 			OnActorDispose(self);
 		}
@@ -199,8 +198,7 @@ namespace OpenRA.Activities
 			if (!IsInterruptible)
 				return;
 
-			if (ChildActivity != null)
-				ChildActivity.Cancel(self);
+			ChildActivity?.Cancel(self);
 
 			// Directly mark activities that are queued and therefore didn't run yet as done
 			State = State == ActivityState.Queued ? ActivityState.Done : ActivityState.Canceling;
@@ -243,11 +241,9 @@ namespace OpenRA.Activities
 
 				Console.WriteLine(GetType().ToString().Split('.').Last());
 
-				if (ChildActivity != null)
-					ChildActivity.PrintActivityTree(self, origin, level + 1);
+				ChildActivity?.PrintActivityTree(self, origin, level + 1);
 
-				if (NextActivity != null)
-					NextActivity.PrintActivityTree(self, origin, level);
+				NextActivity?.PrintActivityTree(self, origin, level);
 			}
 		}
 

@@ -10,7 +10,6 @@
 #endregion
 
 using System.Collections.Generic;
-using System.Linq;
 using OpenRA.Graphics;
 using OpenRA.Mods.Common.Graphics;
 using OpenRA.Traits;
@@ -43,7 +42,7 @@ namespace OpenRA.Mods.Common.Traits.Render
 		PlayerResources playerResources;
 
 		public WithResourceLevelSpriteBody(ActorInitializer init, WithResourceLevelSpriteBodyInfo info)
-			: base(init, info, () => 0)
+			: base(init, info)
 		{
 			this.info = info;
 			playerResources = init.Self.Owner.PlayerActor.Trait<PlayerResources>();

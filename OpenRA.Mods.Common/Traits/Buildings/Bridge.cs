@@ -20,7 +20,7 @@ using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.Traits
 {
-	class BridgeInfo : ITraitInfo, IRulesetLoaded, Requires<HealthInfo>, Requires<BuildingInfo>
+	class BridgeInfo : TraitInfo, IRulesetLoaded, Requires<HealthInfo>, Requires<BuildingInfo>
 	{
 		public readonly bool Long = false;
 
@@ -49,42 +49,41 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Types of damage that this bridge causes to units over/in path of it while being destroyed/repaired. Leave empty for no damage types.")]
 		public readonly BitSet<DamageType> DamageTypes = default(BitSet<DamageType>);
 
-		public object Create(ActorInitializer init) { return new Bridge(init.Self, this); }
+		public override object Create(ActorInitializer init) { return new Bridge(init.Self, this); }
 
 		public void RulesetLoaded(Ruleset rules, ActorInfo ai)
 		{
 			if (string.IsNullOrEmpty(DemolishWeapon))
 				throw new YamlException("A value for DemolishWeapon of a Bridge trait is missing.");
 
-			WeaponInfo weapon;
 			var weaponToLower = DemolishWeapon.ToLowerInvariant();
-			if (!rules.Weapons.TryGetValue(weaponToLower, out weapon))
+			if (!rules.Weapons.TryGetValue(weaponToLower, out var weapon))
 				throw new YamlException("Weapons Ruleset does not contain an entry '{0}'".F(weaponToLower));
 
 			DemolishWeaponInfo = weapon;
 		}
 
-		public IEnumerable<Pair<ushort, int>> Templates
+		public IEnumerable<(ushort Template, int Health)> Templates
 		{
 			get
 			{
 				if (Template != 0)
-					yield return Pair.New(Template, 100);
+					yield return (Template, 100);
 
 				if (DamagedTemplate != 0)
-					yield return Pair.New(DamagedTemplate, 49);
+					yield return (DamagedTemplate, 49);
 
 				if (DestroyedTemplate != 0)
-					yield return Pair.New(DestroyedTemplate, 0);
+					yield return (DestroyedTemplate, 0);
 
 				if (DestroyedPlusNorthTemplate != 0)
-					yield return Pair.New(DestroyedPlusNorthTemplate, 0);
+					yield return (DestroyedPlusNorthTemplate, 0);
 
 				if (DestroyedPlusSouthTemplate != 0)
-					yield return Pair.New(DestroyedPlusSouthTemplate, 0);
+					yield return (DestroyedPlusSouthTemplate, 0);
 
 				if (DestroyedPlusBothTemplate != 0)
-					yield return Pair.New(DestroyedPlusBothTemplate, 0);
+					yield return (DestroyedPlusBothTemplate, 0);
 			}
 		}
 	}
@@ -200,7 +199,7 @@ namespace OpenRA.Mods.Common.Traits
 
 			return footprint.Select(c => (IRenderable)(new SpriteRenderable(
 				wr.Theater.TileSprite(new TerrainTile(template, c.Value)),
-				wr.World.Map.CenterOfCell(c.Key), WVec.Zero, -offset, palette, 1f, true))).ToArray();
+				wr.World.Map.CenterOfCell(c.Key), WVec.Zero, -offset, palette, 1f, true, false))).ToArray();
 		}
 
 		bool initialized;
@@ -212,7 +211,7 @@ namespace OpenRA.Mods.Common.Traits
 				var palette = wr.Palette(TileSet.TerrainPaletteInternalName);
 				renderables = new Dictionary<ushort, IRenderable[]>();
 				foreach (var t in info.Templates)
-					renderables.Add(t.First, TemplateRenderables(wr, palette, t.First));
+					renderables.Add(t.Template, TemplateRenderables(wr, palette, t.Template));
 
 				initialized = true;
 			}
@@ -303,8 +302,7 @@ namespace OpenRA.Mods.Common.Traits
 			// If this bridge repair operation connects two pathfinding domains,
 			// update the domain index.
 			var domainIndex = self.World.WorldActor.TraitOrDefault<DomainIndex>();
-			if (domainIndex != null)
-				domainIndex.UpdateCells(self.World, footprint.Keys);
+			domainIndex?.UpdateCells(self.World, footprint.Keys);
 
 			if (LongBridgeSegmentIsDead() && !killedUnits)
 			{
@@ -370,7 +368,7 @@ namespace OpenRA.Mods.Common.Traits
 			return damage;
 		}
 
-		public void Demolish(Actor saboteur, int direction)
+		public void Demolish(Actor saboteur, int direction, BitSet<DamageType> damageTypes)
 		{
 			var initialDamage = health.DamageState;
 			self.World.AddFrameEndTask(w =>
@@ -378,7 +376,7 @@ namespace OpenRA.Mods.Common.Traits
 				// Use .FromPos since this actor is killed. Cannot use Target.FromActor
 				info.DemolishWeaponInfo.Impact(Target.FromPos(self.CenterPosition), saboteur);
 
-				self.Kill(saboteur);
+				self.Kill(saboteur, damageTypes);
 			});
 
 			// Destroy adjacent spans between (including) huts
@@ -388,7 +386,7 @@ namespace OpenRA.Mods.Common.Traits
 					0 : info.RepairPropagationDelay;
 
 				self.World.AddFrameEndTask(w => w.Add(new DelayedAction(delay, () =>
-					neighbours[direction].Demolish(saboteur, direction))));
+					neighbours[direction].Demolish(saboteur, direction, damageTypes))));
 			}
 		}
 	}

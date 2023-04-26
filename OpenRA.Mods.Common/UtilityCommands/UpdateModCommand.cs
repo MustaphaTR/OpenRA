@@ -18,7 +18,7 @@ using OpenRA.Mods.Common.UpdateRules;
 
 namespace OpenRA.Mods.Common.UtilityCommands
 {
-	using YamlFileSet = List<Tuple<IReadWritePackage, string, List<MiniYamlNode>>>;
+	using YamlFileSet = List<(IReadWritePackage, string, List<MiniYamlNode>)>;
 
 	class UpdateModCommand : IUtilityCommand
 	{
@@ -202,8 +202,7 @@ namespace OpenRA.Mods.Common.UtilityCommands
 					{
 						try
 						{
-							YamlFileSet mapFiles;
-							var mapSteps = UpdateUtils.UpdateMap(modData, package, rule, out mapFiles, mapExternalFilenames);
+							var mapSteps = UpdateUtils.UpdateMap(modData, package, rule, out var mapFiles, mapExternalFilenames);
 							allFiles.AddRange(mapFiles);
 
 							if (mapSteps.Any())

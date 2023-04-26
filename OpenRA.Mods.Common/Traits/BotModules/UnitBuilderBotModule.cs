@@ -77,11 +77,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		protected override void Created(Actor self)
 		{
-			// Special case handling is required for the Player actor.
-			// Created is called before Player.PlayerActor is assigned,
-			// so we must query player traits from self, which refers
-			// for bot modules always to the Player actor.
-			requestPause = self.TraitsImplementing<IBotRequestPauseUnitProduction>().ToArray();
+			requestPause = self.Owner.PlayerActor.TraitsImplementing<IBotRequestPauseUnitProduction>().ToArray();
 		}
 
 		void IBotNotifyIdleBaseUnits.UpdatedIdleBaseUnits(List<Actor> idleUnits)
@@ -204,7 +200,7 @@ namespace OpenRA.Mods.Common.Traits
 			if (queue != null)
 			{
 				bot.QueueOrder(Order.StartProduction(queue.Actor, name, 1));
-				AIUtils.BotDebug("AI: {0} decided to build {1} (external request)", queue.Actor.Owner, name);
+				AIUtils.BotDebug("{0} decided to build {1} (external request)", queue.Actor.Owner, name);
 			}
 		}
 

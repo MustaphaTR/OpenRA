@@ -32,12 +32,12 @@ namespace OpenRA.Mods.Common.Traits
 		Repair = 2
 	}
 
-	public interface IQuantizeBodyOrientationInfo : ITraitInfo
+	public interface IQuantizeBodyOrientationInfo : ITraitInfoInterface
 	{
 		int QuantizedBodyFacings(ActorInfo ai, SequenceProvider sequenceProvider, string race);
 	}
 
-	public interface IPlaceBuildingDecorationInfo : ITraitInfo
+	public interface IPlaceBuildingDecorationInfo : ITraitInfoInterface
 	{
 		IEnumerable<IRenderable> RenderAnnotations(WorldRenderer wr, World w, ActorInfo ai, WPos centerPosition);
 	}
@@ -80,7 +80,7 @@ namespace OpenRA.Mods.Common.Traits
 	public interface IDemolishable
 	{
 		bool IsValidTarget(Actor self, Actor saboteur);
-		void Demolish(Actor self, Actor saboteur, int delay);
+		void Demolish(Actor self, Actor saboteur, int delay, BitSet<DamageType> damageTypes);
 	}
 
 	// Type tag for crush class bits
@@ -110,8 +110,8 @@ namespace OpenRA.Mods.Common.Traits
 	[RequireExplicitImplementation]
 	public interface INotifyAttack
 	{
-		void Attacking(Actor self, Target target, Armament a, Barrel barrel);
-		void PreparingAttack(Actor self, Target target, Armament a, Barrel barrel);
+		void Attacking(Actor self, in Target target, Armament a, Barrel barrel);
+		void PreparingAttack(Actor self, in Target target, Armament a, Barrel barrel);
 	}
 
 	[RequireExplicitImplementation]
@@ -132,11 +132,18 @@ namespace OpenRA.Mods.Common.Traits
 	}
 
 	[RequireExplicitImplementation]
+	public interface INotifyBeingResupplied
+	{
+		void StartingResupply(Actor self, Actor host);
+		void StoppingResupply(Actor self, Actor host);
+	}
+
+	[RequireExplicitImplementation]
 	public interface INotifyPowerLevelChanged { void PowerLevelChanged(Actor self); }
+	public interface INotifySupportPower { void Charged(Actor self); void Activated(Actor self); }
 
 	public interface INotifyBuildingPlaced { void BuildingPlaced(Actor self); }
-	public interface INotifyNuke { void Launching(Actor self); }
-	public interface INotifyBurstComplete { void FiredBurst(Actor self, Target target, Armament a); }
+	public interface INotifyBurstComplete { void FiredBurst(Actor self, in Target target, Armament a); }
 	public interface INotifyChat { bool OnChat(string from, string message); }
 	public interface INotifyProduction { void UnitProduced(Actor self, Actor other, CPos exit); }
 	public interface INotifyOtherProduction { void UnitProducedByOther(Actor self, Actor producer, Actor produced, string productionType, TypeDictionary init); }
@@ -150,8 +157,8 @@ namespace OpenRA.Mods.Common.Traits
 	[RequireExplicitImplementation]
 	public interface INotifyCapture { void OnCapture(Actor self, Actor captor, Player oldOwner, Player newOwner, BitSet<CaptureType> captureTypes); }
 	public interface INotifyDiscovered { void OnDiscovered(Actor self, Player discoverer, bool playNotification); }
-	public interface IRenderActorPreviewInfo : ITraitInfo { IEnumerable<IActorPreview> RenderPreview(ActorPreviewInitializer init); }
-	public interface ICruiseAltitudeInfo : ITraitInfo { WDist GetCruiseAltitude(); }
+	public interface IRenderActorPreviewInfo : ITraitInfoInterface { IEnumerable<IActorPreview> RenderPreview(ActorPreviewInitializer init); }
+	public interface ICruiseAltitudeInfo : ITraitInfoInterface { WDist GetCruiseAltitude(); }
 
 	public interface IHuskModifier { string HuskActor(Actor self); }
 
@@ -187,26 +194,6 @@ namespace OpenRA.Mods.Common.Traits
 	[RequireExplicitImplementation]
 	public interface INotifyExitedSharedCargo { void OnExitedSharedCargo(Actor self, Actor cargo); }
 
-	[RequireExplicitImplementation]
-	public interface IObservesVariablesInfo : ITraitInfo { }
-
-	public delegate void VariableObserverNotifier(Actor self, IReadOnlyDictionary<string, int> variables);
-	public struct VariableObserver
-	{
-		public VariableObserverNotifier Notifier;
-		public IEnumerable<string> Variables;
-		public VariableObserver(VariableObserverNotifier notifier, IEnumerable<string> variables)
-		{
-			Notifier = notifier;
-			Variables = variables;
-		}
-	}
-
-	public interface IObservesVariables
-	{
-		IEnumerable<VariableObserver> GetVariableObservers();
-	}
-
 	public interface INotifyHarvesterAction
 	{
 		void MovingToResources(Actor self, CPos targetCell);
@@ -235,7 +222,7 @@ namespace OpenRA.Mods.Common.Traits
 		void Infiltrating(Actor self);
 	}
 
-	public interface ITechTreePrerequisiteInfo : ITraitInfo
+	public interface ITechTreePrerequisiteInfo : ITraitInfoInterface
 	{
 		IEnumerable<string> Prerequisites(ActorInfo info);
 	}
@@ -280,7 +267,7 @@ namespace OpenRA.Mods.Common.Traits
 		void Undeploy(Actor self, HashSet<string> deployTypes);
 	}
 
-	public interface IAcceptResourcesInfo : ITraitInfo { }
+	public interface IAcceptResourcesInfo : ITraitInfoInterface { }
 	public interface IAcceptResources
 	{
 		void OnDock(Actor harv, DeliverResources dockOrder);
@@ -332,7 +319,7 @@ namespace OpenRA.Mods.Common.Traits
 	}
 
 	[RequireExplicitImplementation]
-	interface IWallConnector
+	public interface IWallConnector
 	{
 		bool AdjacentWallCanConnect(Actor self, CPos wallLocation, string wallType, out CVec facing);
 		void SetDirty();
@@ -360,10 +347,10 @@ namespace OpenRA.Mods.Common.Traits
 	}
 
 	[RequireExplicitImplementation]
-	public interface IProductionCostModifierInfo : ITraitInfo { int GetProductionCostModifier(TechTree techTree, string queue); }
+	public interface IProductionCostModifierInfo : ITraitInfoInterface { int GetProductionCostModifier(TechTree techTree, string queue); }
 
 	[RequireExplicitImplementation]
-	public interface IProductionTimeModifierInfo : ITraitInfo { int GetProductionTimeModifier(TechTree techTree, string queue); }
+	public interface IProductionTimeModifierInfo : ITraitInfoInterface { int GetProductionTimeModifier(TechTree techTree, string queue); }
 
 	[RequireExplicitImplementation]
 	public interface ICashTricklerModifier { int GetCashTricklerModifier(); }
@@ -436,30 +423,30 @@ namespace OpenRA.Mods.Common.Traits
 	public enum ActorPreviewType { PlaceBuilding, ColorPicker, MapEditorSidebar }
 
 	[RequireExplicitImplementation]
-	public interface IActorPreviewInitInfo : ITraitInfo
+	public interface IActorPreviewInitInfo : ITraitInfoInterface
 	{
-		IEnumerable<object> ActorPreviewInits(ActorInfo ai, ActorPreviewType type);
+		IEnumerable<ActorInit> ActorPreviewInits(ActorInfo ai, ActorPreviewType type);
 	}
 
 	public interface IMove
 	{
 		Activity MoveTo(CPos cell, int nearEnough = 0, Actor ignoreActor = null,
 		 	bool evaluateNearestMovableCell = false, Color? targetLineColor = null);
-		Activity MoveWithinRange(Target target, WDist range,
+		Activity MoveWithinRange(in Target target, WDist range,
 			WPos? initialTargetPosition = null, Color? targetLineColor = null);
-		Activity MoveWithinRange(Target target, WDist minRange, WDist maxRange,
+		Activity MoveWithinRange(in Target target, WDist minRange, WDist maxRange,
 			WPos? initialTargetPosition = null, Color? targetLineColor = null);
-		Activity MoveFollow(Actor self, Target target, WDist minRange, WDist maxRange,
+		Activity MoveFollow(Actor self, in Target target, WDist minRange, WDist maxRange,
 			WPos? initialTargetPosition = null, Color? targetLineColor = null);
-		Activity MoveToTarget(Actor self, Target target,
+		Activity MoveToTarget(Actor self, in Target target,
 			WPos? initialTargetPosition = null, Color? targetLineColor = null);
 		Activity ReturnToCell(Actor self);
-		Activity MoveIntoTarget(Actor self, Target target);
+		Activity MoveIntoTarget(Actor self, in Target target);
 		Activity VisualMove(Actor self, WPos fromPos, WPos toPos);
 		int EstimatedMoveDuration(Actor self, WPos fromPos, WPos toPos);
 		CPos NearestMoveableCell(CPos target);
 		MovementType CurrentMovementTypes { get; set; }
-		bool CanEnterTargetNow(Actor self, Target target);
+		bool CanEnterTargetNow(Actor self, in Target target);
 		bool TurnWhileDisabled(Actor self);
 	}
 
@@ -480,7 +467,7 @@ namespace OpenRA.Mods.Common.Traits
 
 	public interface IRadarSignature
 	{
-		void PopulateRadarSignatureCells(Actor self, List<Pair<CPos, Color>> destinationBuffer);
+		void PopulateRadarSignatureCells(Actor self, List<(CPos Cell, Color Color)> destinationBuffer);
 	}
 
 	public interface IRadarColorModifier { Color RadarColorOverride(Actor self, Color color); }
@@ -515,7 +502,7 @@ namespace OpenRA.Mods.Common.Traits
 	[RequireExplicitImplementation]
 	public interface ITargetableCells
 	{
-		Pair<CPos, SubCell>[] TargetableCells();
+		(CPos Cell, SubCell SubCell)[] TargetableCells();
 	}
 
 	[RequireExplicitImplementation]
@@ -630,6 +617,13 @@ namespace OpenRA.Mods.Common.Traits
 	}
 
 	[RequireExplicitImplementation]
+	public interface INotifyEditorPlacementInfo : ITraitInfoInterface
+	{
+		object AddedToEditor(EditorActorPreview preview, World editorWorld);
+		void RemovedFromEditor(EditorActorPreview preview, World editorWorld, object data);
+	}
+
+	[RequireExplicitImplementation]
 	public interface IPreventMapSpawn
 	{
 		bool PreventMapSpawn(World world, ActorReference actorReference);
@@ -654,6 +648,19 @@ namespace OpenRA.Mods.Common.Traits
 	public interface INotifyTimeLimit
 	{
 		void NotifyTimerExpired(Actor self);
+	}
+
+	[RequireExplicitImplementation]
+	public interface ISelectable
+	{
+		string Class { get; }
+	}
+
+	public interface IDecoration
+	{
+		bool RequiresSelection { get; }
+
+		IEnumerable<IRenderable> RenderDecoration(Actor self, WorldRenderer wr, ISelectionDecorations container);
 	}
 
 	[RequireExplicitImplementation]

@@ -14,7 +14,6 @@ using System.IO;
 using Eluant;
 using OpenRA.Effects;
 using OpenRA.GameRules;
-using OpenRA.Graphics;
 using OpenRA.Mods.Common.Effects;
 using OpenRA.Mods.Common.FileFormats;
 using OpenRA.Mods.Common.Traits;
@@ -222,8 +221,8 @@ namespace OpenRA.Mods.Common.Scripting
 
 			if (string.IsNullOrEmpty(prefix))
 				Game.AddSystemLine(text);
-
-			Game.AddSystemLine(prefix, text);
+			else
+				Game.AddSystemLine(prefix, text);
 		}
 
 		[Desc("Displays a debug message to the player, if \"Show Map Debug Messages\" is checked in the settings.")]

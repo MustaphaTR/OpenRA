@@ -17,7 +17,7 @@ namespace OpenRA.Mods.Common.Traits
 {
 	[Desc("Actors possessing this trait should define the GainsExperience trait. When the prerequisites are fulfilled, ",
 		"this trait grants a level-up to newly spawned actors.")]
-	public class ProducibleWithLevelInfo : ITraitInfo, Requires<GainsExperienceInfo>
+	public class ProducibleWithLevelInfo : TraitInfo, Requires<GainsExperienceInfo>
 	{
 		public readonly string[] Prerequisites = { };
 
@@ -33,7 +33,7 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Should the level-up animation be suppressed when actor is created?")]
 		public readonly bool SuppressLevelupAnimation = true;
 
-		public object Create(ActorInitializer init) { return new ProducibleWithLevel(init, this); }
+		public override object Create(ActorInitializer init) { return new ProducibleWithLevel(init, this); }
 	}
 
 	public class ProducibleWithLevel : INotifyCreated, INotifyOwnerChanged

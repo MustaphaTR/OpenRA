@@ -29,6 +29,9 @@ namespace OpenRA.Mods.Common.Scripting
 			cargo = self.Trait<Cargo>();
 		}
 
+		[Desc("Returns references to passengers inside the transport.")]
+		public Actor[] Passengers { get { return cargo.Passengers.ToArray(); } }
+
 		[Desc("Specifies whether transport has any passengers.")]
 		public bool HasPassengers { get { return cargo.Passengers.Any(); } }
 
@@ -45,8 +48,8 @@ namespace OpenRA.Mods.Common.Scripting
 			cargo.Load(Self, a);
 		}
 
-		[Desc("Remove the first actor from the transport.  This actor is not added to the world.")]
-		public Actor UnloadPassenger() { return cargo.Unload(Self); }
+		[Desc("Remove an existing actor (or first actor if none specified) from the transport.  This actor is not added to the world.")]
+		public Actor UnloadPassenger(Actor a = null) { return cargo.Unload(Self, a); }
 
 		[ScriptActorPropertyActivity]
 		[Desc("Command transport to unload passengers.")]

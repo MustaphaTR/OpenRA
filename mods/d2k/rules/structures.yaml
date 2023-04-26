@@ -1,7 +1,7 @@
 ^concrete:
 	AlwaysVisible:
 	Interactable:
-	Building:
+	D2kBuilding:
 		TerrainTypes: Rock
 		BuildSounds: CHUNG.WAV
 		AllowInvalidPlacement: true
@@ -9,9 +9,6 @@
 	RequiresBuildableArea:
 		AreaTypes: building
 		Adjacent: 4
-	LaysTerrain:
-		Template: 88
-		TerrainTypes: Rock
 	Tooltip:
 		Name: Concrete
 		GenericName: Structure
@@ -25,7 +22,7 @@
 
 concretea:
 	Inherits: ^concrete
-	Building:
+	D2kBuilding:
 		Footprint: xx xx
 		Dimensions: 2,2
 	Tooltip:
@@ -34,12 +31,13 @@ concretea:
 		Cost: 20
 	Buildable:
 		BuildPaletteOrder: 110
-		BuildDuration: 54
-		BuildDurationModifier: 40
+		Prerequisites: ~!global-auto-concrete
+		BuildDuration: 62
+		BuildDurationModifier: 100
 
 concreteb:
 	Inherits: ^concrete
-	Building:
+	D2kBuilding:
 		Footprint: xxx xxx xxx
 		Dimensions: 3,3
 	Tooltip:
@@ -48,22 +46,21 @@ concreteb:
 		Cost: 50
 	Buildable:
 		BuildPaletteOrder: 210
-		Prerequisites: upgrade.conyard
-		BuildDuration: 81
-		BuildDurationModifier: 40
+		Prerequisites: upgrade.conyard, ~!global-auto-concrete
+		BuildDuration: 94
+		BuildDurationModifier: 100
 
 construction_yard:
 	Inherits: ^Building
+	Inherits@PRIMARY: ^PrimaryBuilding
+	Inherits@UPGRADEABLE: ^Upgradeable
 	Buildable:
 		Description: Produces structures.
-	-DamagedByTerrain:
-	Building:
+	D2kBuilding:
 		Footprint: xxx xxx ===
 		Dimensions: 3,3
 		LocalCenterOffset: 0,-512,0
-	LaysTerrain:
-		TerrainTypes: Rock
-		Template: 88
+		-ConcretePrerequisites:
 	WithBuildingBib:
 	Selectable:
 		Bounds: 96,64
@@ -103,26 +100,10 @@ construction_yard:
 		RequiresCondition: !build-incomplete
 		Palette: d2k
 	PrimaryBuilding:
-		PrimaryCondition: primary
 		ProductionQueues: Building
-		SelectionNotification: PrimaryBuildingSelected
 	ProvidesPrerequisite@buildingname:
-	GrantConditionOnPrerequisite:
+	GrantConditionOnPrerequisite@UPGRADEABLE:
 		Prerequisites: upgrade.conyard
-		Condition: stardecoration
-	WithDecoration@upgraded:
-		RequiresSelection: true
-		Image: pips
-		Sequence: tag-upgraded
-		ReferencePoint: Top, Right
-		ZOffset: 256
-		RequiresCondition: stardecoration
-	WithTextDecoration@primary:
-		RequiresSelection: true
-		Text: PRIMARY
-		ReferencePoint: Top
-		ZOffset: 256
-		RequiresCondition: primary
 	RevealOnDeath:
 		Radius: 5c768
 
@@ -131,8 +112,8 @@ wind_trap:
 	Buildable:
 		Queue: Building
 		BuildPaletteOrder: 120
-		BuildDuration: 180
-		BuildDurationModifier: 40
+		BuildDuration: 208
+		BuildDurationModifier: 100
 		Description: Provides power for other structures.
 	Selectable:
 		Bounds: 64,64
@@ -140,7 +121,7 @@ wind_trap:
 		Cost: 225
 	Tooltip:
 		Name: Wind Trap
-	Building:
+	D2kBuilding:
 		Footprint: xx xx ==
 		Dimensions: 2,3
 		LocalCenterOffset: 0,-512,0
@@ -174,12 +155,14 @@ wind_trap:
 
 barracks:
 	Inherits: ^Building
+	Inherits@PRIMARY: ^PrimaryBuilding
+	Inherits@UPGRADEABLE: ^Upgradeable
 	Buildable:
 		Prerequisites: wind_trap
 		Queue: Building
 		BuildPaletteOrder: 220
-		BuildDuration: 231
-		BuildDurationModifier: 40
+		BuildDuration: 268
+		BuildDurationModifier: 100
 		Description: Trains infantry.
 	Selectable:
 		Bounds: 64,64
@@ -187,7 +170,7 @@ barracks:
 		Cost: 225
 	Tooltip:
 		Name: Barracks
-	Building:
+	D2kBuilding:
 		Footprint: xx xx ==
 		Dimensions: 2,3
 		LocalCenterOffset: 0,-512,0
@@ -211,9 +194,7 @@ barracks:
 	Production:
 		Produces: Infantry, Upgrade
 	PrimaryBuilding:
-		PrimaryCondition: primary
 		ProductionQueues: Infantry
-		SelectionNotification: PrimaryBuildingSelected
 	ProductionBar:
 		ProductionType: Infantry
 	ProvidesPrerequisite@atreides:
@@ -236,22 +217,8 @@ barracks:
 			corrino: barracks.harkonnen
 	WithBuildingBib:
 	ProvidesPrerequisite@buildingname:
-	GrantConditionOnPrerequisite:
+	GrantConditionOnPrerequisite@UPGRADEABLE:
 		Prerequisites: upgrade.barracks
-		Condition: stardecoration
-	WithDecoration@upgraded:
-		RequiresSelection: true
-		Image: pips
-		Sequence: tag-upgraded
-		ReferencePoint: Top, Right
-		ZOffset: 256
-		RequiresCondition: stardecoration
-	WithTextDecoration@primary:
-		RequiresSelection: true
-		Text: PRIMARY
-		ReferencePoint: Top
-		ZOffset: 256
-		RequiresCondition: primary
 	RevealOnDeath:
 		Radius: 3c768
 
@@ -261,8 +228,8 @@ refinery:
 		Prerequisites: wind_trap
 		Queue: Building
 		BuildPaletteOrder: 130
-		BuildDuration: 540
-		BuildDurationModifier: 40
+		BuildDuration: 625
+		BuildDurationModifier: 100
 		Description: Harvesters unload Spice here for processing.
 	Selectable:
 		Bounds: 96,64
@@ -270,7 +237,7 @@ refinery:
 		Cost: 1500
 	Tooltip:
 		Name: Spice Refinery
-	Building:
+	D2kBuilding:
 		Footprint: =xx xx= ===
 		Dimensions: 3,3
 		LocalCenterOffset: 0,-512,0
@@ -289,12 +256,10 @@ refinery:
 	RevealsShroud:
 		Range: 3c768
 	Refinery:
-		DockAngle: 160
+		DockAngle: 640
 		DockOffset: 2,1
 		TickRate: 20
 	StoresResources:
-		PipColor: green
-		PipCount: 10
 		Capacity: 2000
 	CustomSellValue:
 		Value: 500
@@ -320,6 +285,11 @@ refinery:
 	Power:
 		Amount: -75
 	ProvidesPrerequisite@buildingname:
+	WithResourceStoragePipsDecoration:
+		Position: BottomLeft
+		Margin: 1, 4
+		RequiresSelection: true
+		PipCount: 10
 
 silo:
 	Inherits: ^Building
@@ -327,8 +297,8 @@ silo:
 		Prerequisites: refinery
 		Queue: Building
 		BuildPaletteOrder: 310
-		BuildDuration: 135
-		BuildDurationModifier: 40
+		BuildDuration: 156
+		BuildDurationModifier: 100
 		Description: Stores excess harvested Spice.
 	Selectable:
 		Bounds: 32,32
@@ -356,8 +326,6 @@ silo:
 	WithResourceLevelSpriteBody:
 		Sequence: stages
 	StoresResources:
-		PipColor: green
-		PipCount: 5
 		Capacity: 2000
 	-SpawnActorsOnSell:
 	Power:
@@ -370,15 +338,22 @@ silo:
 		Range: 2c0, 5c0
 	RevealOnDeath:
 		Radius: 2c768
+	WithResourceStoragePipsDecoration:
+		Position: BottomLeft
+		Margin: 1, 4
+		RequiresSelection: true
+		PipCount: 5
 
 light_factory:
 	Inherits: ^Building
+	Inherits@PRIMARY: ^PrimaryBuilding
+	Inherits@UPGRADEABLE: ^Upgradeable
 	Buildable:
 		Prerequisites: refinery
 		Queue: Building
 		BuildPaletteOrder: 230
-		BuildDuration: 277
-		BuildDurationModifier: 40
+		BuildDuration: 321
+		BuildDurationModifier: 100
 		Description: Produces light vehicles.
 	Selectable:
 		Bounds: 96,64
@@ -386,7 +361,7 @@ light_factory:
 		Cost: 500
 	Tooltip:
 		Name: Light Factory
-	Building:
+	D2kBuilding:
 		Footprint: xxx xx= ===
 		Dimensions: 3,3
 		LocalCenterOffset: 0,-512,0
@@ -423,9 +398,7 @@ light_factory:
 	Production:
 		Produces: Vehicle, Upgrade
 	PrimaryBuilding:
-		PrimaryCondition: primary
 		ProductionQueues: Vehicle
-		SelectionNotification: PrimaryBuildingSelected
 	ProductionBar:
 		ProductionType: Vehicle
 	ProvidesPrerequisite@atreides:
@@ -446,31 +419,19 @@ light_factory:
 	ProvidesPrerequisite@buildingname:
 	Power:
 		Amount: -125
-	GrantConditionOnPrerequisite:
+	GrantConditionOnPrerequisite@UPGRADEABLE:
 		Prerequisites: upgrade.light
-		Condition: stardecoration
-	WithDecoration@upgraded:
-		RequiresSelection: true
-		Image: pips
-		Sequence: tag-upgraded
-		ReferencePoint: Top, Right
-		ZOffset: 256
-		RequiresCondition: stardecoration
-	WithTextDecoration@primary:
-		RequiresSelection: true
-		Text: PRIMARY
-		ReferencePoint: Top
-		ZOffset: 256
-		RequiresCondition: primary
 
 heavy_factory:
 	Inherits: ^Building
+	Inherits@PRIMARY: ^PrimaryBuilding
+	Inherits@UPGRADEABLE: ^Upgradeable
 	Buildable:
 		Prerequisites: refinery
 		Queue: Building
 		BuildPaletteOrder: 330
-		BuildDuration: 648
-		BuildDurationModifier: 40
+		BuildDuration: 750
+		BuildDurationModifier: 100
 		Description: Produces heavy vehicles.
 	Selectable:
 		Bounds: 96,96
@@ -478,7 +439,7 @@ heavy_factory:
 		Cost: 1000
 	Tooltip:
 		Name: Heavy Factory
-	Building:
+	D2kBuilding:
 		Footprint: _x_ xxx =xX ===
 		Dimensions: 3,4
 		LocalCenterOffset: 0,-512,0
@@ -504,9 +465,7 @@ heavy_factory:
 	Production:
 		Produces: Armor, Upgrade
 	PrimaryBuilding:
-		PrimaryCondition: primary
 		ProductionQueues: Armor
-		SelectionNotification: PrimaryBuildingSelected
 	ProductionBar:
 		ProductionType: Armor
 	ProvidesPrerequisite@atreides:
@@ -549,22 +508,8 @@ heavy_factory:
 	Power:
 		Amount: -150
 	ProvidesPrerequisite@buildingname:
-	GrantConditionOnPrerequisite:
+	GrantConditionOnPrerequisite@UPGRADEABLE:
 		Prerequisites: upgrade.heavy
-		Condition: stardecoration
-	WithDecoration@upgraded:
-		RequiresSelection: true
-		Image: pips
-		Sequence: tag-upgraded
-		ReferencePoint: Top, Right
-		ZOffset: 256
-		RequiresCondition: stardecoration
-	WithTextDecoration@primary:
-		RequiresSelection: true
-		Text: PRIMARY
-		ReferencePoint: Top
-		ZOffset: 256
-		RequiresCondition: primary
 
 outpost:
 	Inherits: ^Building
@@ -573,8 +518,8 @@ outpost:
 		Prerequisites: barracks, ~techlevel.medium
 		Queue: Building
 		BuildPaletteOrder: 320
-		BuildDuration: 270
-		BuildDurationModifier: 40
+		BuildDuration: 312
+		BuildDurationModifier: 100
 		Description: Provides a radar map of the battlefield.\n  Requires power to operate.
 	Selectable:
 		Bounds: 96,64
@@ -582,7 +527,7 @@ outpost:
 		Cost: 750
 	Tooltip:
 		Name: Outpost
-	Building:
+	D2kBuilding:
 		Footprint: xxx xxx ===
 		Dimensions: 3,3
 		LocalCenterOffset: 0,-512,0
@@ -618,18 +563,19 @@ outpost:
 
 starport:
 	Inherits: ^Building
+	Inherits@PRIMARY: ^PrimaryBuilding
 	Tooltip:
 		Name: Starport
 	Buildable:
 		Prerequisites: heavy_factory, outpost, ~techlevel.high
 		Queue: Building
 		BuildPaletteOrder: 530
-		BuildDuration: 540
-		BuildDurationModifier: 40
+		BuildDuration: 625
+		BuildDurationModifier: 100
 		Description: Dropzone for quick reinforcements, at a price.
 	Valued:
 		Cost: 1500
-	Building:
+	D2kBuilding:
 		Footprint: xxx x=x =x=
 		Dimensions: 3,3
 	Selectable:
@@ -672,9 +618,7 @@ starport:
 	ProductionBar:
 		ProductionType: Starport
 	PrimaryBuilding:
-		PrimaryCondition: primary
 		ProductionQueues: Starport
-		SelectionNotification: PrimaryBuildingSelected
 	ProvidesPrerequisite@atreides:
 		Prerequisite: starport.atreides
 		Factions: atreides
@@ -696,12 +640,6 @@ starport:
 	Power:
 		Amount: -150
 	ProvidesPrerequisite@buildingname:
-	WithTextDecoration@primary:
-		RequiresSelection: true
-		Text: PRIMARY
-		ReferencePoint: Top
-		ZOffset: 256
-		RequiresCondition: primary
 
 wall:
 	Inherits@1: ^SpriteActor
@@ -715,18 +653,20 @@ wall:
 		Queue: Building
 		Prerequisites: barracks
 		BuildPaletteOrder: 410
-		BuildDuration: 54
-		BuildDurationModifier: 40
+		BuildDuration: 62
+		BuildDurationModifier: 100
 		Description: Stop units and blocks enemy fire.
 	Valued:
 		Cost: 20
 	CustomSellValue:
 		Value: 0
+	UpdatesPlayerStatistics:
+		AddToAssetsValue: false
 	Tooltip:
 		Name: Concrete Wall
 		GenericName: Structure
 	AppearsOnRadar:
-	Building:
+	D2kBuilding:
 		BuildSounds: CHUNG.WAV
 		TerrainTypes: Rock, Concrete
 	FootprintPlaceBuildingPreview:
@@ -779,19 +719,15 @@ medium_gun_turret:
 		Queue: Building
 		Prerequisites: barracks
 		BuildPaletteOrder: 510
-		BuildDuration: 231
-		BuildDurationModifier: 40
+		BuildDuration: 268
+		BuildDurationModifier: 100
 		Description: Defensive structure.\n  Strong vs Tanks\n  Weak vs Infantry, Aircraft
 	Valued:
 		Cost: 550
 	Tooltip:
 		Name: Gun Turret
-	Building:
-		BuildSounds: CHUNG.WAV
 	RequiresBuildableArea:
 		Adjacent: 4
-	Sellable:
-		SellSounds: CHUNG.WAV
 	Selectable:
 		Bounds: 32,32
 		DecorationBounds: 32,40,0,-8
@@ -805,8 +741,9 @@ medium_gun_turret:
 		QuantizedFacings: 32
 	WithMuzzleOverlay:
 	Turreted:
-		TurnSpeed: 6
-		InitialFacing: 128
+		TurnSpeed: 24
+		InitialFacing: 512
+		RealignDelay: -1
 	Armament:
 		Weapon: 110mm_Gun
 		LocalOffset: 512,0,432
@@ -826,19 +763,15 @@ large_gun_turret:
 		Queue: Building
 		Prerequisites: outpost, upgrade.conyard, ~techlevel.medium
 		BuildPaletteOrder: 610
-		BuildDuration: 270
-		BuildDurationModifier: 40
+		BuildDuration: 312
+		BuildDurationModifier: 100
 		Description: Defensive structure.\n  Strong vs Infantry, Aircraft\n  Weak vs Tanks\n\n  Requires power to operate.
 	Valued:
 		Cost: 750
 	Tooltip:
 		Name: Rocket Turret
-	Building:
-		BuildSounds: CHUNG.WAV
 	RequiresBuildableArea:
 		Adjacent: 4
-	Sellable:
-		SellSounds: CHUNG.WAV
 	Selectable:
 		Bounds: 32,32
 		DecorationBounds: 32,40,0,-8
@@ -854,8 +787,9 @@ large_gun_turret:
 		Weapon: TowerMissile
 		LocalOffset: 256,384,768, 256,-384,768
 	Turreted:
-		TurnSpeed: 8
-		InitialFacing: 128
+		TurnSpeed: 32
+		InitialFacing: 512
+		RealignDelay: -1
 	Power:
 		Amount: -60
 	RevealOnDeath:
@@ -869,14 +803,14 @@ repair_pad:
 		Queue: Building
 		Prerequisites: heavy_factory, upgrade.heavy, ~techlevel.medium
 		BuildPaletteOrder: 430
-		BuildDuration: 324
-		BuildDurationModifier: 40
+		BuildDuration: 375
+		BuildDurationModifier: 100
 		Description: Repairs vehicles.\n Allows construction of MCVs
 	Valued:
 		Cost: 800
 	Tooltip:
 		Name: Repair Pad
-	Building:
+	D2kBuilding:
 		Footprint: +++ +++ +++
 		Dimensions: 3,3
 	Health:
@@ -919,12 +853,14 @@ repair_pad:
 
 high_tech_factory:
 	Inherits: ^Building
+	Inherits@PRIMARY: ^PrimaryBuilding
+	Inherits@UPGRADEABLE: ^Upgradeable
 	Buildable:
 		Prerequisites: outpost, ~techlevel.medium
 		Queue: Building
 		BuildPaletteOrder: 420
-		BuildDuration: 405
-		BuildDurationModifier: 40
+		BuildDuration: 468
+		BuildDurationModifier: 100
 		Description: Unlocks advanced technology.
 	Selectable:
 		Bounds: 96,96
@@ -937,13 +873,11 @@ high_tech_factory:
 	ProductionBar:
 		ProductionType: Aircraft
 	PrimaryBuilding:
-		PrimaryCondition: primary
 		ProductionQueues: Aircraft
-		SelectionNotification: PrimaryBuildingSelected
 	Exit:
 		SpawnOffset: 0,0,728
 		ExitCell: 0,0
-	Building:
+	D2kBuilding:
 		Footprint: _X_ xxx XXX ===
 		Dimensions: 3,4
 		LocalCenterOffset: 0,-512,0
@@ -995,22 +929,8 @@ high_tech_factory:
 		SupportPowerPaletteOrder: 10
 	Power:
 		Amount: -75
-	GrantConditionOnPrerequisite:
+	GrantConditionOnPrerequisite@UPGRADEABLE:
 		Prerequisites: upgrade.hightech
-		Condition: stardecoration
-	WithDecoration@upgraded:
-		RequiresSelection: true
-		Image: pips
-		Sequence: tag-upgraded
-		ReferencePoint: Top, Right
-		ZOffset: 256
-		RequiresCondition: stardecoration
-	WithTextDecoration@primary:
-		RequiresSelection: true
-		Text: PRIMARY
-		ReferencePoint: Top
-		ZOffset: 256
-		RequiresCondition: primary
 
 research_centre:
 	Inherits: ^Building
@@ -1018,8 +938,8 @@ research_centre:
 		Queue: Building
 		Prerequisites: outpost, heavy_factory, upgrade.heavy, ~techlevel.high
 		BuildPaletteOrder: 520
-		BuildDuration: 270
-		BuildDurationModifier: 40
+		BuildDuration: 312
+		BuildDurationModifier: 100
 		Description: Unlocks advanced tanks.
 	Selectable:
 		Bounds: 96,96
@@ -1027,7 +947,7 @@ research_centre:
 		Cost: 1000
 	Tooltip:
 		Name: IX Research Center
-	Building:
+	D2kBuilding:
 		Footprint: _X_ xxx XXX ===
 		Dimensions: 3,4
 		LocalCenterOffset: 0,-512,0
@@ -1064,13 +984,14 @@ research_centre:
 
 palace:
 	Inherits: ^Building
+	Inherits@PRIMARY: ^PrimaryBuilding
 	Inherits@IDISABLE: ^DisableOnLowPowerOrPowerDown
 	Buildable:
 		Prerequisites: research_centre, ~techlevel.high
 		Queue: Building
 		BuildPaletteOrder: 620
-		BuildDuration: 810
-		BuildDurationModifier: 40
+		BuildDuration: 937
+		BuildDurationModifier: 100
 		Description: Unlocks elite infantry and weapons.
 	Selectable:
 		Bounds: 96,96
@@ -1078,7 +999,7 @@ palace:
 		Cost: 1600
 	Tooltip:
 		Name: Palace
-	Building:
+	D2kBuilding:
 		Footprint: xx= xxx =xx
 		Dimensions: 3,3
 	Health:
@@ -1108,7 +1029,7 @@ palace:
 			corrino: palace.corrino
 	WithBuildingBib:
 		HasMinibib: True
-	WithNukeLaunchOverlay:
+	WithSupportPowerActivationOverlay:
 		RequiresCondition: !build-incomplete && !launchpad-damaged && harkonnen
 	GrantConditionOnDamageState@LAUNCHPADDAMAGED:
 		Condition: launchpad-damaged
@@ -1127,14 +1048,8 @@ palace:
 		Prerequisite: palace.sardaukar
 		Factions: corrino
 	PrimaryBuilding:
-		PrimaryCondition: primary
 		RequiresCondition: atreides || ordos
-		SelectionNotification: PrimaryBuildingSelected
 	WithTextDecoration@primary:
-		RequiresSelection: true
-		Text: PRIMARY
-		ReferencePoint: Top
-		ZOffset: 256
 		RequiresCondition: primary && (atreides || ordos)
 	NukePower:
 		Cursor: nuke
@@ -1147,7 +1062,7 @@ palace:
 		LongDesc: Launches an atomic missile at a target location
 		BeginChargeSpeechNotification: DeathHandMissilePrepping
 		EndChargeSpeechNotification: DeathHandMissileReady
-		LaunchSpeechNotification: MissileLaunchDetected
+		IncomingSpeechNotification: MissileLaunchDetected
 		MissileWeapon: deathhand
 		MissileDelay: 18
 		SpawnOffset: 32,816,0

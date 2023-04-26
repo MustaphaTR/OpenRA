@@ -106,8 +106,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			actorIDErrorLabel.GetText = () => actorIDStatus == ActorIDStatus.Duplicate ?
 				"Duplicate Actor ID" : "Enter an Actor ID";
 
-			MiniYaml yaml;
-			if (logicArgs.TryGetValue("EditPanelPadding", out yaml))
+			if (logicArgs.TryGetValue("EditPanelPadding", out var yaml))
 				editPanelPadding = FieldLoader.GetValue<int>("EditPanelPadding", yaml.Value);
 
 			okButton.IsDisabled = () => !IsValid() || !editActorPreview.IsDirty;
@@ -308,6 +307,20 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 							slider.OnChange += value => so.OnChange(actor, value);
 							slider.OnChange += value => editorActionHandle.OnChange(value);
 
+							var valueField = sliderContainer.GetOrNull<TextFieldWidget>("VALUE");
+							if (valueField != null)
+							{
+								Action<float> updateValueField = f => valueField.Text = ((int)f).ToString();
+								updateValueField(so.GetValue(actor));
+								slider.OnChange += updateValueField;
+
+								valueField.OnTextEdited = () =>
+								{
+									if (float.TryParse(valueField.Text, out var result))
+										slider.UpdateValue(result);
+								};
+							}
+
 							initContainer.AddChild(sliderContainer);
 						}
 						else if (o is EditorActorDropdown)
@@ -375,8 +388,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 
 		void Reset()
 		{
-			if (editActorPreview != null)
-				editActorPreview.Reset();
+			editActorPreview?.Reset();
 		}
 
 		void Close()

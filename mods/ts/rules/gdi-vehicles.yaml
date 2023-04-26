@@ -1,6 +1,7 @@
 APC:
 	Inherits: ^Tank
 	Inherits@VOXELS: ^VoxelActor
+	Inherits@CARGOPIPS: ^CargoPips
 	Valued:
 		Cost: 800
 	Tooltip:
@@ -13,7 +14,7 @@ APC:
 		Prerequisites: ~gaweap, gapile, ~techlevel.medium
 		Description: Armored infantry transport.\nCan move on water.\n  Unarmed
 	Mobile:
-		TurnSpeed: 5
+		TurnSpeed: 20
 		Speed: 113
 		PauseOnCondition: empdisable || loading || being-captured || carried
 		Locomotor: amphibious
@@ -28,7 +29,6 @@ APC:
 	Cargo:
 		Types: Infantry
 		MaxWeight: 5
-		PipCount: 5
 		UnloadVoice: Unload
 		LoadingCondition: loading
 		EjectOnDeath: true
@@ -81,7 +81,7 @@ HVR:
 		Weapon: HoverMissile
 		LocalOffset: 0,242,543, 0,-242,543
 	Turreted:
-		TurnSpeed: 7
+		TurnSpeed: 28
 		Offset: -128,0,85
 	AttackTurreted:
 		Voice: Attack
@@ -120,8 +120,9 @@ SMECH:
 		Prerequisites: ~gaweap, ~techlevel.low
 		Description: Anti-personnel walker.\n  Strong vs Infantry, Light armor\n  Weak vs Vehicles, Aircraft
 	Mobile:
-		TurnSpeed: 5
+		TurnSpeed: 20
 		Speed: 99
+		AlwaysTurnInPlace: true
 	Health:
 		HP: 17500
 	Armor:
@@ -167,8 +168,9 @@ MMCH:
 		Prerequisites: ~gaweap, ~techlevel.medium
 		Description: General purpose mechanized walker.\n  Strong vs Vehicles\n  Weak vs Infantry, Aircraft
 	Mobile:
-		TurnSpeed: 5
+		TurnSpeed: 20
 		Speed: 56
+		AlwaysTurnInPlace: true
 	Health:
 		HP: 40000
 	Armor:
@@ -186,7 +188,7 @@ MMCH:
 		MoveSequence: walk
 		ValidMovementTypes: Horizontal, Turn
 	Turreted:
-		TurnSpeed: 5
+		TurnSpeed: 20
 	AttackTurreted:
 		Voice: Attack
 		PauseOnCondition: empdisable
@@ -230,11 +232,11 @@ HMEC:
 		BuildLimit: 1
 		Description: Slow heavy walker.\nArmed with dual railguns and rocket launchers.\n  Strong vs Infantry, Vehicles, Aircraft and Buildings\n  Weak vs Nothing\nMaximum 1 can be built.
 	Mobile:
-		TurnSpeed: 3
+		TurnSpeed: 12
 		Speed: 42
 	Health:
 		HP: 80000
-	SelfHealing:
+	ChangesHealth:
 		Step: 500
 	Armor:
 		Type: Heavy
@@ -278,7 +280,7 @@ SONIC:
 	Targetable:
 		TargetTypes: Ground, Vehicle, Disruptor
 	Mobile:
-		TurnSpeed: 4
+		TurnSpeed: 16
 		Speed: 56
 	Health:
 		HP: 50000
@@ -296,7 +298,7 @@ SONIC:
 		PauseOnCondition: empdisable
 		OpportunityFire: False
 	Turreted:
-		TurnSpeed: 5
+		TurnSpeed: 20
 		Offset: -170,0,0
 	WithVoxelTurret:
 	Explodes:
@@ -331,7 +333,8 @@ JUGG:
 		Type: Light
 	Mobile:
 		Speed: 71
-		TurnSpeed: 5
+		TurnSpeed: 20
+		AlwaysTurnInPlace: true
 		ImmovableCondition: !undeployed
 		RequireForceMoveCondition: !undeployed
 	RevealsShroud:
@@ -346,7 +349,7 @@ JUGG:
 		BodyNames: body, deployedbody
 	WithFacingSpriteBody:
 		Sequence: stand
-		RequiresCondition: undeployed
+		RequiresCondition: !deployed
 	WithMoveAnimation:
 		MoveSequence: walk
 		ValidMovementTypes: Horizontal, Turn
@@ -356,7 +359,7 @@ JUGG:
 		UndeployedCondition: undeployed
 		UndeployOnMove: true
 		UndeployOnPickup: true
-		Facing: 96
+		Facing: 384
 		AllowedTerrainTypes: Clear, Road, DirtRoad, Rough
 		DeploySounds: place2.aud
 		UndeploySounds: clicky1.aud
@@ -372,12 +375,12 @@ JUGG:
 	QuantizeFacingsFromSequence:
 		Sequence: turret
 	WithSpriteBody@deployed:
-		RequiresCondition: !undeployed && real-actor
+		RequiresCondition: deployed && real-actor
 		Name: deployedbody
 	Turreted:
 		Turret: deployed
-		TurnSpeed: 5
-		InitialFacing: 96
+		TurnSpeed: 20
+		InitialFacing: 384
 		Offset: -153,-17,633
 		RealignDelay: -1
 	WithVoxelBarrel:
@@ -409,6 +412,5 @@ JUGG:
 	WithMuzzleOverlay:
 	RevealOnFire:
 		ArmamentNames: deployed
-	SelectionDecorations:
 	Selectable:
 		DecorationBounds: 48,40,0,-8

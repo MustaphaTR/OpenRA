@@ -9,6 +9,7 @@
  */
 #endregion
 
+using System.Collections.Generic;
 using System.Linq;
 using OpenRA.Traits;
 
@@ -16,8 +17,8 @@ namespace OpenRA.Mods.Common.Traits
 {
 	public class CreatesShroudInfo : AffectsShroudInfo
 	{
-		[Desc("Stance the watching player needs to see the generated shroud.")]
-		public readonly Stance ValidStances = Stance.Neutral | Stance.Enemy;
+		[Desc("Relationship the watching player needs to see the generated shroud.")]
+		public readonly PlayerRelationship ValidRelationships = PlayerRelationship.Neutral | PlayerRelationship.Enemy;
 
 		public override object Create(ActorInitializer init) { return new CreatesShroud(init.Self, this); }
 	}
@@ -25,7 +26,7 @@ namespace OpenRA.Mods.Common.Traits
 	public class CreatesShroud : AffectsShroud
 	{
 		readonly CreatesShroudInfo info;
-		ICreatesShroudModifier[] rangeModifiers;
+		IEnumerable<int> rangeModifiers;
 
 		public CreatesShroud(Actor self, CreatesShroudInfo info)
 			: base(self, info)
@@ -37,12 +38,12 @@ namespace OpenRA.Mods.Common.Traits
 		{
 			base.Created(self);
 
-			rangeModifiers = self.TraitsImplementing<ICreatesShroudModifier>().ToArray();
+			rangeModifiers = self.TraitsImplementing<ICreatesShroudModifier>().ToArray().Select(x => x.GetCreatesShroudModifier());
 		}
 
 		public override void AddCellsToPlayerShroud(Actor self, Player p, PPos[] uv)
 		{
-			if (!info.ValidStances.HasStance(p.Stances[self.Owner]))
+			if (!info.ValidRelationships.HasStance(self.Owner.RelationshipWith(p)))
 				return;
 
 			p.Shroud.AddSource(this, Shroud.SourceType.Shroud, uv);
@@ -57,8 +58,7 @@ namespace OpenRA.Mods.Common.Traits
 				if (cachedTraitDisabled)
 					return WDist.Zero;
 
-				var revealsShroudModifier = rangeModifiers.Select(x => x.GetCreatesShroudModifier());
-				var range = Util.ApplyPercentageModifiers(Info.Range.Length, revealsShroudModifier);
+				var range = Util.ApplyPercentageModifiers(Info.Range.Length, rangeModifiers);
 				return new WDist(range);
 			}
 		}

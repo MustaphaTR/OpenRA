@@ -4,11 +4,20 @@ C1:
 
 C2:
 	Inherits: ^CivInfantry
-	Voiced:
-		VoiceSet: CivilianFemaleVoice
+	RenderSprites:
+		Image: C1
+	WithInfantryBody:
+		Palette: civilian2
+	WithDeathAnimation:
+		DeathSequencePalette: civilian2
+		DeathPaletteIsPlayerPalette: false
 
 C3:
 	Inherits: ^CivInfantry
+	Voiced:
+		VoiceSet: CivilianFemaleVoice
+	RenderSprites:
+		Image: C2
 
 C4:
 	Inherits: ^CivInfantry
@@ -16,43 +25,79 @@ C4:
 		Image: C2
 	Voiced:
 		VoiceSet: CivilianFemaleVoice
+	WithInfantryBody:
+		Palette: civilian4
+	WithDeathAnimation:
+		DeathSequencePalette: civilian4
+		DeathPaletteIsPlayerPalette: false
 
 C5:
-	Inherits: ^CivInfantry
-	RenderSprites:
-		Image: C1
-
-C6:
 	Inherits: ^CivInfantry
 	RenderSprites:
 		Image: C2
 	Voiced:
 		VoiceSet: CivilianFemaleVoice
+	WithInfantryBody:
+		Palette: civilian5
+	WithDeathAnimation:
+		DeathSequencePalette: civilian5
+		DeathPaletteIsPlayerPalette: false
+
+C6:
+	Inherits: ^CivInfantry
+	RenderSprites:
+		Image: C1
+	WithInfantryBody:
+		Palette: civilian6
+	WithDeathAnimation:
+		DeathSequencePalette: civilian6
+		DeathPaletteIsPlayerPalette: false
 
 C7:
 	Inherits@1: ^CivInfantry
 	Inherits@2: ^ArmedCivilian
 	RenderSprites:
 		Image: C1
+	WithInfantryBody:
+		Palette: civilian7
+	WithDeathAnimation:
+		DeathSequencePalette: civilian7
+		DeathPaletteIsPlayerPalette: false
 
 C8:
 	Inherits: ^CivInfantry
 	RenderSprites:
-		Image: C2
-	Voiced:
-		VoiceSet: CivilianFemaleVoice
+		Image: C1
+	WithInfantryBody:
+		Palette: civilian8
+	WithDeathAnimation:
+		DeathSequencePalette: civilian8
+		DeathPaletteIsPlayerPalette: false
 
 C9:
 	Inherits: ^CivInfantry
 	RenderSprites:
 		Image: C1
+	WithInfantryBody:
+		Palette: civilian9
+	WithDeathAnimation:
+		DeathSequencePalette: civilian9
+		DeathPaletteIsPlayerPalette: false
 
 C10:
 	Inherits: ^CivInfantry
 	RenderSprites:
-		Image: C2
-	Voiced:
-		VoiceSet: CivilianFemaleVoice
+		Image: C1
+	Tooltip:
+		Name: Scientist
+	WithInfantryBody:
+		Palette: civilian10
+	WithDeathAnimation:
+		DeathSequencePalette: civilian10
+		DeathPaletteIsPlayerPalette: false
+
+C11:
+	Inherits: ^CivInfantry
 
 TECN:
 	Inherits@1: ^CivInfantry
@@ -61,6 +106,19 @@ TECN:
 		Name: Technician
 	RenderSprites:
 		Image: C1
+
+TECN2:
+	Inherits@1: ^CivInfantry
+	Inherits@2: ^ArmedCivilian
+	Tooltip:
+		Name: Technician
+	RenderSprites:
+		Image: C1
+	WithInfantryBody:
+		Palette: civilian7
+	WithDeathAnimation:
+		DeathSequencePalette: civilian7
+		DeathPaletteIsPlayerPalette: false
 
 FCOM:
 	Inherits: ^TechBuilding
@@ -81,10 +139,10 @@ FCOM:
 		Name: Forward Command
 	TooltipDescription@ally:
 		Description: Provides buildable area.
-		ValidStances: Ally
+		ValidRelationships: Ally
 	TooltipDescription@other:
 		Description: Capture to give buildable area.
-		ValidStances: Neutral, Enemy
+		ValidRelationships: Neutral, Enemy
 	RevealsShroud:
 		MinRange: 4c0
 		Range: 5c0
@@ -134,10 +192,10 @@ HOSP:
 		Name: Hospital
 	TooltipDescription@ally:
 		Description: Provides infantry with self-healing.
-		ValidStances: Ally
+		ValidRelationships: Ally
 	TooltipDescription@other:
 		Description: Capture to enable self-healing for infantry.
-		ValidStances: Neutral, Enemy
+		ValidRelationships: Neutral, Enemy
 	RevealsShroud:
 		Range: 4c0
 	WithBuildingBib:
@@ -298,13 +356,10 @@ V19:
 		Palette: player
 	Tooltip:
 		Name: Oil Pump
-	-SpawnActorOnDeath@1:
-	-SpawnActorOnDeath@2:
-	-SpawnActorOnDeath@3:
 	SpawnActorOnDeath:
 		Actor: V19.Husk
 	Targetable:
-		TargetTypes: Ground, C4, DetonateAttack, Structure, NoAutoTarget
+		TargetTypes: GroundActor, C4, DetonateAttack, Structure, NoAutoTarget
 
 V19.Husk:
 	Inherits: ^CivBuilding
@@ -317,8 +372,6 @@ V19.Husk:
 		StartSequence: fire-start
 		Sequence: fire-loop
 	-Selectable:
-	SelectionDecorations:
-		RenderSelectionBars: False
 	-Targetable:
 	-Demolishable:
 	-HitShape:
@@ -330,8 +383,6 @@ V19.Husk:
 BARL:
 	Inherits: ^TechBuilding
 	-Selectable:
-	SelectionDecorations:
-		RenderSelectionBars: False
 	Health:
 		HP: 1000
 	Explodes:
@@ -342,7 +393,7 @@ BARL:
 	Armor:
 		Type: None
 	Targetable:
-		TargetTypes: Ground, DemoTruck, Barrel, NoAutoTarget
+		TargetTypes: GroundActor, DemoTruck, Barrel, NoAutoTarget
 	-ShakeOnDeath:
 	-SoundOnDamageTransition:
 	-Demolishable:
@@ -354,8 +405,6 @@ BARL:
 BRL3:
 	Inherits: ^TechBuilding
 	-Selectable:
-	SelectionDecorations:
-		RenderSelectionBars: False
 	Health:
 		HP: 1000
 	Explodes:
@@ -366,7 +415,7 @@ BRL3:
 	Armor:
 		Type: None
 	Targetable:
-		TargetTypes: Ground, DemoTruck, Barrel, NoAutoTarget
+		TargetTypes: GroundActor, DemoTruck, Barrel, NoAutoTarget
 	-ShakeOnDeath:
 	-SoundOnDamageTransition:
 	-Demolishable:
@@ -413,10 +462,10 @@ MISS:
 		Name: Communications Center
 	TooltipDescription@ally:
 		Description: Provides range of vision.
-		ValidStances: Ally
+		ValidRelationships: Ally
 	TooltipDescription@other:
 		Description: Capture to give visual range.
-		ValidStances: Neutral, Enemy
+		ValidRelationships: Neutral, Enemy
 	WithBuildingBib:
 	CaptureManager:
 	Capturable:
@@ -454,10 +503,10 @@ BIO:
 		Name: Biological Lab
 	TooltipDescription@ally:
 		Description: Provides prerequisite for Bio-Lab units.
-		ValidStances: Ally
+		ValidRelationships: Ally
 	TooltipDescription@other:
 		Description: Capture to produce Bio-Lab units.
-		ValidStances: Neutral, Enemy
+		ValidRelationships: Neutral, Enemy
 	WithDeathAnimation:
 		DeathSequence: dead
 		UseDeathTypeSuffix: false
@@ -493,14 +542,15 @@ OILB:
 	CashTrickler:
 		Interval: 375
 		Amount: 100
+		RequiresCondition: enabled
 	Tooltip:
 		Name: Oil Derrick
 	TooltipDescription@ally:
 		Description: Provides additional funds.
-		ValidStances: Ally
+		ValidRelationships: Ally
 	TooltipDescription@other:
 		Description: Capture to receive additional funds.
-		ValidStances: Neutral, Enemy
+		ValidRelationships: Neutral, Enemy
 	Explodes:
 		Weapon: BarrelExplode
 	GpsDot:
@@ -509,6 +559,8 @@ OILB:
 	GivesCashOnCapture:
 		Amount: 100
 	UpdatesDerrickCount:
+	GrantConditionOnCombatantOwner:
+		Condition: enabled
 
 BR1:
 	Inherits: ^Bridge
@@ -887,7 +939,6 @@ WINDMILL:
 	Selectable:
 		Bounds: 24,24,0,-14
 		DecorationBounds: 36,36,0,-14
-	SelectionDecorations:
 	Tooltip:
 		Name: Windmill
 	Building:

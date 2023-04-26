@@ -12,12 +12,9 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Diagnostics.CodeAnalysis;
-using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Net;
-using OpenRA.Primitives;
+using OpenRA.Network;
 using OpenRA.Widgets;
 
 namespace OpenRA.Mods.Common.Widgets.Logic
@@ -44,6 +41,8 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 		void SwitchMenu(MenuType type)
 		{
 			menuType = type;
+
+			DiscordService.UpdateStatus(DiscordState.InMenu);
 
 			// Update button mouseover
 			Game.RunAfterTick(Ui.ResetTooltips);
@@ -231,7 +230,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			{
 				Action onSysInfoComplete = () =>
 				{
-					LoadAndDisplayNews(webServices.GameNews, newsBG);
+					LoadAndDisplayNews(webServices, newsBG);
 					SwitchMenu(MenuType.Main);
 				};
 
@@ -257,13 +256,15 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				onIntroductionComplete();
 
 			Game.OnShellmapLoaded += OpenMenuBasedOnLastGame;
+
+			DiscordService.UpdateStatus(DiscordState.InMenu);
 		}
 
-		void LoadAndDisplayNews(string newsURL, Widget newsBG)
+		void LoadAndDisplayNews(WebServices webServices, Widget newsBG)
 		{
 			if (newsBG != null && Game.Settings.Game.FetchNews)
 			{
-				var cacheFile = Platform.ResolvePath(Platform.SupportDirPrefix, "news.yaml");
+				var cacheFile = Path.Combine(Platform.SupportDir, webServices.GameNewsFileName);
 				var currentNews = ParseNews(cacheFile);
 				if (currentNews != null)
 					DisplayNews(currentNews);
@@ -274,7 +275,8 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 					if (!fetchedNews)
 					{
 						// Send the mod and engine version to support version-filtered news (update prompts)
-						newsURL += "?version={0}&mod={1}&modversion={2}".F(
+						var newsURL = "{0}?version={1}&mod={2}&modversion={3}".F(
+							webServices.GameNews,
 							Uri.EscapeUriString(Game.EngineVersion),
 							Uri.EscapeUriString(Game.ModData.Manifest.Id),
 							Uri.EscapeUriString(Game.ModData.Manifest.Metadata.Version));
@@ -298,25 +300,25 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			button.AttachPanel(newsPanel, () => newsOpen = false);
 		}
 
-		void OnRemoteDirectConnect(string host, int port)
+		void OnRemoteDirectConnect(ConnectionTarget endpoint)
 		{
 			SwitchMenu(MenuType.None);
 			Ui.OpenWindow("MULTIPLAYER_PANEL", new WidgetArgs
 			{
 				{ "onStart", RemoveShellmapUI },
 				{ "onExit", () => SwitchMenu(MenuType.Main) },
-				{ "directConnectHost", host },
-				{ "directConnectPort", port },
+				{ "directConnectEndPoint", endpoint },
 			});
 		}
 
 		void LoadMapIntoEditor(string uid)
 		{
-			ConnectionLogic.Connect(IPAddress.Loopback.ToString(),
-				Game.CreateLocalServer(uid),
+			ConnectionLogic.Connect(Game.CreateLocalServer(uid),
 				"",
 				() => { Game.LoadEditor(uid); },
 				() => { Game.CloseServer(); SwitchMenu(MenuType.MapEditor); });
+
+			DiscordService.UpdateStatus(DiscordState.InMapEditor);
 
 			lastGameState = MenuPanel.MapEditor;
 		}
@@ -425,8 +427,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			Game.Settings.Server.Map = map;
 			Game.Settings.Save();
 
-			ConnectionLogic.Connect(IPAddress.Loopback.ToString(),
-				Game.CreateLocalServer(map),
+			ConnectionLogic.Connect(Game.CreateLocalServer(map),
 				"",
 				OpenSkirmishLobbyPanel,
 				() => { Game.CloseServer(); SwitchMenu(MenuType.Main); });
@@ -460,8 +461,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			{
 				{ "onStart", () => { RemoveShellmapUI(); lastGameState = MenuPanel.Multiplayer; } },
 				{ "onExit", () => SwitchMenu(MenuType.Main) },
-				{ "directConnectHost", null },
-				{ "directConnectPort", 0 },
+				{ "directConnectEndPoint", null },
 			});
 		}
 

@@ -10,7 +10,6 @@
 #endregion
 
 using System.Collections.Generic;
-using System.Linq;
 using OpenRA.Graphics;
 using OpenRA.Mods.Common.Graphics;
 using OpenRA.Traits;
@@ -39,7 +38,7 @@ namespace OpenRA.Mods.Common.Traits.Render
 		readonly AttackCharges attackCharges;
 
 		public WithChargeSpriteBody(ActorInitializer init, WithChargeSpriteBodyInfo info)
-			: base(init, info, () => 0)
+			: base(init, info)
 		{
 			attackCharges = init.Self.Trait<AttackCharges>();
 			ConfigureAnimation(init.Self);

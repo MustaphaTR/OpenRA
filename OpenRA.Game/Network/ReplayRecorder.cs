@@ -10,6 +10,7 @@
 #endregion
 
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using OpenRA.FileFormats;
@@ -25,9 +26,7 @@ namespace OpenRA.Network
 
 		static bool IsGameStart(byte[] data)
 		{
-			if (data.Length == 5 && data[4] == (byte)OrderType.Disconnect)
-				return false;
-			if (data.Length >= 5 && data[4] == (byte)OrderType.SyncHash)
+			if (data.Length > 4 && (data[4] == (byte)OrderType.Disconnect || data[4] == (byte)OrderType.SyncHash))
 				return false;
 
 			var frame = BitConverter.ToInt32(data, 0);
@@ -45,7 +44,7 @@ namespace OpenRA.Network
 		{
 			var filename = chooseFilename();
 			var mod = Game.ModData.Manifest;
-			var dir = Platform.ResolvePath(Platform.SupportDirPrefix, "Replays", mod.Id, mod.Metadata.Version);
+			var dir = Path.Combine(Platform.SupportDir, "Replays", mod.Id, mod.Metadata.Version);
 
 			if (!Directory.Exists(dir))
 				Directory.CreateDirectory(dir);
@@ -85,6 +84,14 @@ namespace OpenRA.Network
 			writer.Write(data);
 		}
 
+		public void ReceiveFrame(int clientID, int frame, byte[] data)
+		{
+			var ms = new MemoryStream(4 + data.Length);
+			ms.WriteArray(BitConverter.GetBytes(frame));
+			ms.WriteArray(data);
+			Receive(clientID, ms.GetBuffer());
+		}
+
 		bool disposed;
 
 		public void Dispose()
@@ -100,8 +107,7 @@ namespace OpenRA.Network
 				Metadata.Write(writer);
 			}
 
-			if (preStartBuffer != null)
-				preStartBuffer.Dispose();
+			preStartBuffer?.Dispose();
 			writer.Close();
 		}
 	}

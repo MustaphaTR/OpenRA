@@ -53,7 +53,7 @@ namespace OpenRA
 		public bool DiscoverNatDevices = false;
 
 		[Desc("Time in milliseconds to search for UPnP enabled NAT devices.")]
-		public int NatDiscoveryTimeout = 1000;
+		public int NatDiscoveryTimeout = 5000;
 
 		[Desc("Starts the game with a default map. Input as hash that can be obtained by the utility.")]
 		public string Map = null;
@@ -87,6 +87,9 @@ namespace OpenRA
 
 		[Desc("Allow clients to see the country of other clients.")]
 		public bool EnableGeoIP = true;
+
+		[Desc("For dedicated servers only, save replays for all games played.")]
+		public bool RecordReplays = false;
 
 		public ServerSettings Clone()
 		{
@@ -172,14 +175,18 @@ namespace OpenRA
 		[Desc("Disable operating-system provided cursor rendering.")]
 		public bool DisableHardwareCursors = false;
 
+		[Desc("Disable legacy OpenGL 2.1 support.")]
+		public bool DisableLegacyGL = true;
+
 		[Desc("Display index to use in a multi-monitor fullscreen setup.")]
 		public int VideoDisplay = 0;
 
 		[Desc("Preferred OpenGL profile to use.",
 			"Modern: OpenGL Core Profile 3.2 or greater.",
 			"Embedded: OpenGL ES 3.0 or greater.",
-			"Legacy: OpenGL 2.1 with framebuffer_object extension.")]
-		public GLProfile GLProfile = GLProfile.Modern;
+			"Legacy: OpenGL 2.1 with framebuffer_object extension (requires DisableLegacyGL: False)",
+			"Automatic: Use the first supported profile.")]
+		public GLProfile GLProfile = GLProfile.Automatic;
 
 		public int BatchSize = 8192;
 		public int SheetSize = 2048;
@@ -249,6 +256,8 @@ namespace OpenRA
 		public int IntroductionPromptVersion = 0;
 
 		public MPGameFilters MPGameFilters = MPGameFilters.Waiting | MPGameFilters.Empty | MPGameFilters.Protected | MPGameFilters.Started;
+
+		public bool PauseShellmap = false;
 	}
 
 	public class Settings
@@ -295,8 +304,7 @@ namespace OpenRA
 					yamlCache = MiniYaml.FromFile(settingsFile, false);
 					foreach (var yamlSection in yamlCache)
 					{
-						object settingsSection;
-						if (yamlSection.Key != null && Sections.TryGetValue(yamlSection.Key, out settingsSection))
+						if (yamlSection.Key != null && Sections.TryGetValue(yamlSection.Key, out var settingsSection))
 							LoadSectionYaml(yamlSection.Value, settingsSection);
 					}
 

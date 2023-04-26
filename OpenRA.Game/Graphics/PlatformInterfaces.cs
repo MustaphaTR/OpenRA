@@ -17,6 +17,8 @@ namespace OpenRA
 {
 	public enum GLProfile
 	{
+		Automatic,
+		ANGLE,
 		Modern,
 		Embedded,
 		Legacy
@@ -24,7 +26,7 @@ namespace OpenRA
 
 	public interface IPlatform
 	{
-		IPlatformWindow CreateWindow(Size size, WindowMode windowMode, float scaleModifier, int batchSize, int videoDisplay, GLProfile profile);
+		IPlatformWindow CreateWindow(Size size, WindowMode windowMode, float scaleModifier, int batchSize, int videoDisplay, GLProfile profile, bool enableLegacyGL);
 		ISoundEngine CreateSound(string device);
 		IFont CreateFont(byte[] data);
 	}
@@ -39,7 +41,10 @@ namespace OpenRA
 		Subtractive,
 		Multiply,
 		Multiplicative,
-		DoubleMultiplicative
+		DoubleMultiplicative,
+		LowAdditive,
+		Screen,
+		Translucent
 	}
 
 	public interface IPlatformWindow : IDisposable
@@ -53,6 +58,7 @@ namespace OpenRA
 		Size SurfaceSize { get; }
 		int DisplayCount { get; }
 		int CurrentDisplay { get; }
+		bool HasInputFocus { get; }
 
 		event Action<float, float, float, float> OnWindowScaleChanged;
 
@@ -97,8 +103,7 @@ namespace OpenRA
 	{
 		void Bind();
 		void SetData(T[] vertices, int length);
-		void SetData(T[] vertices, int start, int length);
-		void SetData(IntPtr data, int start, int length);
+		void SetData(T[] vertices, int offset, int start, int length);
 	}
 
 	public interface IShader

@@ -19,9 +19,9 @@ using OpenRA.Traits;
 namespace OpenRA.Mods.Common.Traits
 {
 	[Desc("Attach this to the player actor.")]
-	public class SupportPowerManagerInfo : ITraitInfo, Requires<DeveloperModeInfo>, Requires<TechTreeInfo>
+	public class SupportPowerManagerInfo : TraitInfo, Requires<DeveloperModeInfo>, Requires<TechTreeInfo>
 	{
-		public object Create(ActorInitializer init) { return new SupportPowerManager(init); }
+		public override object Create(ActorInitializer init) { return new SupportPowerManager(init); }
 	}
 
 	public class SupportPowerManager : ITick, IResolveOrder, ITechTreeElement
@@ -129,8 +129,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		void ITechTreeElement.PrerequisitesAvailable(string key)
 		{
-			SupportPowerInstance sp;
-			if (!Powers.TryGetValue(key.Remove(key.Length - 1), out sp))
+			if (!Powers.TryGetValue(key.Remove(key.Length - 1), out var sp))
 				return;
 
 			sp.CheckPrerequisites(false);
@@ -138,8 +137,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		void ITechTreeElement.PrerequisitesUnavailable(string key)
 		{
-			SupportPowerInstance sp;
-			if (!Powers.TryGetValue(key.Remove(key.Length - 1), out sp))
+			if (!Powers.TryGetValue(key.Remove(key.Length - 1), out var sp))
 				return;
 
 			sp.CheckPrerequisites(false);
@@ -181,6 +179,11 @@ namespace OpenRA.Mods.Common.Traits
 		protected bool notifiedCharging;
 		bool notifiedReady;
 
+		public void ResetTimer()
+		{
+			remainingSubTicks = TotalTicks * 100;
+		}
+
 		public SupportPowerInstance(string key, SupportPowerInfo info, SupportPowerManager manager)
 		{
 			Key = key;
@@ -211,27 +214,23 @@ namespace OpenRA.Mods.Common.Traits
 			if (!Active)
 				return;
 
-			if (Active)
+			var power = Instances.First();
+			if (Manager.DevMode.FastCharge && remainingSubTicks > 2500)
+				remainingSubTicks = 2500;
+
+			if (remainingSubTicks > 0)
+				remainingSubTicks = (remainingSubTicks - 100).Clamp(0, TotalTicks * 100);
+
+			if (!notifiedCharging)
 			{
-				var power = Instances.First();
-				if (Manager.DevMode.FastCharge && remainingSubTicks > 2500)
-					remainingSubTicks = 2500;
+				power.Charging(power.Self, Key);
+				notifiedCharging = true;
+			}
 
-				if (remainingSubTicks > 0)
-					remainingSubTicks = (remainingSubTicks - 100).Clamp(0, TotalTicks * 100);
-
-				if (!notifiedCharging)
-				{
-					power.Charging(power.Self, Key);
-					notifiedCharging = true;
-				}
-
-				if (RemainingTicks == 0
-					&& !notifiedReady)
-				{
-					power.Charged(power.Self, Key);
-					notifiedReady = true;
-				}
+			if (RemainingTicks == 0 && !notifiedReady)
+			{
+				power.Charged(power.Self, Key);
+				notifiedReady = true;
 			}
 		}
 
@@ -241,8 +240,13 @@ namespace OpenRA.Mods.Common.Traits
 				return;
 
 			var power = Instances.FirstOrDefault(i => !i.IsTraitPaused);
+
 			if (power == null)
 				return;
+
+			Game.Sound.PlayToPlayer(SoundType.UI, Manager.Self.Owner, Info.SelectTargetSound);
+			Game.Sound.PlayNotification(power.Self.World.Map.Rules, power.Self.Owner, "Speech",
+				Info.SelectTargetSpeechNotification, power.Self.Owner.Faction.InternalName);
 
 			power.SelectTarget(power.Self, Key, Manager);
 		}
@@ -329,7 +333,7 @@ namespace OpenRA.Mods.Common.Traits
 		protected override void Tick(World world)
 		{
 			// Cancel the OG if we can't use the power
-			if (!manager.Powers.ContainsKey(order))
+			if (!manager.Powers.TryGetValue(order, out var p) || !p.Active || !p.Ready)
 				world.CancelInputMode();
 		}
 

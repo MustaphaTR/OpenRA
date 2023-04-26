@@ -17,7 +17,7 @@ using OpenRA.Traits;
 namespace OpenRA.Mods.Common.Traits
 {
 	[Desc("Replaces the captured actor with a new one.")]
-	public class TransformOnCaptureInfo : ITraitInfo
+	public class TransformOnCaptureInfo : TraitInfo
 	{
 		[ActorReference]
 		[FieldLoader.Require]
@@ -30,7 +30,7 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Transform only if the capturer's CaptureTypes overlap with these types. Leave empty to allow all types.")]
 		public readonly BitSet<CaptureType> CaptureTypes = default(BitSet<CaptureType>);
 
-		public virtual object Create(ActorInitializer init) { return new TransformOnCapture(init, this); }
+		public override object Create(ActorInitializer init) { return new TransformOnCapture(init, this); }
 	}
 
 	public class TransformOnCapture : INotifyCapture
@@ -41,7 +41,7 @@ namespace OpenRA.Mods.Common.Traits
 		public TransformOnCapture(ActorInitializer init, TransformOnCaptureInfo info)
 		{
 			this.info = info;
-			faction = init.Contains<FactionInit>() ? init.Get<FactionInit, string>() : init.Self.Owner.Faction.InternalName;
+			faction = init.GetValue<FactionInit, string>(init.Self.Owner.Faction.InternalName);
 		}
 
 		void INotifyCapture.OnCapture(Actor self, Actor captor, Player oldOwner, Player newOwner, BitSet<CaptureType> captureTypes)

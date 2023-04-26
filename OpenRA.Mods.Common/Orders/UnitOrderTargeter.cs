@@ -32,12 +32,12 @@ namespace OpenRA.Mods.Common.Orders
 		public string OrderID { get; private set; }
 		public int OrderPriority { get; private set; }
 		public bool? ForceAttack = null;
-		public bool TargetOverridesSelection(Actor self, Target target, List<Actor> actorsAt, CPos xy, TargetModifiers modifiers) { return true; }
+		public bool TargetOverridesSelection(Actor self, in Target target, List<Actor> actorsAt, CPos xy, TargetModifiers modifiers) { return true; }
 
 		public abstract bool CanTargetActor(Actor self, Actor target, TargetModifiers modifiers, ref string cursor);
 		public abstract bool CanTargetFrozenActor(Actor self, FrozenActor target, TargetModifiers modifiers, ref string cursor);
 
-		public bool CanTarget(Actor self, Target target, List<Actor> othersAtTarget, ref TargetModifiers modifiers, ref string cursor)
+		public bool CanTarget(Actor self, in Target target, List<Actor> othersAtTarget, ref TargetModifiers modifiers, ref string cursor)
 		{
 			var type = target.Type;
 			if (type != TargetType.Actor && type != TargetType.FrozenActor)
@@ -50,12 +50,11 @@ namespace OpenRA.Mods.Common.Orders
 				return false;
 
 			var owner = type == TargetType.FrozenActor ? target.FrozenActor.Owner : target.Actor.Owner;
-			var playerRelationship = self.Owner.Stances[owner];
-
-			if (!modifiers.HasModifier(TargetModifiers.ForceAttack) && playerRelationship == Stance.Ally && !targetAllyUnits)
+			var playerRelationship = self.Owner.RelationshipWith(owner);
+			if (!modifiers.HasModifier(TargetModifiers.ForceAttack) && playerRelationship == PlayerRelationship.Ally && !targetAllyUnits)
 				return false;
 
-			if (!modifiers.HasModifier(TargetModifiers.ForceAttack) && playerRelationship == Stance.Enemy && !targetEnemyUnits)
+			if (!modifiers.HasModifier(TargetModifiers.ForceAttack) && playerRelationship == PlayerRelationship.Enemy && !targetEnemyUnits)
 				return false;
 
 			return type == TargetType.FrozenActor ?

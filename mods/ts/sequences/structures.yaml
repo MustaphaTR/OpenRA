@@ -1192,6 +1192,8 @@ gactwr:
 		Start: 2
 		ShadowStart: 5
 		Tick: 400
+	invisible: null
+		UseTilesetCode: false
 	idle-lights: gtctwr_a
 		Length: 6
 		Tick: 200
@@ -1208,36 +1210,26 @@ gactwr:
 		UseTilesetCode: false
 	turret-sam: gtctwr_d
 		Facings: 32
-	muzzle0: mgun-n
-		Length: *
-		Offset: 0, 0, 12
-		UseTilesetCode: false
-	muzzle1: mgun-nw
-		Length: *
-		Offset: 0, 0, 12
-		UseTilesetCode: false
-	muzzle2: mgun-w
-		Length: *
-		Offset: 0, 0, 12
-		UseTilesetCode: false
-	muzzle3: mgun-sw
-		Length: *
-		Offset: 0, 0, 12
-		UseTilesetCode: false
-	muzzle4: mgun-s
-		Length: *
-		Offset: 0, 0, 12
-		UseTilesetCode: false
-	muzzle5: mgun-se
-		Length: *
-		Offset: 0, 0, 12
-		UseTilesetCode: false
-	muzzle6: mgun-e
-		Length: *
-		Offset: 0, 0, 12
-		UseTilesetCode: false
-	muzzle7: mgun-ne
-		Length: *
+	muzzle:
+		Combine:
+			mgun-n:
+				Length: 6
+			mgun-nw:
+				Length: 6
+			mgun-w:
+				Length: 6
+			mgun-sw:
+				Length: 6
+			mgun-s:
+				Length: 6
+			mgun-se:
+				Length: 6
+			mgun-e:
+				Length: 6
+			mgun-ne:
+				Length: 6
+		Facings: 8
+		Length: 6
 		Offset: 0, 0, 12
 		UseTilesetCode: false
 	emp-overlay: emp_fx01
@@ -1975,6 +1967,13 @@ gaplug:
 		Length: 15
 		Reverses: true
 		Tick: 120
+	idle-droppoda: gaplug_d
+		Length: 15
+		Tick: 120
+		Offset: -12, -42, 30
+	idle-droppodb: gaplug_d
+		Length: 15
+		Tick: 120
 	make: gtplugmk
 		Length: 17
 		ShadowStart: 17
@@ -2007,3 +2006,12 @@ gaplug3:
 		Length: 14
 		Tick: 120
 	icon: rad3icon
+
+gaplug4:
+	place: gtplug_d
+		Offset: 24,-48, 48
+		UseTilesetCode: true
+		Reverses: true
+		Length: 14
+		Tick: 120
+	icon: rad1icon

@@ -10,7 +10,7 @@
 #endregion
 
 using System.Collections.Generic;
-using OpenRA.Graphics;
+using System.Linq;
 using OpenRA.Traits;
 
 namespace OpenRA.Orders
@@ -18,13 +18,14 @@ namespace OpenRA.Orders
 	public class GenericSelectTarget : UnitOrderGenerator
 	{
 		public readonly string OrderName;
-		protected readonly IEnumerable<Actor> Subjects;
 		protected readonly string Cursor;
 		protected readonly MouseButton ExpectedButton;
 
+		protected IEnumerable<Actor> subjects;
+
 		public GenericSelectTarget(IEnumerable<Actor> subjects, string order, string cursor, MouseButton button)
 		{
-			Subjects = subjects;
+			this.subjects = subjects;
 			OrderName = order;
 			Cursor = cursor;
 			ExpectedButton = button;
@@ -53,8 +54,7 @@ namespace OpenRA.Orders
 				world.CancelInputMode();
 
 				var queued = mi.Modifiers.HasModifier(Modifiers.Shift);
-				foreach (var subject in Subjects)
-					yield return new Order(OrderName, subject, Target.FromCell(world, cell), queued);
+				yield return new Order(OrderName, null, Target.FromCell(world, cell), queued, null, subjects.ToArray());
 			}
 		}
 
@@ -67,6 +67,11 @@ namespace OpenRA.Orders
 		{
 			// Custom order generators always override selection
 			return true;
+		}
+
+		public override void SelectionChanged(World world, IEnumerable<Actor> selected)
+		{
+			subjects = selected;
 		}
 
 		public override bool ClearSelectionOnLeftClick { get { return false; } }

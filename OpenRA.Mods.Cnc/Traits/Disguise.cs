@@ -82,8 +82,8 @@ namespace OpenRA.Mods.Cnc.Traits
 		[Desc("The condition to grant to self while disguised.")]
 		public readonly string DisguisedCondition = null;
 
-		[Desc("What diplomatic stances can this actor disguise as.")]
-		public readonly Stance ValidStances = Stance.Ally | Stance.Neutral | Stance.Enemy;
+		[Desc("Player relationships the owner of the disguise target needs.")]
+		public readonly PlayerRelationship ValidRelationships = PlayerRelationship.Ally | PlayerRelationship.Neutral | PlayerRelationship.Enemy;
 
 		[Desc("Target types of actors that this actor disguise as.")]
 		public readonly BitSet<TargetableType> TargetTypes = new BitSet<TargetableType>("Disguise");
@@ -92,9 +92,13 @@ namespace OpenRA.Mods.Cnc.Traits
 			"Unload, Infiltrate, Demolish, Move.")]
 		public readonly RevealDisguiseType RevealDisguiseOn = RevealDisguiseType.Attack;
 
+		[ActorReference(dictionaryReference: LintDictionaryReference.Keys)]
 		[Desc("Conditions to grant when disguised as specified actor.",
 			"A dictionary of [actor id]: [condition].")]
 		public readonly Dictionary<string, string> DisguisedAsConditions = new Dictionary<string, string>();
+
+		[Desc("Cursor to display when hovering over a valid actor to disguise as.")]
+		public readonly string Cursor = "ability";
 
 		[GrantedConditionReference]
 		public IEnumerable<string> LinterConditions { get { return DisguisedAsConditions.Values; } }
@@ -102,7 +106,7 @@ namespace OpenRA.Mods.Cnc.Traits
 		public override object Create(ActorInitializer init) { return new Disguise(init.Self, this); }
 	}
 
-	class Disguise : ConditionalTrait<DisguiseInfo>, INotifyCreated, IEffectiveOwner, IIssueOrder, IResolveOrder, IOrderVoice, IRadarColorModifier,
+	class Disguise : ConditionalTrait<DisguiseInfo>, IEffectiveOwner, IIssueOrder, IResolveOrder, IOrderVoice, IRadarColorModifier,
 		INotifyAttack, INotifyDamage, INotifyUnload, INotifyDemolition, INotifyInfiltration, ITick
 	{
 		public ActorInfo AsActor { get; private set; }
@@ -117,9 +121,8 @@ namespace OpenRA.Mods.Cnc.Traits
 		readonly Actor self;
 		readonly DisguiseInfo info;
 
-		ConditionManager conditionManager;
-		int disguisedToken = ConditionManager.InvalidConditionToken;
-		int disguisedAsToken = ConditionManager.InvalidConditionToken;
+		int disguisedToken = Actor.InvalidConditionToken;
+		int disguisedAsToken = Actor.InvalidConditionToken;
 		CPos? lastPos;
 
 		public Disguise(Actor self, DisguiseInfo info)
@@ -129,11 +132,6 @@ namespace OpenRA.Mods.Cnc.Traits
 			this.info = info;
 
 			AsActor = self.Info;
-		}
-
-		void INotifyCreated.Created(Actor self)
-		{
-			conditionManager = self.TraitOrDefault<ConditionManager>();
 		}
 
 		IEnumerable<IOrderTargeter> IIssueOrder.Orders
@@ -147,7 +145,7 @@ namespace OpenRA.Mods.Cnc.Traits
 			}
 		}
 
-		Order IIssueOrder.IssueOrder(Actor self, IOrderTargeter order, Target target, bool queued)
+		Order IIssueOrder.IssueOrder(Actor self, IOrderTargeter order, in Target target, bool queued)
 		{
 			if (order.OrderID == "Disguise")
 				return new Order(order.OrderID, self, target, queued);
@@ -201,8 +199,11 @@ namespace OpenRA.Mods.Cnc.Traits
 				}
 				else
 				{
+					var tooltip = target.TraitsImplementing<ITooltip>().FirstEnabledTraitOrDefault();
+					if (tooltip == null)
+						throw new ArgumentNullException("tooltip", "Missing tooltip or invalid target.");
+
 					AsSprite = target.Trait<RenderSprites>().GetImage(target);
-					var tooltip = target.TraitsImplementing<ITooltip>().FirstOrDefault();
 					AsPlayer = tooltip.Owner;
 					AsActor = target.Info;
 					AsTooltipInfo = tooltip.TooltipInfo;
@@ -243,7 +244,7 @@ namespace OpenRA.Mods.Cnc.Traits
 			AsSprite = renderSprites == null ? null : renderSprites.GetImage(actorInfo, self.World.Map.Rules.Sequences, newOwner.Faction.InternalName);
 			AsPlayer = newOwner;
 			AsActor = actorInfo;
-			AsTooltipInfo = actorInfo.TraitInfos<TooltipInfo>().FirstOrDefault();
+			AsTooltipInfo = actorInfo.TraitInfos<TooltipInfo>().FirstOrDefault(info => info.EnabledByDefault);
 
 			var targetTurreted = actorInfo.TraitInfos<TurretedInfo>();
 			if (targetTurreted != null)
@@ -266,31 +267,27 @@ namespace OpenRA.Mods.Cnc.Traits
 			foreach (var t in self.TraitsImplementing<INotifyEffectiveOwnerChanged>())
 				t.OnEffectiveOwnerChanged(self, oldEffectiveOwner, AsPlayer);
 
-			if (conditionManager != null)
+			if (Disguised != oldDisguiseSetting)
 			{
-				if (Disguised != oldDisguiseSetting)
-				{
-					if (Disguised && disguisedToken == ConditionManager.InvalidConditionToken && !string.IsNullOrEmpty(info.DisguisedCondition))
-						disguisedToken = conditionManager.GrantCondition(self, info.DisguisedCondition);
-					else if (!Disguised && disguisedToken != ConditionManager.InvalidConditionToken)
-						disguisedToken = conditionManager.RevokeCondition(self, disguisedToken);
-				}
+				if (Disguised && disguisedToken == Actor.InvalidConditionToken)
+					disguisedToken = self.GrantCondition(info.DisguisedCondition);
+				else if (!Disguised && disguisedToken != Actor.InvalidConditionToken)
+					disguisedToken = self.RevokeCondition(disguisedToken);
+			}
 
-				if (AsActor != oldEffectiveActor)
-				{
-					if (disguisedAsToken != ConditionManager.InvalidConditionToken)
-						disguisedAsToken = conditionManager.RevokeCondition(self, disguisedAsToken);
+			if (AsActor != oldEffectiveActor)
+			{
+				if (disguisedAsToken != Actor.InvalidConditionToken)
+					disguisedAsToken = self.RevokeCondition(disguisedAsToken);
 
-					string disguisedAsCondition;
-					if (info.DisguisedAsConditions.TryGetValue(AsActor.Name, out disguisedAsCondition))
-						disguisedAsToken = conditionManager.GrantCondition(self, disguisedAsCondition);
-				}
+				if (info.DisguisedAsConditions.TryGetValue(AsActor.Name, out var disguisedAsCondition))
+					disguisedAsToken = self.GrantCondition(disguisedAsCondition);
 			}
 		}
 
-		void INotifyAttack.PreparingAttack(Actor self, Target target, Armament a, Barrel barrel) { }
+		void INotifyAttack.PreparingAttack(Actor self, in Target target, Armament a, Barrel barrel) { }
 
-		void INotifyAttack.Attacking(Actor self, Target target, Armament a, Barrel barrel)
+		void INotifyAttack.Attacking(Actor self, in Target target, Armament a, Barrel barrel)
 		{
 			if (info.RevealDisguiseOn.HasFlag(RevealDisguiseType.Attack))
 				DisguiseAs(null);
@@ -337,7 +334,7 @@ namespace OpenRA.Mods.Cnc.Traits
 		readonly DisguiseInfo info;
 
 		public DisguiseOrderTargeter(DisguiseInfo info)
-			: base("Disguise", 7, "ability", true, true)
+			: base("Disguise", 7, info.Cursor, true, true)
 		{
 			this.info = info;
 			ForceAttack = false;
@@ -345,9 +342,8 @@ namespace OpenRA.Mods.Cnc.Traits
 
 		public override bool CanTargetActor(Actor self, Actor target, TargetModifiers modifiers, ref string cursor)
 		{
-			var stance = self.Owner.Stances[target.Owner];
-
-			if (!info.ValidStances.HasStance(stance))
+			var stance = self.Owner.RelationshipWith(target.Owner);
+			if (!info.ValidRelationships.HasStance(stance))
 				return false;
 
 			return info.TargetTypes.Overlaps(target.GetEnabledTargetTypes());
@@ -355,9 +351,8 @@ namespace OpenRA.Mods.Cnc.Traits
 
 		public override bool CanTargetFrozenActor(Actor self, FrozenActor target, TargetModifiers modifiers, ref string cursor)
 		{
-			var stance = self.Owner.Stances[target.Owner];
-
-			if (!info.ValidStances.HasStance(stance))
+			var stance = self.Owner.RelationshipWith(target.Owner);
+			if (!info.ValidRelationships.HasStance(stance))
 				return false;
 
 			return info.TargetTypes.Overlaps(target.Info.GetAllTargetTypes());

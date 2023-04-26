@@ -10,7 +10,9 @@
 #endregion
 
 using System.Collections.Generic;
+using System.Linq;
 using OpenRA.Primitives;
+using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.Traits
 {
@@ -30,8 +32,10 @@ namespace OpenRA.Mods.Common.Traits
 			: base(init, info)
 		{
 			domainIndex = init.Self.World.WorldActor.Trait<DomainIndex>();
-			if (init.Contains<ProductionSpawnLocationInit>())
-				spawnLocation = init.Get<ProductionSpawnLocationInit, CPos>();
+
+			var spawnLocationInit = init.GetOrDefault<ProductionSpawnLocationInit>(info);
+			if (spawnLocationInit != null)
+				spawnLocation = spawnLocationInit.Value;
 		}
 
 		protected override void Created(Actor self)
@@ -41,7 +45,7 @@ namespace OpenRA.Mods.Common.Traits
 			rp = self.TraitOrDefault<RallyPoint>();
 		}
 
-		public override bool Produce(Actor self, ActorInfo producee, string productionType, TypeDictionary inits)
+		public override bool Produce(Actor self, ActorInfo producee, string productionType, TypeDictionary inits, int refundableValue)
 		{
 			if (IsTraitDisabled || IsTraitPaused)
 				return false;
@@ -59,9 +63,9 @@ namespace OpenRA.Mods.Common.Traits
 
 				if (mobileInfo != null)
 				{
-					var locomotorInfo = mobileInfo.LocomotorInfo;
+					var locomotor = self.World.WorldActor.TraitsImplementing<Locomotor>().First(l => l.Info.Name == mobileInfo.Locomotor);
 					location = self.World.Map.ChooseClosestMatchingEdgeCell(self.Location,
-						c => mobileInfo.CanEnterCell(self.World, null, c) && domainIndex.IsPassable(c, destinations[0], locomotorInfo));
+						c => mobileInfo.CanEnterCell(self.World, null, c) && domainIndex.IsPassable(c, destinations[0], locomotor));
 				}
 			}
 
@@ -75,7 +79,7 @@ namespace OpenRA.Mods.Common.Traits
 			if (aircraftInfo != null)
 				pos += new WVec(0, 0, aircraftInfo.CruiseAltitude.Length);
 
-			var initialFacing = self.World.Map.FacingBetween(location.Value, destinations[0], 0);
+			var initialFacing = self.World.Map.FacingBetween(location.Value, destinations[0], WAngle.Zero);
 
 			self.World.AddFrameEndTask(w =>
 			{
@@ -110,13 +114,9 @@ namespace OpenRA.Mods.Common.Traits
 		}
 	}
 
-	public class ProductionSpawnLocationInit : IActorInit<CPos>
+	public class ProductionSpawnLocationInit : ValueActorInit<CPos>
 	{
-		[FieldFromYamlKey]
-		readonly CPos value = CPos.Zero;
-
-		public ProductionSpawnLocationInit() { }
-		public ProductionSpawnLocationInit(CPos init) { value = init; }
-		public CPos Value(World world) { return value; }
+		public ProductionSpawnLocationInit(TraitInfo info, CPos value)
+			: base(info, value) { }
 	}
 }

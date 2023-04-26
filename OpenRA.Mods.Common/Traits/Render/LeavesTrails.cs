@@ -20,9 +20,10 @@ namespace OpenRA.Mods.Common.Traits.Render
 	[Desc("Renders a sprite effect when leaving a cell.")]
 	public class LeavesTrailsInfo : ConditionalTraitInfo
 	{
+		[FieldLoader.Require]
 		public readonly string Image = null;
 
-		[SequenceReference("Image")]
+		[SequenceReference(nameof(Image))]
 		public readonly string[] Sequences = { "idle" };
 
 		[PaletteReference]
@@ -67,7 +68,7 @@ namespace OpenRA.Mods.Common.Traits.Render
 	{
 		BodyOrientation body;
 		IFacing facing;
-		int cachedFacing;
+		WAngle cachedFacing;
 		int cachedInterval;
 
 		public LeavesTrails(Actor self, LeavesTrailsInfo info)
@@ -81,7 +82,7 @@ namespace OpenRA.Mods.Common.Traits.Render
 		{
 			body = self.Trait<BodyOrientation>();
 			facing = self.TraitOrDefault<IFacing>();
-			cachedFacing = facing != null ? facing.Facing : 0;
+			cachedFacing = facing != null ? facing.Facing : WAngle.Zero;
 			cachedPosition = self.CenterPosition;
 
 			base.Created(self);
@@ -111,6 +112,9 @@ namespace OpenRA.Mods.Common.Traits.Render
 			if (++ticks >= cachedInterval)
 			{
 				var spawnCell = Info.SpawnAtLastPosition ? self.World.Map.CellContaining(cachedPosition) : self.World.Map.CellContaining(self.CenterPosition);
+				if (!self.World.Map.Contains(spawnCell))
+					return;
+
 				var type = self.World.Map.GetTerrainInfo(spawnCell).Type;
 
 				if (++offset >= Info.Offsets.Length)
@@ -122,14 +126,14 @@ namespace OpenRA.Mods.Common.Traits.Render
 				var pos = Info.Type == TrailType.CenterPosition ? spawnPosition + body.LocalToWorld(offsetRotation) :
 					self.World.Map.CenterOfCell(spawnCell);
 
-				var spawnFacing = Info.SpawnAtLastPosition ? cachedFacing : (facing != null ? facing.Facing : 0);
+				var spawnFacing = Info.SpawnAtLastPosition ? cachedFacing : (facing != null ? facing.Facing : WAngle.Zero);
 
 				if ((Info.TerrainTypes.Count == 0 || Info.TerrainTypes.Contains(type)) && !string.IsNullOrEmpty(Info.Image))
-					self.World.AddFrameEndTask(w => w.Add(new SpriteEffect(pos, self.World, Info.Image,
-						Info.Sequences.Random(Game.CosmeticRandom), Info.Palette, Info.VisibleThroughFog, spawnFacing)));
+					self.World.AddFrameEndTask(w => w.Add(new SpriteEffect(pos, spawnFacing, self.World, Info.Image,
+						Info.Sequences.Random(Game.CosmeticRandom), Info.Palette, Info.VisibleThroughFog)));
 
 				cachedPosition = self.CenterPosition;
-				cachedFacing = facing != null ? facing.Facing : 0;
+				cachedFacing = facing != null ? facing.Facing : WAngle.Zero;
 				ticks = 0;
 
 				cachedInterval = isMoving ? Info.MovingInterval : Info.StationaryInterval;

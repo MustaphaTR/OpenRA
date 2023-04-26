@@ -20,9 +20,9 @@ namespace OpenRA.Mods.Common.Activities
 		readonly IMove move;
 		readonly Mobile mobile;
 		readonly IFacing facing;
-		readonly int desiredFacing;
+		readonly WAngle desiredFacing;
 
-		public Turn(Actor self, int desiredFacing)
+		public Turn(Actor self, WAngle desiredFacing)
 		{
 			move = self.TraitOrDefault<IMove>();
 			mobile = self.TraitOrDefault<Mobile>();

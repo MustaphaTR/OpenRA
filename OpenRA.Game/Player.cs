@@ -14,10 +14,10 @@ using System.Collections.Generic;
 using System.Linq;
 using Eluant;
 using Eluant.ObjectBinding;
-using OpenRA.Graphics;
 using OpenRA.Network;
 using OpenRA.Primitives;
 using OpenRA.Scripting;
+using OpenRA.Support;
 using OpenRA.Traits;
 using OpenRA.Widgets;
 
@@ -37,6 +37,9 @@ namespace OpenRA
 
 	public class Player : IScriptBindable, IScriptNotifyBind, ILuaTableBinding, ILuaEqualityBinding, ILuaToStringBinding
 	{
+		public const string PlayerActorType = "Player";
+		public const string EditorPlayerActorType = "EditorPlayer";
+
 		struct StanceColors
 		{
 			public Color Self;
@@ -54,23 +57,39 @@ namespace OpenRA
 		public readonly bool NonCombatant = false;
 		public readonly bool Playable = true;
 		public readonly int ClientIndex;
+		public readonly CPos HomeLocation;
+		public readonly int Handicap;
 		public readonly PlayerReference PlayerReference;
 		public readonly bool IsBot;
 		public readonly string BotType;
 		public readonly Shroud Shroud;
 		public readonly FrozenActorLayer FrozenActorLayer;
 
-		/// <summary>The faction (including Random, etc) that was selected in the lobby.</summary>
+		/// <summary>The faction (including Random, etc.) that was selected in the lobby.</summary>
 		public readonly FactionInfo DisplayFaction;
 
+		/// <summary>The spawn point index that was assigned for client-based players.</summary>
+		public readonly int SpawnPoint;
+
+		/// <summary>The spawn point index (including 0 for Random) that was selected in the lobby for client-based players.</summary>
+		public readonly int DisplaySpawnPoint;
+
 		public WinState WinState = WinState.Undefined;
-		public int SpawnPoint;
 		public bool HasObjectives = false;
-		public bool Spectating;
+
+		public bool Spectating
+		{
+			get
+			{
+				// Players in mission maps must not leave the player view
+				return !inMissionMap && (spectating || WinState != WinState.Undefined);
+			}
+		}
 
 		public World World { get; private set; }
 
 		readonly bool inMissionMap;
+		readonly bool spectating;
 		readonly IUnlocksRenderPlayer[] unlockRenderPlayer;
 
 		// Each player is identified with a unique bit in the set
@@ -92,19 +111,19 @@ namespace OpenRA
 
 		readonly StanceColors stanceColors;
 
-		static FactionInfo ChooseFaction(World world, string name, bool requireSelectable = true)
+		public static FactionInfo ResolveFaction(string factionName, IEnumerable<FactionInfo> factionInfos, MersenneTwister playerRandom, bool requireSelectable = true)
 		{
-			var selectableFactions = world.Map.Rules.Actors["world"].TraitInfos<FactionInfo>()
+			var selectableFactions = factionInfos
 				.Where(f => !requireSelectable || f.Selectable)
 				.ToList();
 
-			var selected = selectableFactions.FirstOrDefault(f => f.InternalName == name)
-				?? selectableFactions.Random(world.SharedRandom);
+			var selected = selectableFactions.FirstOrDefault(f => f.InternalName == factionName)
+				?? selectableFactions.Random(playerRandom);
 
 			// Don't loop infinite
 			for (var i = 0; i <= 10 && selected.RandomFactionMembers.Any(); i++)
 			{
-				var faction = selected.RandomFactionMembers.Random(world.SharedRandom);
+				var faction = selected.RandomFactionMembers.Random(playerRandom);
 				selected = selectableFactions.FirstOrDefault(f => f.InternalName == faction);
 
 				if (selected == null)
@@ -114,14 +133,32 @@ namespace OpenRA
 			return selected;
 		}
 
-		static FactionInfo ChooseDisplayFaction(World world, string factionName)
+		static FactionInfo ResolveFaction(World world, string factionName, MersenneTwister playerRandom, bool requireSelectable)
+		{
+			var factionInfos = world.Map.Rules.Actors["world"].TraitInfos<FactionInfo>();
+			return ResolveFaction(factionName, factionInfos, playerRandom, requireSelectable);
+		}
+
+		static FactionInfo ResolveDisplayFaction(World world, string factionName)
 		{
 			var factions = world.Map.Rules.Actors["world"].TraitInfos<FactionInfo>().ToArray();
 
 			return factions.FirstOrDefault(f => f.InternalName == factionName) ?? factions.First();
 		}
 
-		public Player(World world, Session.Client client, PlayerReference pr)
+		public static string ResolvePlayerName(Session.Client client, IEnumerable<Session.Client> clients, IEnumerable<IBotInfo> botInfos)
+		{
+			if (client.Bot != null)
+			{
+				var botInfo = botInfos.First(b => b.Type == client.Bot);
+				var botsOfSameType = clients.Where(c => c.Bot == client.Bot).ToArray();
+				return botsOfSameType.Length == 1 ? botInfo.Name : "{0} {1}".F(botInfo.Name, botsOfSameType.IndexOf(client) + 1);
+			}
+
+			return client.Name;
+		}
+
+		public Player(World world, Session.Client client, PlayerReference pr, MersenneTwister playerRandom)
 		{
 			World = world;
 			InternalName = pr.Name;
@@ -134,18 +171,18 @@ namespace OpenRA
 			{
 				ClientIndex = client.Index;
 				Color = client.Color;
-				if (client.Bot != null)
-				{
-					var botInfo = world.Map.Rules.Actors["player"].TraitInfos<IBotInfo>().First(b => b.Type == client.Bot);
-					var botsOfSameType = world.LobbyInfo.Clients.Where(c => c.Bot == client.Bot).ToArray();
-					PlayerName = botsOfSameType.Length == 1 ? botInfo.Name : "{0} {1}".F(botInfo.Name, botsOfSameType.IndexOf(client) + 1);
-				}
-				else
-					PlayerName = client.Name;
+				PlayerName = ResolvePlayerName(client, world.LobbyInfo.Clients, world.Map.Rules.Actors["player"].TraitInfos<IBotInfo>());
 
 				BotType = client.Bot;
-				Faction = ChooseFaction(world, client.Faction, !pr.LockFaction);
-				DisplayFaction = ChooseDisplayFaction(world, client.Faction);
+				Faction = ResolveFaction(world, client.Faction, playerRandom, !pr.LockFaction);
+				DisplayFaction = ResolveDisplayFaction(world, client.Faction);
+
+				var assignSpawnPoints = world.WorldActor.TraitOrDefault<IAssignSpawnPoints>();
+				HomeLocation = assignSpawnPoints?.AssignHomeLocation(world, client, playerRandom) ?? pr.HomeLocation;
+				SpawnPoint = assignSpawnPoints?.SpawnPointForPlayer(this) ?? client.SpawnPoint;
+				DisplaySpawnPoint = client.SpawnPoint;
+
+				Handicap = client.Handicap;
 			}
 			else
 			{
@@ -155,22 +192,34 @@ namespace OpenRA
 				PlayerName = pr.Name;
 				NonCombatant = pr.NonCombatant;
 				Playable = pr.Playable;
-				Spectating = pr.Spectating;
+				spectating = pr.Spectating;
 				BotType = pr.Bot;
-				Faction = ChooseFaction(world, pr.Faction, false);
-				DisplayFaction = ChooseDisplayFaction(world, pr.Faction);
+				Faction = ResolveFaction(world, pr.Faction, playerRandom, false);
+				DisplayFaction = ResolveDisplayFaction(world, pr.Faction);
+				HomeLocation = pr.HomeLocation;
+				SpawnPoint = DisplaySpawnPoint = 0;
+				Handicap = pr.Handicap;
 			}
 
-			if (!Spectating)
+			if (!spectating)
 				PlayerMask = new LongBitSet<PlayerBitMask>(InternalName);
 
-			var playerActorType = world.Type == WorldType.Editor ? "EditorPlayer" : "Player";
-			PlayerActor = world.CreateActor(playerActorType, new TypeDictionary { new OwnerInit(this) });
+			// Set this property before running any Created callbacks on the player actor
+			IsBot = BotType != null;
+
+			// Special case handling is required for the Player actor:
+			// Since Actor.Created would be called before PlayerActor is assigned here
+			// querying player traits in INotifyCreated.Created would crash.
+			// Therefore assign the uninitialized actor and run the Created callbacks
+			// by calling Initialize ourselves.
+			var playerActorType = world.Type == WorldType.Editor ? EditorPlayerActorType : PlayerActorType;
+			PlayerActor = new Actor(world, playerActorType, new TypeDictionary { new OwnerInit(this) });
+			PlayerActor.Initialize(true);
+
 			Shroud = PlayerActor.Trait<Shroud>();
 			FrozenActorLayer = PlayerActor.TraitOrDefault<FrozenActorLayer>();
 
 			// Enable the bot logic on the host
-			IsBot = BotType != null;
 			if (IsBot && Game.IsHost)
 			{
 				var logic = PlayerActor.TraitsImplementing<IBot>().FirstOrDefault(b => b.Info.Type == BotType);
@@ -193,11 +242,27 @@ namespace OpenRA
 			return "{0} ({1})".F(PlayerName, ClientIndex);
 		}
 
-		public Dictionary<Player, Stance> Stances = new Dictionary<Player, Stance>();
+		public PlayerRelationship RelationshipWith(Player other)
+		{
+			if (this == other)
+				return PlayerRelationship.Ally;
+
+			// Observers are considered allies to active combatants
+			if (other == null || other.Spectating)
+				return NonCombatant ? PlayerRelationship.Neutral : PlayerRelationship.Ally;
+
+			if (AlliedPlayersMask.Overlaps(other.PlayerMask))
+				return PlayerRelationship.Ally;
+
+			if (EnemyPlayersMask.Overlaps(other.PlayerMask))
+				return PlayerRelationship.Enemy;
+
+			return PlayerRelationship.Neutral;
+		}
+
 		public bool IsAlliedWith(Player p)
 		{
-			// Observers are considered allies to active combatants
-			return p == null || Stances[p] == Stance.Ally || (p.Spectating && !NonCombatant);
+			return RelationshipWith(p) == PlayerRelationship.Ally;
 		}
 
 		public Color PlayerStanceColor(Actor a)
@@ -242,8 +307,7 @@ namespace OpenRA
 
 		public LuaValue Equals(LuaRuntime runtime, LuaValue left, LuaValue right)
 		{
-			Player a, b;
-			if (!left.TryGetClrValue(out a) || !right.TryGetClrValue(out b))
+			if (!left.TryGetClrValue(out Player a) || !right.TryGetClrValue(out Player b))
 				return false;
 
 			return a == b;

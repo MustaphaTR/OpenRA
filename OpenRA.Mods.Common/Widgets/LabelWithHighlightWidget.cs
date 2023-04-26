@@ -11,7 +11,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using OpenRA.Graphics;
 using OpenRA.Primitives;
 using OpenRA.Widgets;
@@ -21,25 +20,25 @@ namespace OpenRA.Mods.Common.Widgets
 	public class LabelWithHighlightWidget : LabelWidget
 	{
 		public Color HighlightColor = ChromeMetrics.Get<Color>("TextHighlightColor");
-		readonly CachedTransform<string, Pair<string, bool>[]> textComponents;
+		readonly CachedTransform<string, (string Text, bool Highlighted)[]> textComponents;
 
 		[ObjectCreator.UseCtor]
 		public LabelWithHighlightWidget()
 			: base()
 		{
-			textComponents = new CachedTransform<string, Pair<string, bool>[]>(MakeComponents);
+			textComponents = new CachedTransform<string, (string, bool)[]>(MakeComponents);
 		}
 
 		protected LabelWithHighlightWidget(LabelWithHighlightWidget other)
 			: base(other)
 		{
 			HighlightColor = other.HighlightColor;
-			textComponents = new CachedTransform<string, Pair<string, bool>[]>(MakeComponents);
+			textComponents = new CachedTransform<string, (string, bool)[]>(MakeComponents);
 		}
 
-		Pair<string, bool>[] MakeComponents(string text)
+		(string, bool)[] MakeComponents(string text)
 		{
-			List<Pair<string, bool>> components = new List<Pair<string, bool>>();
+			var components = new List<(string, bool)>();
 			foreach (var l in text.Split(new[] { "\\n" }, StringSplitOptions.None))
 			{
 				var line = l;
@@ -51,22 +50,19 @@ namespace OpenRA.Mods.Common.Widgets
 
 					if (highlightStart > 0 && highlightEnd > highlightStart)
 					{
-						if (highlightStart > 0)
-						{
-							// Normal line segment before highlight
-							var lineNormal = line.Substring(0, highlightStart);
-							components.Add(Pair.New(lineNormal, false));
-						}
+						// Normal line segment before highlight
+						var lineNormal = line.Substring(0, highlightStart);
+						components.Add((lineNormal, false));
 
 						// Highlight line segment
 						var lineHighlight = line.Substring(highlightStart + 1, highlightEnd - highlightStart - 1);
-						components.Add(Pair.New(lineHighlight, true));
+						components.Add((lineHighlight, true));
 						line = line.Substring(highlightEnd + 1);
 					}
 					else
 					{
 						// Final normal line segment
-						components.Add(Pair.New(line, false));
+						components.Add((line, false));
 						break;
 					}
 				}
@@ -80,8 +76,8 @@ namespace OpenRA.Mods.Common.Widgets
 			var advance = 0;
 			foreach (var c in textComponents.Update(text))
 			{
-				base.DrawInner(c.First, font, c.Second ? HighlightColor : color, position + new int2(advance, 0));
-				advance += font.Measure(c.First).X;
+				base.DrawInner(c.Text, font, c.Highlighted ? HighlightColor : color, position + new int2(advance, 0));
+				advance += font.Measure(c.Text).X;
 			}
 		}
 

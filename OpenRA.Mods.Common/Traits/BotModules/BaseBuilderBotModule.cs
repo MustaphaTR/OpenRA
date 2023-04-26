@@ -9,11 +9,9 @@
  */
 #endregion
 
-using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using OpenRA.Support;
 using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.Traits
@@ -86,6 +84,12 @@ namespace OpenRA.Mods.Common.Traits
 
 		[Desc("Increase maintained excess power by ExcessPowerIncrement for every N base buildings.")]
 		public readonly int ExcessPowerIncreaseThreshold = 1;
+
+		[Desc("Number of refineries to build before building a barracks.")]
+		public readonly int InititalMinimumRefineryCount = 1;
+
+		[Desc("Number of refineries to build additionally after building a barracks.")]
+		public readonly int AdditionalMinimumRefineryCount = 1;
 
 		[Desc("Additional delay (in ticks) between structure production checks when there is no active production.",
 			"StructureProductionRandomBonusDelay is added to this.")]
@@ -183,13 +187,9 @@ namespace OpenRA.Mods.Common.Traits
 
 		protected override void Created(Actor self)
 		{
-			// Special case handling is required for the Player actor.
-			// Created is called before Player.PlayerActor is assigned,
-			// so we must query player traits from self, which refers
-			// for bot modules always to the Player actor.
-			playerPower = self.TraitOrDefault<PowerManager>();
-			playerResources = self.Trait<PlayerResources>();
-			positionsUpdatedModules = self.TraitsImplementing<IBotPositionsUpdated>().ToArray();
+			playerPower = self.Owner.PlayerActor.TraitOrDefault<PowerManager>();
+			playerResources = self.Owner.PlayerActor.Trait<PlayerResources>();
+			positionsUpdatedModules = self.Owner.PlayerActor.TraitsImplementing<IBotPositionsUpdated>().ToArray();
 		}
 
 		protected override void TraitEnabled(Actor self)
@@ -233,7 +233,7 @@ namespace OpenRA.Mods.Common.Traits
 			if (e.Attacker == null || e.Attacker.Disposed)
 				return;
 
-			if (e.Attacker.Owner.Stances[self.Owner] != Stance.Enemy)
+			if (e.Attacker.Owner.RelationshipWith(self.Owner) != PlayerRelationship.Enemy)
 				return;
 
 			if (!e.Attacker.Info.HasTraitInfo<ITargetableInfo>())
@@ -270,7 +270,7 @@ namespace OpenRA.Mods.Common.Traits
 
 			if (!possibleRallyPoints.Any())
 			{
-				AIUtils.BotDebug("Bot Bug: No possible rallypoint near {0}", producer.Location);
+				AIUtils.BotDebug("{0} has no possible rallypoint near {1}", producer.Owner, producer.Location);
 				return producer.Location;
 			}
 
@@ -287,7 +287,8 @@ namespace OpenRA.Mods.Common.Traits
 			get
 			{
 				// Require at least one refinery, unless we can't build it.
-				return AIUtils.CountBuildingByCommonName(Info.RefineryTypes, player) >= MinimumRefineryCount ||
+				return !Info.RefineryTypes.Any() ||
+					AIUtils.CountBuildingByCommonName(Info.RefineryTypes, player) >= MinimumRefineryCount ||
 					AIUtils.CountBuildingByCommonName(Info.PowerTypes, player) == 0 ||
 					AIUtils.CountBuildingByCommonName(Info.ConstructionYardTypes, player) == 0;
 			}
@@ -297,9 +298,7 @@ namespace OpenRA.Mods.Common.Traits
 		{
 			get
 			{
-				// Unless we have no barracks (higher priority), require a 2nd refinery.
-				// TODO: Possibly unhardcode this, at least the targeted minimum of 2 (the fallback can probably stay at 1).
-				return AIUtils.CountBuildingByCommonName(Info.BarracksTypes, player) > 0 ? 2 : 1;
+				return AIUtils.CountBuildingByCommonName(Info.BarracksTypes, player) > 0 ? Info.InititalMinimumRefineryCount + Info.AdditionalMinimumRefineryCount : Info.InititalMinimumRefineryCount;
 			}
 		}
 

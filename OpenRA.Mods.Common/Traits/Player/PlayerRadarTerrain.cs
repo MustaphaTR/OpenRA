@@ -10,16 +10,15 @@
 #endregion
 
 using System;
-using System.Collections.Generic;
 using OpenRA.Graphics;
 using OpenRA.Primitives;
 using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.Traits
 {
-	public class PlayerRadarTerrainInfo : ITraitInfo, Requires<ShroudInfo>
+	public class PlayerRadarTerrainInfo : TraitInfo, Requires<ShroudInfo>
 	{
-		public object Create(ActorInitializer init)
+		public override object Create(ActorInitializer init)
 		{
 			return new PlayerRadarTerrain(init.Self);
 		}
@@ -30,7 +29,7 @@ namespace OpenRA.Mods.Common.Traits
 		public bool IsInitialized { get; private set; }
 
 		readonly World world;
-		CellLayer<Pair<int, int>> terrainColor;
+		CellLayer<(int, int)> terrainColor;
 		readonly Shroud shroud;
 
 		public event Action<MPos> CellTerrainColorChanged = null;
@@ -62,13 +61,12 @@ namespace OpenRA.Mods.Common.Traits
 		{
 			terrainColor[uv] = GetColor(world.Map, uv);
 
-			if (CellTerrainColorChanged != null)
-				CellTerrainColorChanged(uv);
+			CellTerrainColorChanged?.Invoke(uv);
 		}
 
 		public void WorldLoaded(World w, WorldRenderer wr)
 		{
-			terrainColor = new CellLayer<Pair<int, int>>(w.Map);
+			terrainColor = new CellLayer<(int, int)>(w.Map);
 
 			w.AddFrameEndTask(_ =>
 			{
@@ -83,25 +81,22 @@ namespace OpenRA.Mods.Common.Traits
 			});
 		}
 
-		public Pair<int, int> this[MPos uv]
+		public (int Left, int Right) this[MPos uv]
 		{
 			get { return terrainColor[uv]; }
 		}
 
-		public static Pair<int, int> GetColor(Map map, MPos uv)
+		public static (int Left, int Right) GetColor(Map map, MPos uv)
 		{
 			var custom = map.CustomTerrain[uv];
-			int leftColor, rightColor;
-			if (custom == byte.MaxValue)
+			if (custom != byte.MaxValue)
 			{
-				var type = map.Rules.TileSet.GetTileInfo(map.Tiles[uv]);
-				leftColor = type != null ? type.LeftColor.ToArgb() : Color.Black.ToArgb();
-				rightColor = type != null ? type.RightColor.ToArgb() : Color.Black.ToArgb();
+				var c = map.Rules.TileSet[custom].Color.ToArgb();
+				return (c, c);
 			}
-			else
-				leftColor = rightColor = map.Rules.TileSet[custom].Color.ToArgb();
 
-			return Pair.New(leftColor, rightColor);
+			var tc = map.GetTerrainColorPair(uv);
+			return (tc.Left.ToArgb(), tc.Right.ToArgb());
 		}
 	}
 }

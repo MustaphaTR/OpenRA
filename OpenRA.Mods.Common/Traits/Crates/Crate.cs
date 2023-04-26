@@ -18,7 +18,7 @@ using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.Traits
 {
-	public class CrateInfo : ITraitInfo, IPositionableInfo, Requires<RenderSpritesInfo>
+	public class CrateInfo : TraitInfo, IPositionableInfo, Requires<RenderSpritesInfo>
 	{
 		[Desc("Length of time (in seconds) until the crate gets removed automatically. " +
 			"A value of zero disables auto-removal.")]
@@ -30,7 +30,7 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Define actors that can collect crates by setting this into the Crushes field from the Mobile trait.")]
 		public readonly string CrushClass = "crate";
 
-		public object Create(ActorInitializer init) { return new Crate(init, this); }
+		public override object Create(ActorInitializer init) { return new Crate(init, this); }
 
 		public IReadOnlyDictionary<CPos, SubCell> OccupiedCells(ActorInfo info, CPos location, SubCell subCell = SubCell.Any)
 		{
@@ -63,9 +63,6 @@ namespace OpenRA.Mods.Common.Traits
 			if (!CanExistInCell(world, cell))
 				return SubCell.Invalid;
 
-			if (world.WorldActor.Trait<BuildingInfluence>().GetBuildingAt(cell) != null)
-				return SubCell.Invalid;
-
 			if (check == BlockedByActor.None)
 				return SubCell.FullCell;
 
@@ -94,11 +91,14 @@ namespace OpenRA.Mods.Common.Traits
 			self = init.Self;
 			this.info = info;
 
+			var crateSpawnerInit = init.GetOrDefault<CrateSpawnerTraitInit>();
+			if (crateSpawnerInit != null)
 			if (init.Contains<CrateSpawnerTraitInit>())
-				spawner = init.Get<CrateSpawnerTraitInit, CrateSpawner>();
+				spawner = crateSpawnerInit.Value;
 
-			if (init.Contains<LocationInit>())
-				SetPosition(self, init.Get<LocationInit, CPos>());
+			var locationInit = init.GetOrDefault<LocationInit>();
+			if (locationInit != null)
+				SetPosition(self, locationInit.Value);
 		}
 
 		void INotifyCreated.Created(Actor self)
@@ -158,20 +158,20 @@ namespace OpenRA.Mods.Common.Traits
 
 			if (crateActions.Any())
 			{
-				var shares = crateActions.Select(a => Pair.New(a, a.GetSelectionSharesOuter(crusher)));
+				var shares = crateActions.Select(a => (Action: a, Shares: a.GetSelectionSharesOuter(crusher)));
 
-				var totalShares = shares.Sum(a => a.Second);
+				var totalShares = shares.Sum(a => a.Shares);
 				var n = self.World.SharedRandom.Next(totalShares);
 
 				foreach (var s in shares)
 				{
-					if (n < s.Second)
+					if (n < s.Shares)
 					{
-						s.First.Activate(crusher);
+						s.Action.Activate(crusher);
 						return;
 					}
 
-					n -= s.Second;
+					n -= s.Shares;
 				}
 			}
 		}
@@ -183,7 +183,7 @@ namespace OpenRA.Mods.Common.Traits
 		}
 
 		public CPos TopLeft { get { return Location; } }
-		public Pair<CPos, SubCell>[] OccupiedCells() { return new[] { Pair.New(Location, SubCell.FullCell) }; }
+		public (CPos, SubCell)[] OccupiedCells() { return new[] { (Location, SubCell.FullCell) }; }
 
 		public WPos CenterPosition { get; private set; }
 
@@ -251,8 +251,7 @@ namespace OpenRA.Mods.Common.Traits
 		{
 			self.World.AddToMaps(self, this);
 
-			if (spawner != null)
-				spawner.IncrementCrates();
+			spawner?.IncrementCrates();
 
 			if (self.World.Map.DistanceAboveTerrain(CenterPosition) > WDist.Zero && self.TraitOrDefault<Parachutable>() != null)
 				self.QueueActivity(new Parachute(self));
@@ -262,8 +261,7 @@ namespace OpenRA.Mods.Common.Traits
 		{
 			self.World.RemoveFromMaps(self, this);
 
-			if (spawner != null)
-				spawner.DecrementCrates();
+			spawner?.DecrementCrates();
 		}
 	}
 }

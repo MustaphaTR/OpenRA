@@ -21,7 +21,7 @@ using OpenRA.Traits;
 namespace OpenRA.Mods.Common.Traits
 {
 	[Desc("Transports actors with the `Carryable` trait.")]
-	public class CarryallInfo : ITraitInfo, Requires<BodyOrientationInfo>, Requires<AircraftInfo>
+	public class CarryallInfo : TraitInfo, Requires<BodyOrientationInfo>, Requires<AircraftInfo>
 	{
 		[Desc("Delay (in ticks) on the ground while attaching an actor to the carryall.")]
 		public readonly int BeforeLoadDelay = 0;
@@ -50,10 +50,20 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Cursor to display when unable to drop off the passengers at location.")]
 		public readonly string DropOffBlockedCursor = "move-blocked";
 
+		[Desc("Cursor to display when picking up the passengers.")]
+		public readonly string PickUpCursor = "ability";
+
+		[GrantedConditionReference]
+		[Desc("Condition to grant to the Carryall while it is carrying something.")]
+		public readonly string CarryCondition = null;
+
 		[VoiceReference]
 		public readonly string Voice = "Action";
 
-		public virtual object Create(ActorInitializer init) { return new Carryall(init.Self, this); }
+		[Desc("Color to use for the target line.")]
+		public readonly Color TargetLineColor = Color.Yellow;
+
+		public override object Create(ActorInitializer init) { return new Carryall(init.Self, this); }
 	}
 
 	public class Carryall : INotifyKilled, ISync, ITick, IRender, INotifyActorDisposing, IIssueOrder, IResolveOrder,
@@ -79,9 +89,10 @@ namespace OpenRA.Mods.Common.Traits
 		public Actor Carryable { get; private set; }
 		public CarryallState State { get; private set; }
 
-		int cachedFacing;
+		WAngle cachedFacing;
 		IActorPreview[] carryablePreview;
 		HashSet<string> landableTerrainTypes;
+		int carryConditionToken = Actor.InvalidConditionToken;
 
 		/// <summary>Offset between the carryall's and the carried actor's CenterPositions</summary>
 		public WVec CarryableOffset { get; private set; }
@@ -174,6 +185,8 @@ namespace OpenRA.Mods.Common.Traits
 			Carryable = carryable;
 			State = CarryallState.Carrying;
 			self.World.ScreenMap.AddOrUpdate(self);
+			if (carryConditionToken == Actor.InvalidConditionToken)
+				carryConditionToken = self.GrantCondition(Info.CarryCondition);
 
 			CarryableOffset = OffsetForCarryable(self, carryable);
 			landableTerrainTypes = Carryable.Trait<Mobile>().Info.LocomotorInfo.TerrainSpeeds.Keys.ToHashSet();
@@ -185,6 +198,8 @@ namespace OpenRA.Mods.Common.Traits
 		{
 			UnreserveCarryable(self);
 			self.World.ScreenMap.AddOrUpdate(self);
+			if (carryConditionToken != Actor.InvalidConditionToken)
+				carryConditionToken = self.RevokeCondition(carryConditionToken);
 
 			carryablePreview = null;
 			landableTerrainTypes = null;
@@ -237,7 +252,7 @@ namespace OpenRA.Mods.Common.Traits
 				var offset = body.LocalToWorld(CarryableOffset.Rotate(body.QuantizeOrientation(self, self.Orientation)));
 				var previewRenderables = carryablePreview
 					.SelectMany(p => p.Render(wr, self.CenterPosition + offset))
-					.OrderBy(WorldRenderer.RenderableScreenZPositionComparisonKey);
+					.OrderBy(WorldRenderer.RenderableZPositionComparisonKey);
 
 				foreach (var r in previewRenderables)
 					yield return r;
@@ -266,14 +281,14 @@ namespace OpenRA.Mods.Common.Traits
 		{
 			get
 			{
-				yield return new CarryallPickupOrderTargeter();
+				yield return new CarryallPickupOrderTargeter(Info);
 				yield return new DeployOrderTargeter("Unload", 10,
 				() => CanUnload() ? Info.UnloadCursor : Info.UnloadBlockedCursor);
 				yield return new CarryallDeliverUnitTargeter(aircraftInfo, Info);
 			}
 		}
 
-		Order IIssueOrder.IssueOrder(Actor self, IOrderTargeter order, Target target, bool queued)
+		Order IIssueOrder.IssueOrder(Actor self, IOrderTargeter order, in Target target, bool queued)
 		{
 			if (order.OrderID == "PickupUnit" || order.OrderID == "DeliverUnit" || order.OrderID == "Unload")
 				return new Order(order.OrderID, self, target, queued);
@@ -332,8 +347,8 @@ namespace OpenRA.Mods.Common.Traits
 
 		class CarryallPickupOrderTargeter : UnitOrderTargeter
 		{
-			public CarryallPickupOrderTargeter()
-				: base("PickupUnit", 5, "ability", false, true)
+			public CarryallPickupOrderTargeter(CarryallInfo info)
+				: base("PickupUnit", 5, info.PickUpCursor, false, true)
 			{
 			}
 
@@ -371,7 +386,7 @@ namespace OpenRA.Mods.Common.Traits
 			public string OrderID { get { return "DeliverUnit"; } }
 			public int OrderPriority { get { return 6; } }
 			public bool IsQueued { get; protected set; }
-			public bool TargetOverridesSelection(Actor self, Target target, List<Actor> actorsAt, CPos xy, TargetModifiers modifiers) { return true; }
+			public bool TargetOverridesSelection(Actor self, in Target target, List<Actor> actorsAt, CPos xy, TargetModifiers modifiers) { return true; }
 
 			public CarryallDeliverUnitTargeter(AircraftInfo aircraftInfo, CarryallInfo info)
 			{
@@ -379,7 +394,7 @@ namespace OpenRA.Mods.Common.Traits
 				this.info = info;
 			}
 
-			public bool CanTarget(Actor self, Target target, List<Actor> othersAtTarget, ref TargetModifiers modifiers, ref string cursor)
+			public bool CanTarget(Actor self, in Target target, List<Actor> othersAtTarget, ref TargetModifiers modifiers, ref string cursor)
 			{
 				if (!info.AllowDropOff || !modifiers.HasModifier(TargetModifiers.ForceMove))
 					return false;

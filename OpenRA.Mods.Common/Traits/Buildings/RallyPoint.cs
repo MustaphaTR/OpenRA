@@ -20,22 +20,23 @@ using OpenRA.Traits;
 namespace OpenRA.Mods.Common.Traits
 {
 	[Desc("Used to waypoint units after production or repair is finished.")]
-	public class RallyPointInfo : ITraitInfo
+	public class RallyPointInfo : TraitInfo
 	{
 		public readonly string Image = "rallypoint";
 
 		[Desc("Width (in pixels) of the rallypoint line.")]
 		public readonly int LineWidth = 1;
 
-		[SequenceReference("Image")]
+		[SequenceReference(nameof(Image), allowNullImage: true)]
 		public readonly string FlagSequence = "flag";
 
-		[SequenceReference("Image")]
+		[SequenceReference(nameof(Image), allowNullImage: true)]
 		public readonly string CirclesSequence = "circles";
 
+		[Desc("Cursor to display when rally point can be set.")]
 		public readonly string Cursor = "ability";
 
-		[PaletteReference("IsPlayerPalette")]
+		[PaletteReference(nameof(IsPlayerPalette))]
 		[Desc("Custom indicator palette name")]
 		public readonly string Palette = "player";
 
@@ -49,7 +50,7 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("The speech notification to play when setting a new rallypoint.")]
 		public readonly string Notification = null;
 
-		public object Create(ActorInitializer init) { return new RallyPoint(init.Self, this); }
+		public override object Create(ActorInitializer init) { return new RallyPoint(init.Self, this); }
 	}
 
 	public class RallyPoint : IIssueOrder, IResolveOrder, INotifyOwnerChanged, INotifyCreated
@@ -82,13 +83,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		void INotifyCreated.Created(Actor self)
 		{
-			// Display only the first level of priority
-			var priorityExits = self.Info.TraitInfos<ExitInfo>()
-				.GroupBy(e => e.Priority)
-				.FirstOrDefault();
-
-			var exits = priorityExits != null ? priorityExits.ToArray() : new ExitInfo[0];
-			self.World.Add(new RallyPointIndicator(self, this, exits));
+			self.World.Add(new RallyPointIndicator(self, this));
 			dirty = true;
 		}
 
@@ -105,7 +100,7 @@ namespace OpenRA.Mods.Common.Traits
 			get { yield return new RallyPointOrderTargeter(Info.Cursor); }
 		}
 
-		public Order IssueOrder(Actor self, IOrderTargeter order, Target target, bool queued)
+		public Order IssueOrder(Actor self, IOrderTargeter order, in Target target, bool queued)
 		{
 			if (order.OrderID == OrderID)
 			{
@@ -204,11 +199,11 @@ namespace OpenRA.Mods.Common.Traits
 
 			public string OrderID { get { return "SetRallyPoint"; } }
 			public int OrderPriority { get { return 0; } }
-			public bool TargetOverridesSelection(Actor self, Target target, List<Actor> actorsAt, CPos xy, TargetModifiers modifiers) { return true; }
+			public bool TargetOverridesSelection(Actor self, in Target target, List<Actor> actorsAt, CPos xy, TargetModifiers modifiers) { return true; }
 			public bool ForceSet { get; private set; }
 			public bool IsQueued { get; protected set; }
 
-			public bool CanTarget(Actor self, Target target, List<Actor> othersAtTarget, ref TargetModifiers modifiers, ref string cursor)
+			public bool CanTarget(Actor self, in Target target, List<Actor> othersAtTarget, ref TargetModifiers modifiers, ref string cursor)
 			{
 				if (target.Type != TargetType.Terrain)
 					return false;

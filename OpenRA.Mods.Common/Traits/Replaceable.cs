@@ -10,22 +10,21 @@
 #endregion
 
 using System.Collections.Generic;
-using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.Traits
 {
-	public class ReplaceableInfo : ConditionalTraitInfo, ITraitInfo
+	public class ReplaceableInfo : ConditionalTraitInfo
 	{
 		[FieldLoader.Require]
-		[Desc("Replacement types this Relpaceable actor accepts.")]
+		[Desc("Replacement types this Replaceable actor accepts.")]
 		public readonly HashSet<string> Types = new HashSet<string>();
 
-		public override object Create(ActorInitializer init) { return new Replaceable(init, this); }
+		public override object Create(ActorInitializer init) { return new Replaceable(this); }
 	}
 
 	public class Replaceable : ConditionalTrait<ReplaceableInfo>
 	{
-		public Replaceable(ActorInitializer init, ReplaceableInfo info)
+		public Replaceable(ReplaceableInfo info)
 			: base(info) { }
 	}
 }

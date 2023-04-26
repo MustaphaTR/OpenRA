@@ -18,7 +18,7 @@ using OpenRA.Traits;
 namespace OpenRA.Mods.Common.Traits
 {
 	[Desc("This actor can grant experience levels equal to it's own current level via entering to other actors with the `AcceptsDeliveredExperience` trait.")]
-	class DeliversExperienceInfo : ITraitInfo, Requires<GainsExperienceInfo>
+	class DeliversExperienceInfo : TraitInfo, Requires<GainsExperienceInfo>
 	{
 		[Desc("The amount of experience the donating player receives.")]
 		public readonly int PlayerExperience = 0;
@@ -26,10 +26,16 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Identifier checked against AcceptsDeliveredExperience.ValidTypes. Only needed if the latter is not empty.")]
 		public readonly string Type = null;
 
+		[Desc("Cursor to display when hovering over a valid actor to deliver experience to.")]
+		public readonly string Cursor = "enter";
+
 		[VoiceReference]
 		public readonly string Voice = "Action";
 
-		public object Create(ActorInitializer init) { return new DeliversExperience(init, this); }
+		[Desc("Color to use for the target line.")]
+		public readonly Color TargetLineColor = Color.Yellow;
+
+		public override object Create(ActorInitializer init) { return new DeliversExperience(init, this); }
 	}
 
 	class DeliversExperience : IIssueOrder, IResolveOrder, IOrderVoice
@@ -50,11 +56,11 @@ namespace OpenRA.Mods.Common.Traits
 			get
 			{
 				if (gainsExperience.Level != 0)
-					yield return new DeliversExperienceOrderTargeter();
+					yield return new DeliversExperienceOrderTargeter(info);
 			}
 		}
 
-		public Order IssueOrder(Actor self, IOrderTargeter order, Target target, bool queued)
+		public Order IssueOrder(Actor self, IOrderTargeter order, in Target target, bool queued)
 		{
 			if (order.OrderID != "DeliverExperience")
 				return null;
@@ -84,33 +90,33 @@ namespace OpenRA.Mods.Common.Traits
 			else if (order.Target.Type != TargetType.FrozenActor)
 				return;
 
-			self.QueueActivity(order.Queued, new DonateExperience(self, order.Target, gainsExperience.Level, info.PlayerExperience));
+			self.QueueActivity(order.Queued, new DonateExperience(self, order.Target, gainsExperience.Level, info.PlayerExperience, info.TargetLineColor));
 			self.ShowTargetLines();
 		}
 
 		public class DeliversExperienceOrderTargeter : UnitOrderTargeter
 		{
-			public DeliversExperienceOrderTargeter()
-				: base("DeliverExperience", 5, "enter", true, true) { }
+			public DeliversExperienceOrderTargeter(DeliversExperienceInfo info)
+				: base("DeliverExperience", 5, info.Cursor, true, true) { }
 
 			public override bool CanTargetActor(Actor self, Actor target, TargetModifiers modifiers, ref string cursor)
 			{
 				if (target == self)
 					return false;
 
-				var type = self.Info.TraitInfo<DeliversExperienceInfo>().Type;
-				var targetInfo = target.Info.TraitInfoOrDefault<AcceptsDeliveredExperienceInfo>();
 				var targetGainsExperience = target.TraitOrDefault<GainsExperience>();
-
-				if (targetGainsExperience == null || targetInfo == null)
+				if (targetGainsExperience == null || targetGainsExperience.Level == targetGainsExperience.MaxLevel)
 					return false;
 
-				if (targetGainsExperience.Level == targetGainsExperience.MaxLevel)
+				var targetInfo = target.Info.TraitInfoOrDefault<AcceptsDeliveredExperienceInfo>();
+				if (targetInfo == null || !targetInfo.ValidRelationships.HasStance(target.Owner.RelationshipWith(self.Owner)))
 					return false;
 
-				return targetInfo.ValidStances.HasStance(target.Owner.Stances[self.Owner])
-					&& (targetInfo.ValidTypes.Count == 0
-						|| (!string.IsNullOrEmpty(type) && targetInfo.ValidTypes.Contains(type)));
+				if (targetInfo.ValidTypes.Count == 0)
+					return true;
+
+				var type = self.Info.TraitInfo<DeliversExperienceInfo>().Type;
+				return !string.IsNullOrEmpty(type) && targetInfo.ValidTypes.Contains(type);
 			}
 
 			public override bool CanTargetFrozenActor(Actor self, FrozenActor target, TargetModifiers modifiers, ref string cursor)
@@ -118,19 +124,19 @@ namespace OpenRA.Mods.Common.Traits
 				if (target.Actor == null || target.Actor == self)
 					return false;
 
-				var type = self.Info.TraitInfo<DeliversExperienceInfo>().Type;
-				var targetInfo = target.Info.TraitInfoOrDefault<AcceptsDeliveredExperienceInfo>();
 				var targetGainsExperience = target.Actor.TraitOrDefault<GainsExperience>();
-
-				if (targetGainsExperience == null || targetInfo == null)
+				if (targetGainsExperience == null || targetGainsExperience.Level == targetGainsExperience.MaxLevel)
 					return false;
 
-				if (targetGainsExperience.Level == targetGainsExperience.MaxLevel)
+				var targetInfo = target.Info.TraitInfoOrDefault<AcceptsDeliveredExperienceInfo>();
+				if (targetInfo == null || !targetInfo.ValidRelationships.HasStance(target.Owner.RelationshipWith(self.Owner)))
 					return false;
 
-				return targetInfo.ValidStances.HasStance(target.Owner.Stances[self.Owner])
-					&& (targetInfo.ValidTypes.Count == 0
-						|| (!string.IsNullOrEmpty(type) && targetInfo.ValidTypes.Contains(type)));
+				if (targetInfo.ValidTypes.Count == 0)
+					return true;
+
+				var type = self.Info.TraitInfo<DeliversExperienceInfo>().Type;
+				return !string.IsNullOrEmpty(type) && targetInfo.ValidTypes.Contains(type);
 			}
 		}
 	}

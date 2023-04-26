@@ -20,7 +20,7 @@ namespace OpenRA.Mods.Common.Traits
 	[Desc("Attach this to an actor (usually a building) to let it produce units or construct buildings.",
 		"If one builds another actor of this type, he will get a separate queue to create two actors",
 		"at the same time. Will only work together with the Production: trait.")]
-	public class ProductionQueueInfo : ITraitInfo
+	public class ProductionQueueInfo : TraitInfo
 	{
 		[FieldLoader.Require]
 		[Desc("What kind of production will be added (e.g. Building, Infantry, Vehicle, ...)")]
@@ -96,7 +96,7 @@ namespace OpenRA.Mods.Common.Traits
 			"The filename of the audio is defined per faction in notifications.yaml.")]
 		public readonly string CancelledAudio = null;
 
-		public virtual object Create(ActorInitializer init) { return new ProductionQueue(init, init.Self.Owner.PlayerActor, this); }
+		public override object Create(ActorInitializer init) { return new ProductionQueue(init, init.Self.Owner.PlayerActor, this); }
 
 		public void RulesetLoaded(Ruleset rules, ActorInfo ai)
 		{
@@ -143,7 +143,7 @@ namespace OpenRA.Mods.Common.Traits
 			self = init.Self;
 			Info = info;
 
-			Faction = init.Contains<FactionInit>() ? init.Get<FactionInit, string>() : self.Owner.Faction.InternalName;
+			Faction = init.GetValue<FactionInit, string>(self.Owner.Faction.InternalName);
 			IsValidFaction = !info.Factions.Any() || info.Factions.Contains(Faction);
 			Enabled = IsValidFaction;
 
@@ -153,20 +153,14 @@ namespace OpenRA.Mods.Common.Traits
 
 		void INotifyCreated.Created(Actor self)
 		{
-			// Special case handling is required for the Player actor.
-			// Created is called before Player.PlayerActor is assigned,
-			// so we must query other player traits from self, knowing that
-			// it refers to the same actor as self.Owner.PlayerActor
-			var playerActor = self.Info.Name == "player" ? self : self.Owner.PlayerActor;
-
-			playerPower = playerActor.TraitOrDefault<PowerManager>();
-			playerResources = playerActor.Trait<PlayerResources>();
-			developerMode = playerActor.Trait<DeveloperMode>();
-			techTree = playerActor.Trait<TechTree>();
+			playerPower = self.Owner.PlayerActor.TraitOrDefault<PowerManager>();
+			playerResources = self.Owner.PlayerActor.Trait<PlayerResources>();
+			developerMode = self.Owner.PlayerActor.Trait<DeveloperMode>();
+			techTree = self.Owner.PlayerActor.Trait<TechTree>();
 
 			productionTraits = self.TraitsImplementing<Production>().Where(p => p.Info.Produces.Contains(Info.Type)).ToArray();
 			conditionPrerequisites = self.Info.TraitInfos<ConditionPrerequisiteInfo>().ToArray();
-			CacheProducibles(playerActor);
+			CacheProducibles(self.Owner.PlayerActor);
 		}
 
 		protected void ClearQueue()
@@ -310,8 +304,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		public bool CanBuild(ActorInfo actor)
 		{
-			ProductionState ps;
-			if (!Producible.TryGetValue(actor, out ps))
+			if (!Producible.TryGetValue(actor, out var ps))
 				return false;
 
 			return ps.Buildable || developerMode.AllTech;
@@ -364,7 +357,10 @@ namespace OpenRA.Mods.Common.Traits
 
 		protected void CancelUnbuildableItems()
 		{
-			var buildableNames = BuildableItems().Select(b => b.Name).ToList();
+			if (Queue.Count == 0)
+				return;
+
+			var buildableNames = BuildableItems().Select(b => b.Name).ToHashSet();
 
 			// EndProduction removes the item from the queue, so we enumerate
 			// by index in reverse to avoid issues with index reassignment
@@ -481,9 +477,12 @@ namespace OpenRA.Mods.Common.Traits
 
 						BeginProduction(new ProductionItem(this, order.TargetString, cost, playerPower, () => self.World.AddFrameEndTask(_ =>
 						{
+							// Make sure the item hasn't been invalidated between the ProductionItem ticking and this FrameEndTask running
+							if (!Queue.Any(i => i.Done && i.Item == unit.Name))
+								return;
+
 							var isBuilding = unit.HasTraitInfo<BuildingInfo>();
 							var readyAudio = bi.ReadyAudio != null ? bi.ReadyAudio : Info.ReadyAudio;
-
 							if (isBuilding && !hasPlayedSound)
 								hasPlayedSound = Game.Sound.PlayNotification(rules, self.Owner, "Speech", readyAudio, self.Owner.Faction.InternalName);
 							else if (!isBuilding)
@@ -543,9 +542,7 @@ namespace OpenRA.Mods.Common.Traits
 
 			var onHoldAudio = bi.OnHoldAudio != null ? bi.OnHoldAudio : Info.OnHoldAudio;
 			Game.Sound.PlayNotification(rules, self.Owner, "Speech", onHoldAudio, self.Owner.Faction.InternalName);
-			var item = Queue.FirstOrDefault(a => a.Item == itemName);
-			if (item != null)
-				item.Pause(paused);
+			Queue.FirstOrDefault(a => a.Item == itemName)?.Pause(paused);
 		}
 
 		protected void CancelProduction(string itemName, uint numberToCancel)
@@ -660,10 +657,10 @@ namespace OpenRA.Mods.Common.Traits
 
 			var bi = unit.TraitInfo<BuildableInfo>();
 			var type = bi.BuildAtProductionType ?? Info.Type;
-
-			if (!mostLikelyProducerTrait.IsTraitPaused && mostLikelyProducerTrait.Produce(self, unit, type, inits))
+			var item = Queue.First(i => i.Done && i.Item == unit.Name);
+			if (!mostLikelyProducerTrait.IsTraitPaused && mostLikelyProducerTrait.Produce(self, unit, type, inits, item.TotalCost))
 			{
-				EndProduction(Queue.FirstOrDefault(i => i.Done && i.Item == unit.Name));
+				EndProduction(item);
 				return true;
 			}
 
@@ -735,8 +732,7 @@ namespace OpenRA.Mods.Common.Traits
 
 			if (Done)
 			{
-				if (OnComplete != null)
-					OnComplete();
+				OnComplete?.Invoke();
 
 				return;
 			}

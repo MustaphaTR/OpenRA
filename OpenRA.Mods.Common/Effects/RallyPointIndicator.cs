@@ -17,22 +17,20 @@ using OpenRA.Mods.Common.Traits;
 
 namespace OpenRA.Mods.Common.Effects
 {
-	class RallyPointIndicator : IEffect, IEffectAboveShroud, IEffectAnnotation
+	public class RallyPointIndicator : IEffect, IEffectAboveShroud, IEffectAnnotation
 	{
 		readonly Actor building;
 		readonly RallyPoint rp;
 		readonly Animation flag;
 		readonly Animation circles;
-		readonly ExitInfo[] exits;
 
 		List<WPos> targetLineNodes = new List<WPos> { };
 		List<CPos> cachedLocations;
 
-		public RallyPointIndicator(Actor building, RallyPoint rp, ExitInfo[] exits)
+		public RallyPointIndicator(Actor building, RallyPoint rp)
 		{
 			this.building = building;
 			this.rp = rp;
-			this.exits = exits;
 
 			if (rp.Info.Image != null)
 			{
@@ -48,18 +46,15 @@ namespace OpenRA.Mods.Common.Effects
 
 		void IEffect.Tick(World world)
 		{
-			if (flag != null)
-				flag.Tick();
+			flag?.Tick();
 
-			if (circles != null)
-				circles.Tick();
+			circles?.Tick();
 
 			if (cachedLocations == null || !cachedLocations.SequenceEqual(rp.Path))
 			{
 				UpdateTargetLineNodes(world);
 
-				if (circles != null)
-					circles.Play(rp.Info.CirclesSequence);
+				circles?.Play(rp.Info.CirclesSequence);
 			}
 
 			if (!building.IsInWorld || building.IsDead)
@@ -76,22 +71,8 @@ namespace OpenRA.Mods.Common.Effects
 			if (targetLineNodes.Count == 0)
 				return;
 
-			var exitPos = building.CenterPosition;
-
-			// Find closest exit
-			var dist = int.MaxValue;
-			foreach (var exit in exits)
-			{
-				var ep = building.CenterPosition + exit.SpawnOffset;
-				var len = (targetLineNodes[0] - ep).Length;
-				if (len < dist)
-				{
-					dist = len;
-					exitPos = ep;
-				}
-			}
-
-			targetLineNodes.Insert(0, exitPos);
+			var exit = building.NearestExitOrDefault(targetLineNodes[0]);
+			targetLineNodes.Insert(0, building.CenterPosition + (exit?.Info.SpawnOffset ?? WVec.Zero));
 		}
 
 		IEnumerable<IRenderable> IEffect.Render(WorldRenderer wr) { return SpriteRenderable.None; }

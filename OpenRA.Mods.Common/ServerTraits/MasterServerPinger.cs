@@ -82,7 +82,7 @@ namespace OpenRA.Mods.Common.Server
 
 		public void ServerStarted(S server)
 		{
-			if (!server.Ip.Equals(IPAddress.Loopback) && LanGameBeacon != null)
+			if (server.Type != ServerType.Local && LanGameBeacon != null)
 				LanGameBeacon.Start();
 		}
 
@@ -98,8 +98,7 @@ namespace OpenRA.Mods.Common.Server
 
 		public void GameEnded(S server)
 		{
-			if (LanGameBeacon != null)
-				LanGameBeacon.Stop();
+			LanGameBeacon?.Stop();
 
 			lastChanged = Game.RunTime;
 		}
@@ -139,8 +138,7 @@ namespace OpenRA.Mods.Common.Server
 								if (errorCode != 0)
 								{
 									// Hardcoded error messages take precedence over the server-provided messages
-									string message;
-									if (!MasterServerErrors.TryGetValue(errorCode, out message))
+									if (!MasterServerErrors.TryGetValue(errorCode, out var message))
 										message = errorMessage;
 
 									masterServerMessages.Enqueue("Warning: " + message);

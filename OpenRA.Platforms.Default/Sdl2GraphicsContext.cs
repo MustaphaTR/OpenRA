@@ -40,8 +40,7 @@ namespace OpenRA.Platforms.Default
 
 			if (OpenGL.Profile != GLProfile.Legacy)
 			{
-				uint vao;
-				OpenGL.glGenVertexArrays(1, out vao);
+				OpenGL.glGenVertexArrays(1, out var vao);
 				OpenGL.CheckGLError();
 				OpenGL.glBindVertexArray(vao);
 				OpenGL.CheckGLError();
@@ -52,6 +51,8 @@ namespace OpenRA.Platforms.Default
 			OpenGL.glEnableVertexAttribArray(Shader.TexCoordAttributeIndex);
 			OpenGL.CheckGLError();
 			OpenGL.glEnableVertexAttribArray(Shader.TexMetadataAttributeIndex);
+			OpenGL.CheckGLError();
+			OpenGL.glEnableVertexAttribArray(Shader.TintAttributeIndex);
 			OpenGL.CheckGLError();
 		}
 
@@ -228,6 +229,21 @@ namespace OpenRA.Platforms.Default
 					OpenGL.glEnable(OpenGL.GL_BLEND);
 					OpenGL.CheckGLError();
 					OpenGL.glBlendFunc(OpenGL.GL_DST_COLOR, OpenGL.GL_SRC_COLOR);
+					break;
+				case BlendMode.LowAdditive:
+					OpenGL.glEnable(OpenGL.GL_BLEND);
+					OpenGL.CheckGLError();
+					OpenGL.glBlendFunc(OpenGL.GL_DST_COLOR, OpenGL.GL_ONE);
+					break;
+				case BlendMode.Screen:
+					OpenGL.glEnable(OpenGL.GL_BLEND);
+					OpenGL.CheckGLError();
+					OpenGL.glBlendFunc(OpenGL.GL_SRC_COLOR, OpenGL.GL_ONE_MINUS_SRC_COLOR);
+					break;
+				case BlendMode.Translucent:
+					OpenGL.glEnable(OpenGL.GL_BLEND);
+					OpenGL.CheckGLError();
+					OpenGL.glBlendFunc(OpenGL.GL_DST_COLOR, OpenGL.GL_ONE_MINUS_DST_COLOR);
 					break;
 			}
 

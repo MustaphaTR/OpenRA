@@ -53,19 +53,12 @@ namespace OpenRA.Mods.Common.LoadScreens
 			}
 
 			// Join a server directly
-			var connect = Launch.GetConnectAddress();
-			if (!string.IsNullOrEmpty(connect))
+			var connect = Launch.GetConnectEndPoint();
+			if (connect != null)
 			{
-				var parts = connect.Split(':');
-
-				if (parts.Length == 2)
-				{
-					var host = parts[0];
-					var port = Exts.ParseIntegerInvariant(parts[1]);
-					Game.LoadShellMap();
-					Game.RemoteDirectConnect(host, port);
-					return;
-				}
+				Game.LoadShellMap();
+				Game.RemoteDirectConnect(connect);
+				return;
 			}
 
 			// Start a map directly
@@ -112,18 +105,21 @@ namespace OpenRA.Mods.Common.LoadScreens
 
 		public virtual bool BeforeLoad()
 		{
+			var graphicSettings = Game.Settings.Graphics;
+
 			// Reset the UI scaling if the user has configured a UI scale that pushes us below the minimum allowed effective resolution
 			var minResolution = ModData.Manifest.Get<WorldViewportSizes>().MinEffectiveResolution;
 			var resolution = Game.Renderer.Resolution;
 			if ((resolution.Width < minResolution.Width || resolution.Height < minResolution.Height) && Game.Settings.Graphics.UIScale > 1.0f)
 			{
-				Game.Settings.Graphics.UIScale = 1.0f;
+				graphicSettings.UIScale = 1.0f;
 				Game.Renderer.SetUIScale(1.0f);
 			}
 
 			// Saved settings may have been invalidated by a hardware change
-			Game.Settings.Graphics.GLProfile = Game.Renderer.GLProfile;
-			Game.Settings.Graphics.VideoDisplay = Game.Renderer.CurrentDisplay;
+			graphicSettings.VideoDisplay = Game.Renderer.CurrentDisplay;
+			if (graphicSettings.GLProfile != GLProfile.Automatic && graphicSettings.GLProfile != Game.Renderer.GLProfile)
+				graphicSettings.GLProfile = GLProfile.Automatic;
 
 			// If a ModContent section is defined then we need to make sure that the
 			// required content is installed or switch to the defined content installer.

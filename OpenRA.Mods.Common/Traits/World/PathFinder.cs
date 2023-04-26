@@ -9,9 +9,7 @@
  */
 #endregion
 
-using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using OpenRA.Mods.Common.Pathfinder;
 using OpenRA.Traits;
@@ -19,9 +17,9 @@ using OpenRA.Traits;
 namespace OpenRA.Mods.Common.Traits
 {
 	[Desc("Calculates routes for mobile units based on the A* search algorithm.", " Attach this to the world actor.")]
-	public class PathFinderInfo : ITraitInfo, Requires<LocomotorInfo>
+	public class PathFinderInfo : TraitInfo, Requires<LocomotorInfo>
 	{
-		public object Create(ActorInitializer init)
+		public override object Create(ActorInitializer init)
 		{
 			return new PathFinderUnitPathCacheDecorator(new PathFinder(init.World), new PathCacheStorage(init.World));
 		}
@@ -64,8 +62,8 @@ namespace OpenRA.Mods.Common.Traits
 
 		public List<CPos> FindUnitPath(CPos source, CPos target, Actor self, Actor ignoreActor, BlockedByActor check)
 		{
-			var mobile = self.Trait<Mobile>();
-			var locomotor = mobile.Locomotor;
+			// PERF: Because we can be sure that OccupiesSpace is Mobile here, we can save some performance by avoiding querying for the trait.
+			var locomotor = ((Mobile)self.OccupiesSpace).Locomotor;
 
 			if (!cached)
 			{
@@ -74,7 +72,7 @@ namespace OpenRA.Mods.Common.Traits
 			}
 
 			// If a water-land transition is required, bail early
-			if (domainIndex != null && !domainIndex.IsPassable(source, target, locomotor.Info))
+			if (domainIndex != null && !domainIndex.IsPassable(source, target, locomotor))
 				return EmptyPath;
 
 			var distance = source - target;
@@ -102,9 +100,10 @@ namespace OpenRA.Mods.Common.Traits
 				cached = true;
 			}
 
-			var mobile = self.Trait<Mobile>();
-			var mi = mobile.Info;
-			var li = mi.LocomotorInfo;
+			// PERF: Because we can be sure that OccupiesSpace is Mobile here, we can save some performance by avoiding querying for the trait.
+			var mobile = (Mobile)self.OccupiesSpace;
+			var locomotor = mobile.Locomotor;
+
 			var targetCell = world.Map.CellContaining(target);
 
 			// Correct for SubCell offset
@@ -114,18 +113,16 @@ namespace OpenRA.Mods.Common.Traits
 			// This assumes that the SubCell does not change during the path traversal
 			var tilesInRange = world.Map.FindTilesInCircle(targetCell, range.Length / 1024 + 1)
 				.Where(t => (world.Map.CenterOfCell(t) - target).LengthSquared <= range.LengthSquared
-							&& mi.CanEnterCell(self.World, self, t));
+							&& mobile.Info.CanEnterCell(self.World, self, t));
 
 			// See if there is any cell within range that does not involve a cross-domain request
 			// Really, we only need to check the circle perimeter, but it's not clear that would be a performance win
 			if (domainIndex != null)
 			{
-				tilesInRange = new List<CPos>(tilesInRange.Where(t => domainIndex.IsPassable(source, t, li)));
+				tilesInRange = new List<CPos>(tilesInRange.Where(t => domainIndex.IsPassable(source, t, locomotor)));
 				if (!tilesInRange.Any())
 					return EmptyPath;
 			}
-
-			var locomotor = mobile.Locomotor;
 
 			using (var fromSrc = PathSearch.FromPoints(world, locomotor, self, tilesInRange, source, check))
 			using (var fromDest = PathSearch.FromPoint(world, locomotor, self, source, targetCell, check).Reverse())

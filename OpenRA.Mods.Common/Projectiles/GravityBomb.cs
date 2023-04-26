@@ -20,11 +20,11 @@ namespace OpenRA.Mods.Common.Projectiles
 	{
 		public readonly string Image = null;
 
-		[SequenceReference("Image")]
+		[SequenceReference(nameof(Image), allowNullImage: true)]
 		[Desc("Loop a randomly chosen sequence of Image from this list while falling.")]
 		public readonly string[] Sequences = { "idle" };
 
-		[SequenceReference("Image")]
+		[SequenceReference(nameof(Image), allowNullImage: true)]
 		[Desc("Sequence to play when launched. Skipped if null or empty.")]
 		public readonly string OpenSequence = null;
 
@@ -58,7 +58,7 @@ namespace OpenRA.Mods.Common.Projectiles
 		WVec velocity;
 
 		[Sync]
-		WPos pos;
+		WPos pos, lastPos;
 
 		public GravityBomb(GravityBombInfo info, ProjectileArgs args)
 		{
@@ -66,7 +66,7 @@ namespace OpenRA.Mods.Common.Projectiles
 			this.args = args;
 			pos = args.Source;
 			var convertedVelocity = new WVec(info.Velocity.Y, -info.Velocity.X, info.Velocity.Z);
-			velocity = convertedVelocity.Rotate(WRot.FromFacing(args.Facing));
+			velocity = convertedVelocity.Rotate(WRot.FromYaw(args.Facing));
 			acceleration = new WVec(info.Acceleration.Y, -info.Acceleration.X, info.Acceleration.Z);
 
 			if (!string.IsNullOrEmpty(info.Image))
@@ -82,6 +82,7 @@ namespace OpenRA.Mods.Common.Projectiles
 
 		public void Tick(World world)
 		{
+			lastPos = pos;
 			pos += velocity;
 			velocity += acceleration;
 
@@ -90,11 +91,16 @@ namespace OpenRA.Mods.Common.Projectiles
 				pos += new WVec(0, 0, args.PassiveTarget.Z - pos.Z);
 				world.AddFrameEndTask(w => w.Remove(this));
 
-				args.Weapon.Impact(Target.FromPos(pos), new WarheadArgs(args));
+				var warheadArgs = new WarheadArgs(args)
+				{
+					ImpactOrientation = new WRot(WAngle.Zero, Util.GetVerticalAngle(lastPos, pos), args.Facing),
+					ImpactPosition = pos,
+				};
+
+				args.Weapon.Impact(Target.FromPos(pos), warheadArgs);
 			}
 
-			if (anim != null)
-				anim.Tick();
+			anim?.Tick();
 		}
 
 		public IEnumerable<IRenderable> Render(WorldRenderer wr)
