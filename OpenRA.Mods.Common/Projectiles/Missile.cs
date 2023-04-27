@@ -446,7 +446,7 @@ namespace OpenRA.Mods.Common.Projectiles
 			if ((tp.Actor.CenterPosition - pos).HorizontalLengthSquared > tp.Trait.Range.LengthSquared)
 				return false;
 
-			if (!tp.Trait.DeflectionStances.HasStance(tp.Actor.Owner.Stances[args.SourceActor.Owner]))
+			if (!tp.Trait.DeflectionStances.HasStance(tp.Actor.Owner.RelationshipWith(args.SourceActor.Owner)))
 				return false;
 
 			if (tp.Trait.IsTraitDisabled)

@@ -19,7 +19,7 @@ using OpenRA.Traits;
 namespace OpenRA.Mods.Yupgi_alert.Traits
 {
 	[Desc("Causes aircraft husks that are spawned in the air to crash to the ground.")]
-	public class BlimpFallsToEarthInfo : ITraitInfo, IRulesetLoaded, Requires<AircraftInfo>
+	public class BlimpFallsToEarthInfo : TraitInfo, IRulesetLoaded, Requires<AircraftInfo>
 	{
 		[WeaponReference]
 		public readonly string Explosion = "UnitExplode";
@@ -32,7 +32,7 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 
 		public WeaponInfo ExplosionWeapon { get; private set; }
 
-		public object Create(ActorInitializer init) { return new BlimpFallsToEarth(init.Self, this); }
+		public override object Create(ActorInitializer init) { return new BlimpFallsToEarth(init.Self, this); }
 		public void RulesetLoaded(Ruleset rules, ActorInfo ai)
 		{
 			if (string.IsNullOrEmpty(Explosion))

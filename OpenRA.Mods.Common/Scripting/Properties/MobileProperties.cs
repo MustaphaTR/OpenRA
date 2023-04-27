@@ -71,7 +71,7 @@ namespace OpenRA.Mods.Common.Scripting
 
 		[ScriptActorPropertyActivity]
 		[Desc("Makes the actor turn in direction")]
-		public void Turn(int facing)
+		public void Turn(WAngle facing)
 		{
 			Self.QueueActivity(new Turn(Self, facing));
 		}

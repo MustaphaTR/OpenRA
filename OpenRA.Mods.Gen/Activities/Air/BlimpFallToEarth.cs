@@ -56,7 +56,7 @@ namespace OpenRA.Mods.Yupgi_alert.Activities
 			if (info.Spins)
 			{
 				spin += acceleration;
-				aircraft.Facing = (aircraft.Facing + spin) % 256;
+				aircraft.Facing = new WAngle(aircraft.Facing.Angle + spin);
 			}
 
 			var move = info.Moves ? aircraft.FlyStep(aircraft.Facing) : WVec.Zero;

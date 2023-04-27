@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2018 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -37,11 +37,10 @@ namespace OpenRA.Mods.Cnc.Traits
 		public override object Create(ActorInitializer init) { return new InfiltrateForCondition(this); }
 	}
 
-	class InfiltrateForCondition : INotifyCreated, INotifyInfiltrated, ITick, ISync
+	class InfiltrateForCondition : INotifyInfiltrated, ITick, ISync
 	{
 		readonly InfiltrateForConditionInfo info;
-		ConditionManager conditionManager;
-		int token = ConditionManager.InvalidConditionToken;
+		int token = Actor.InvalidConditionToken;
 
 		[Sync] public int Ticks { get; private set; }
 		bool infiltrated = false;
@@ -49,11 +48,6 @@ namespace OpenRA.Mods.Cnc.Traits
 		public InfiltrateForCondition(InfiltrateForConditionInfo info)
 		{ 
 			this.info = info;
-		}
-
-		public void Created(Actor self)
-		{
-			conditionManager = self.Trait<ConditionManager>();
 		}
 
 		void ITick.Tick(Actor self)
@@ -65,8 +59,8 @@ namespace OpenRA.Mods.Cnc.Traits
 			{
 				infiltrated = false;
 
-				if (token != ConditionManager.InvalidConditionToken)
-					token = conditionManager.RevokeCondition(self, token);
+				if (token != Actor.InvalidConditionToken)
+					token = self.RevokeCondition(token);
 			}
 		}
 
@@ -75,9 +69,9 @@ namespace OpenRA.Mods.Cnc.Traits
 			if (!info.Types.Overlaps(types))
 				return;
 
-			if (token == ConditionManager.InvalidConditionToken)
+			if (token == Actor.InvalidConditionToken)
 			{
-				token = conditionManager.GrantCondition(self, info.Condition);
+				token = self.GrantCondition(info.Condition);
 
 				if (info.Duration > 0)
 					infiltrated = true;

@@ -1,6 +1,6 @@
 ﻿#region Copyright & License Information
 /*
- * Copyright 2007-2018 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -19,7 +19,7 @@ using OpenRA.Traits;
 
 namespace OpenRA.Mods.Yupgi_alert.Traits
 {
-	public class SupplyCenterInfo : ITraitInfo
+	public class SupplyCenterInfo : TraitInfo
 	{
 		public readonly HashSet<string> SupplyTypes = new HashSet<string> { "supply" };
 
@@ -33,15 +33,15 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 		[Desc("Where can the supply collectors can place the supplies.")]
 		public readonly CVec[] DeliveryOffsets = new CVec[] { };
 
-		[Desc("Collector faces this way before dropping the supplies; if -1, faces towards the center of dock.")]
-		public readonly int Facing = -1;
+		[Desc("Collector faces this way before dropping the supplies; if undefined, faces towards the center of the actor.")]
+		public readonly WAngle? Facing = null;
 
 		public readonly bool ShowTicks = true;
 		public readonly int TickLifetime = 30;
 		public readonly int TickVelocity = 2;
 		public readonly int TickRate = 10;
 
-		public virtual object Create(ActorInitializer init) { return new SupplyCenter(init.Self, this); }
+		public override object Create(ActorInitializer init) { return new SupplyCenter(init.Self, this); }
 	}
 
 	public class SupplyCenter : ITick, IResourceExchange, INotifyCreated, INotifyOwnerChanged

@@ -18,7 +18,7 @@ using OpenRA.Traits;
 namespace OpenRA.Mods.Yupgi_alert.Traits
 {
 	[Desc("Spawn new actors when sold.")]
-	public class EmitInfantryOnDeathInfo : ITraitInfo
+	public class EmitInfantryOnDeathInfo : TraitInfo
 	{
 		public readonly int ValuePercent = 40;
 
@@ -33,7 +33,7 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 		[Desc("Should an actor spawn after the player has been defeated (e.g. after surrendering)?")]
 		public readonly bool SpawnAfterDefeat = false;
 
-		public object Create(ActorInitializer init) { return new EmitInfantryOnDeath(init.Self, this); }
+		public override object Create(ActorInitializer init) { return new EmitInfantryOnDeath(init.Self, this); }
 	}
 
 	public class EmitInfantryOnDeath : INotifyKilled

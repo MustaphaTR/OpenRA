@@ -17,7 +17,7 @@ using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.Traits
 {
-	public class TermitePaletteEffectInfo : ITraitInfo
+	public class TermitePaletteEffectInfo : TraitInfo
 	{
 		[Desc("The palette to apply this effect to.")]
 		public readonly string PaletteName = "termite";
@@ -25,7 +25,7 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Period of random palette generation")]
 		public readonly int Period = 16;
 
-		public object Create(ActorInitializer init) { return new TermitePaletteEffect(this); }
+		public override object Create(ActorInitializer init) { return new TermitePaletteEffect(this); }
 	}
 
 	public class TermitePaletteEffect : IPaletteModifier, ITick

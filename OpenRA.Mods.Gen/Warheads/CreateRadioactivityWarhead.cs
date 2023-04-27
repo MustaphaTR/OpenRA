@@ -74,7 +74,7 @@ namespace OpenRA.Mods.Yupgi_alert.Warheads
 			falloffDifference[falloffDifference.Length - 1] = Falloff.Last();
 		}
 
-		public override void DoImpact(WPos pos, Actor firedBy, IEnumerable<int> damageModifiers)
+		protected override void DoImpact(WPos pos, Actor firedBy, WarheadArgs args)
 		{
 			var world = firedBy.World;
 

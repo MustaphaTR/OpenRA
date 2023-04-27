@@ -185,7 +185,7 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 				enabled = false;
 		}
 
-		void INotifyBurstComplete.FiredBurst(Actor self, Target target, Armament a)
+		void INotifyBurstComplete.FiredBurst(Actor self, in Target target, Armament a)
 		{
 			self.World.AddFrameEndTask(w => activeArmaments.Remove(a));
 		}
@@ -280,14 +280,18 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 						i.Item2,
 						0,
 						Color.Red,
-						Color.FromArgb(96, Color.Black));
+						1,
+						Color.FromArgb(96, Color.Black),
+						3);
 
 					yield return new RangeCircleAnnotationRenderable(
 						i.Item1.Self.CenterPosition,
 						i.Item3,
 						0,
 						Color.Red,
-						Color.FromArgb(96, Color.Black));
+						1,
+						Color.FromArgb(96, Color.Black),
+						3);
 				}
 			}
 

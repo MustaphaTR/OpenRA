@@ -13,11 +13,11 @@ using OpenRA.Traits;
 namespace OpenRA.Mods.Yupgi_alert.Traits
 {
 	[Desc("Grants horde types for the HordeBonus traits to work.")]
-	public class GrantHordeBonusInfo : ITraitInfo
+	public class GrantHordeBonusInfo : TraitInfo
 	{
 		public readonly string HordeType = "horde";
 
-		public object Create(ActorInitializer init) { return new GrantHordeBonus(init.Self, this); }
+		public override object Create(ActorInitializer init) { return new GrantHordeBonus(init.Self, this); }
 	}
 
 	public class GrantHordeBonus

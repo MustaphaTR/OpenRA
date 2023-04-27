@@ -128,7 +128,7 @@ namespace OpenRA.Mods.Common.Traits
 				if (Info.DeliveryAircraft != null)
 				{
 					var crate = w.CreateActor(false, crateActor, new TypeDictionary { new OwnerInit(w.WorldActor.Owner), new CrateSpawnerTraitInit(this) });
-					var dropFacing = new WAngle(1024 * self.World.SharedRandom.Next(info.QuantizedFacings) / info.QuantizedFacings);
+					var dropFacing = new WAngle(1024 * self.World.SharedRandom.Next(Info.QuantizedFacings) / Info.QuantizedFacings);
 					var delta = new WVec(0, -1024, 0).Rotate(WRot.FromYaw(dropFacing));
 
 					var altitude = self.World.Map.Rules.Actors[Info.DeliveryAircraft].TraitInfo<AircraftInfo>().CruiseAltitude.Length;
@@ -208,10 +208,9 @@ namespace OpenRA.Mods.Common.Traits
 		}
 	}
 
-	public class CrateSpawnerTraitInit : IActorInit<CrateSpawner>
+	public class CrateSpawnerTraitInit : ValueActorInit<CrateSpawner>, ISingleInstanceInit
 	{
-		public readonly CrateSpawner ActorValue;
-		public CrateSpawnerTraitInit(CrateSpawner init) { ActorValue = init; }
-		public CrateSpawner Value(World world) { return ActorValue; }
+		public CrateSpawnerTraitInit(CrateSpawner value)
+			: base(value) { }
 	}
 }

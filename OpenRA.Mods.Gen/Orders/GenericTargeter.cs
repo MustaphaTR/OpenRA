@@ -1,6 +1,6 @@
 ﻿#region Copyright & License Information
 /*
- * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -15,7 +15,7 @@ using OpenRA.Traits;
 
 namespace OpenRA.Mods.Yupgi_alert.Orders
 {
-	public class GenericTargeter<T> : IOrderTargeter where T : ITraitInfo
+	public class GenericTargeter<T> : IOrderTargeter where T : TraitInfo
 	{
 		readonly Func<Actor, bool> canTarget;
 		readonly Func<Actor, string> useCursor;
@@ -31,7 +31,7 @@ namespace OpenRA.Mods.Yupgi_alert.Orders
 		public string OrderID { get; private set; }
 		public int OrderPriority { get; private set; }
 
-		public bool CanTarget(Actor self, Target target, List<Actor> othersAtTarget, ref TargetModifiers modifiers, ref string cursor)
+		public bool CanTarget(Actor self, in Target target, List<Actor> othersAtTarget, ref TargetModifiers modifiers, ref string cursor)
 		{
 			var type = target.Type;
 			if (type != TargetType.Actor && type != TargetType.FrozenActor)
@@ -41,16 +41,16 @@ namespace OpenRA.Mods.Yupgi_alert.Orders
 
 			var actor = type == TargetType.FrozenActor ? target.FrozenActor.Actor : target.Actor;
 			var owner = actor.Owner;
-			var playerRelationship = self.Owner.Stances[owner];
+			var playerRelationship = self.Owner.RelationshipWith(owner);
 
 			return CanTargetActor(self, actor, modifiers, ref cursor);
 		}
 
 		public virtual bool IsQueued { get; protected set; }
 
-		public bool TargetOverridesSelection(Actor self, Target target, List<Actor> actorsAt, CPos xy, TargetModifiers modifiers) { return true; }
+		public bool TargetOverridesSelection(Actor self, in Target target, List<Actor> actorsAt, CPos xy, TargetModifiers modifiers) { return true; }
 
-		public bool CanTargetActor(Actor self, Actor target, TargetModifiers modifiers, ref string cursor)
+		public bool CanTargetActor(Actor self, in Actor target, TargetModifiers modifiers, ref string cursor)
 		{
 			if (!target.Info.HasTraitInfo<T>() || !canTarget(target))
 				return false;

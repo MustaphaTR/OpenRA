@@ -243,8 +243,8 @@ namespace OpenRA.Mods.Common.Traits
 				    || target.Type == TargetType.FrozenActor || target.Type == TargetType.Terrain)
 				{
 					lastVisibleTarget = Target.FromPos(target.CenterPosition);
-					lastVisibleMaximumRange = attackFollows.Max(af => af.GetMaximumRangeVersusTarget(target));
-					lastVisibleMinimumRange = attackFollows.Min(af => af.GetMinimumRangeVersusTarget(target));
+					lastVisibleMaximumRange = attackFollows.Max(af => af.GetMaximumRangeVersusTarget(this.target));
+					lastVisibleMinimumRange = attackFollows.Min(af => af.GetMinimumRangeVersusTarget(this.target));
 
 					if (target.Type == TargetType.Actor)
 					{
@@ -272,7 +272,7 @@ namespace OpenRA.Mods.Common.Traits
 				if (attackFollows.All(a => a.IsTraitPaused))
 					return false;
 
-				target = target.Recalculate(self.Owner, out targetIsHiddenActor);
+				target = target.Recalculate(self.Owner, out var targetIsHiddenActor);
 				foreach (var attack in attackFollows)
 					attack.SetRequestedTarget(self, target, forceAttack);
 
@@ -286,7 +286,7 @@ namespace OpenRA.Mods.Common.Traits
 					lastVisibleOwner = target.Actor.Owner;
 					lastVisibleTargetTypes = target.Actor.GetEnabledTargetTypes();
 
-					var leeway = attack.Info.RangeMargin.Length;
+					var leeway = attackFollows.Min(af => af.Info.RangeMargin.Length);
 					if (leeway != 0 && move != null && target.Actor.Info.HasTraitInfo<IMoveInfo>())
 					{
 						var preferMinRange = Math.Min(lastVisibleMinimumRange.Length + leeway, lastVisibleMaximumRange.Length);

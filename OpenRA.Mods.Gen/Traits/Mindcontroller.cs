@@ -20,7 +20,7 @@ using OpenRA.Traits;
 
 namespace OpenRA.Mods.Yupgi_alert.Traits
 {
-	public enum MindcontrolPolicy
+	public enum MindControlPolicy
 	{
 		NewOneUnaffected, // Like Yuri's MC tower. Best if you use ControllingCondition to forbid the dummy weapon from firing too.
 		DiscardOldest, // Like Yuri Clone
@@ -30,7 +30,7 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 	// No permanent MC support though, I think it is better to make a separate module based on this.
 	// All you need to do is to delete all complex code and leave ownership transfer code only.
 	[Desc("Can mind control other units?")]
-	public class MindcontrollerInfo : ConditionalTraitInfo, Requires<ArmamentInfo>, Requires<HealthInfo>
+	public class MindControllerInfo : ConditionalTraitInfo, Requires<ArmamentInfo>, Requires<HealthInfo>
 	{
 		[WeaponReference]
 		[Desc("The name of the weapon, one of its armament. Must be specified with \"Name:\" field.",
@@ -41,7 +41,7 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 		public readonly int Capacity = 1;
 
 		[Desc("Can this unit MC beyond Capacity temporarily?")]
-		public readonly MindcontrolPolicy Policy = MindcontrolPolicy.DiscardOldest;
+		public readonly MindControlPolicy Policy = MindControlPolicy.DiscardOldest;
 
 		[Desc("Condition to grant to self when controlling actors. Can stack up by the number of enslaved actors. You can use this to forbid firing of the dummy MC weapon.")]
 		[GrantedConditionReference]
@@ -56,29 +56,21 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 		[Desc("The sound played when the unit is mindcontrolled.")]
 		public readonly string[] Sound = null;
 
-		[Desc("PipType to use for indicating MC'ed units")]
-		public readonly PipType PipType = PipType.Yellow;
-
-		[Desc("PipType to use for indicating left over MC capacity")]
-		public readonly PipType PipTypeEmpty = PipType.Transparent;
-
-		public override object Create(ActorInitializer init) { return new Mindcontroller(init.Self, this); }
+		public override object Create(ActorInitializer init) { return new MindController(init.Self, this); }
 	}
 
-	class Mindcontroller : ConditionalTrait<MindcontrollerInfo>, INotifyAttack, IPips, INotifyKilled, INotifyActorDisposing, ITick,
-			INotifyCreated
+	class MindController : ConditionalTrait<MindControllerInfo>, INotifyAttack, INotifyKilled, INotifyActorDisposing, ITick
 	{
-		readonly MindcontrollerInfo info;
+		readonly MindControllerInfo info;
 		readonly Health health;
 		readonly List<Actor> slaves = new List<Actor>();
 
 		int ticks;
 		Stack<int> controllingTokens = new Stack<int>();
-		ConditionManager conditionManager;
 
 		public IEnumerable<Actor> Slaves { get { return slaves; } }
 
-		public Mindcontroller(Actor self, MindcontrollerInfo info)
+		public MindController(Actor self, MindControllerInfo info)
 			: base(info)
 		{
 			this.info = info;
@@ -88,40 +80,20 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 			System.Diagnostics.Debug.Assert(armaments.Length == 1, "Multiple armaments with given name detected: " + info.Name);
 		}
 
-		protected override void Created(Actor self)
-		{
-			conditionManager = self.TraitOrDefault<ConditionManager>();
-		}
-
 		void StackControllingCondition(Actor self, string condition)
 		{
-			if (conditionManager == null)
-				return;
-
 			if (string.IsNullOrEmpty(condition))
 				return;
 
-			controllingTokens.Push(conditionManager.GrantCondition(self, condition));
+			controllingTokens.Push(self.GrantCondition(condition));
 		}
 
 		void UnstackControllingCondition(Actor self, string condition)
 		{
-			if (conditionManager == null)
-				return;
-
 			if (string.IsNullOrEmpty(condition))
 				return;
 
-			conditionManager.RevokeCondition(self, controllingTokens.Pop());
-		}
-
-		public IEnumerable<PipType> GetPips(Actor self)
-		{
-			for (int i = slaves.Count(); i > 0; i--)
-				yield return info.PipType;
-
-			for (int i = info.Capacity - slaves.Count(); i > 0; i--)
-				yield return info.PipTypeEmpty;
+			self.RevokeCondition(controllingTokens.Pop());
 		}
 
 		// Unlink a dead or mind-controlled-by-somebody-else slave.
@@ -134,7 +106,7 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 			}
 		}
 
-		void INotifyAttack.Attacking(Actor self, Target target, Armament a, Barrel barrel)
+		void INotifyAttack.Attacking(Actor self, in Target target, Armament a, Barrel barrel)
 		{
 			// Only specified MC weapon can do mind control.
 			if (info.Name != a.Info.Name)
@@ -145,10 +117,10 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 				return;
 
 			// Don't allow ally mind control
-			if (self.Owner.Stances[target.Actor.Owner] == Stance.Ally)
+			if (self.Owner.RelationshipWith(target.Actor.Owner) == PlayerRelationship.Ally)
 				return;
 
-			var mcable = target.Actor.TraitOrDefault<Mindcontrollable>();
+			var mcable = target.Actor.TraitOrDefault<MindControllable>();
 
 			// For some reason the weapon is valid for targeting but the actor doesn't actually have
 			// mindcontrollable trait.
@@ -158,7 +130,7 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 				return;
 			}
 
-			if (info.Policy == MindcontrolPolicy.NewOneUnaffected && slaves.Count() >= info.Capacity)
+			if (info.Policy == MindControlPolicy.NewOneUnaffected && slaves.Count() >= info.Capacity)
 				return;
 
 			// At this point, the target should be mind controlled. How we manage them is another thing.
@@ -171,14 +143,14 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 				Game.Sound.Play(SoundType.World, info.Sound.Random(self.World.SharedRandom), self.CenterPosition);
 
 			// Let's evict the oldest one, if no hyper control.
-			if (info.Policy == MindcontrolPolicy.DiscardOldest && slaves.Count() > info.Capacity)
-				slaves[0].Trait<Mindcontrollable>().UnMindcontrol(slaves[0], self.Owner);
+			if (info.Policy == MindControlPolicy.DiscardOldest && slaves.Count() > info.Capacity)
+				slaves[0].Trait<MindControllable>().UnMindcontrol(slaves[0], self.Owner);
 
 			// If can hyper control, nothing to do.
 			// Tick() will do the rest.
 		}
 
-		void INotifyAttack.PreparingAttack(Actor self, Target target, Armament a, Barrel barrel) { }
+		void INotifyAttack.PreparingAttack(Actor self, in Target target, Armament a, Barrel barrel) { }
 
 		void ReleaseSlaves(Actor self)
 		{
@@ -188,7 +160,7 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 				if (s.IsDead || s.Disposed)
 					continue;
 
-				s.Trait<Mindcontrollable>().UnMindcontrol(s, self.Owner);
+				s.Trait<MindControllable>().UnMindcontrol(s, self.Owner);
 			}
 		}
 
@@ -204,7 +176,7 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 
 		void ITick.Tick(Actor self)
 		{
-			if (info.Policy != MindcontrolPolicy.HyperControl)
+			if (info.Policy != MindControlPolicy.HyperControl)
 				return;
 
 			if (slaves.Count() <= info.Capacity)

@@ -3,7 +3,7 @@
  * Radioactivity layer by Boolbada of OP Mod.
  * Started off from Resource layer by OpenRA devs but required intensive rewrite...
  *
- * Copyright 2007-2018 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -26,7 +26,7 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 	// I (boolbada) made this layer by cloning resources layer, as resource amount is quite similar to
 	// radio activity. I looked at SmudgeLayer too.
 	[Desc("Attach this to the world actor. Radioactivity layer, as in RA2 desolator radioactivity. Order of the layers defines the Z sorting.")]
-	public class RadioactivityLayerInfo : ITraitInfo
+	public class RadioactivityLayerInfo : TraitInfo
 	{
 		[Desc("Color of radio activity")]
 		public readonly Color Color = Color.FromArgb(0, 255, 0); // tint factor (was in RA2) sucks. Modify tint here statically.
@@ -59,7 +59,7 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 		public readonly string Name = "radioactivity";
 
 		// Damage dealing is handled by "DamagedByRadioactivity" trait attached at each actor.
-		public object Create(ActorInitializer init) { return new RadioactivityLayer(init.Self, this); }
+		public override object Create(ActorInitializer init) { return new RadioactivityLayer(init.Self, this); }
 	}
 
 	public class RadioactivityLayer : IWorldLoaded, INotifyActorDisposing, ITick, ITickRender

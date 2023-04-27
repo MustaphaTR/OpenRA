@@ -1,6 +1,6 @@
 ﻿#region Copyright & License Information
 /*
- * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -46,7 +46,7 @@ namespace OpenRA.Mods.Yupgi_alert.Activities
 			if (IsCanceling)
 				return true;
 
-			if (collector.CollectionBuilding == null || !collector.CollectionBuilding.IsInWorld || !collectorInfo.CollectionStances.HasStance(self.Owner.Stances[collector.CollectionBuilding.Owner]) || collector.CollectionBuilding.Trait<SupplyDock>().IsEmpty)
+			if (collector.CollectionBuilding == null || !collector.CollectionBuilding.IsInWorld || !collectorInfo.CollectionRelationships.HasStance(self.Owner.RelationshipWith(collector.CollectionBuilding.Owner)) || collector.CollectionBuilding.Trait<SupplyDock>().IsEmpty)
 			{
 				collector.CollectionBuilding = collector.ClosestTradeBuilding(self);
 			}
@@ -78,14 +78,14 @@ namespace OpenRA.Mods.Yupgi_alert.Activities
 
 			if (self.TraitOrDefault<IFacing>() != null)
 			{
-				if (dockTrait.Info.Facing >= 0 && self.Trait<IFacing>().Facing != dockTrait.Info.Facing)
+				if (dockTrait.Info.Facing != null && self.Trait<IFacing>().Facing != dockTrait.Info.Facing.Value)
 				{
-					QueueChild(new Turn(self, dockTrait.Info.Facing));
+					QueueChild(new Turn(self, dockTrait.Info.Facing.Value));
 					return false;
 				}
-				else if (dockTrait.Info.Facing == -1)
+				else if (dockTrait.Info.Facing == null)
 				{
-					var facing = (dock.CenterPosition - self.CenterPosition).Yaw.Facing;
+					var facing = (dock.CenterPosition - self.CenterPosition).Yaw;
 					if (self.Trait<IFacing>().Facing != facing)
 					{
 						QueueChild(new Turn(self, facing));

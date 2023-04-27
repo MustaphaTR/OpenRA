@@ -3,7 +3,7 @@
  * Written by Boolbada of OP Mod.
  * Follows GPLv3 License as the OpenRA engine:
  *
- * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -172,12 +172,9 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 			if (entry.IsValid)
 				throw new InvalidOperationException("Replenish must not be run on a valid entry!");
 
-			var td = new TypeDictionary { new OwnerInit(self.Owner) };
-			if (Info.SubCell > 0)
-				td.Add(new SubCellInit(Info.SubCell));
-
 			// Some members are missing. Create a new one.
-			var slave = self.World.CreateActor(false, entry.ActorName, td);
+			var slave = self.World.CreateActor(false, entry.ActorName,
+				new TypeDictionary { new OwnerInit(self.Owner) });
 
 			// Initialize slave entry
 			InitializeSlaveEntry(slave, entry);
@@ -234,7 +231,7 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 		public void SpawnIntoWorld(Actor self, Actor slave, WPos centerPosition)
 		{
 			var exit = ChooseExit(self);
-			SetSpawnedFacing(slave, self, exit);
+			SetSpawnedFacing(slave, exit);
 
 			self.World.AddFrameEndTask(w =>
 			{
@@ -277,18 +274,17 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 			return exits[exitRoundRobin];
 		}
 
-		void SetSpawnedFacing(Actor spawned, Actor spawner, ExitInfo exit)
+		void SetSpawnedFacing(Actor spawned, ExitInfo exit)
 		{
-			int facingOffset = facing == null ? 0 : facing.Facing;
+			WAngle facingOffset = facing == null ? WAngle.Zero : facing.Facing;
 
-			var exitFacing = exit != null ? exit.Facing : 0;
+			var exitFacing = WAngle.Zero;
+			if (exit != null && exit.Facing.HasValue)
+				exitFacing = exit.Facing.Value;
 
 			var spawnFacing = spawned.TraitOrDefault<IFacing>();
 			if (spawnFacing != null)
-				spawnFacing.Facing = (facingOffset + exitFacing) % 256;
-
-			foreach (var t in spawned.TraitsImplementing<Turreted>())
-				t.TurretFacing = (facingOffset + exitFacing) % 256;
+				spawnFacing.Facing = facingOffset + exitFacing;
 		}
 
 		public void StopSlaves()

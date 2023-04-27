@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2018 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -18,9 +18,9 @@ using OpenRA.Traits;
 namespace OpenRA.Mods.Common.Traits
 {
 	[Desc("This actor takes of automatically on creation.")]
-	public class AutoTakesOffInfo : ITraitInfo, Requires<AircraftInfo>
+	public class AutoTakesOffInfo : TraitInfo, Requires<AircraftInfo>
 	{
-		public object Create(ActorInitializer init) { return new AutoTakesOff(this); }
+		public override object Create(ActorInitializer init) { return new AutoTakesOff(this); }
 	}
 
 	public class AutoTakesOff : INotifyAddedToWorld

@@ -290,7 +290,7 @@ namespace OpenRA.Mods.Common.Traits
 							new FactionInit(faction)
 						};
 
-						producer.QueueActivity(new WaitFor(() => production.Produce(producer, actorToProduce, null, inits)));
+						producer.QueueActivity(new WaitFor(() => production.Produce(producer, actorToProduce, null, inits, 0)));
 					}
 
 					if (actorToProduce == null)

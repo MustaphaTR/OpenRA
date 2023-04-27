@@ -171,7 +171,7 @@ namespace OpenRA.Mods.Common.Traits
 					else if (baseBuilder.Info.FragileTypes.Contains(actorInfo.Name))
 						type = BuildingType.Fragile;
 
-					var location = ChooseBuildLocation(currentBuilding.Item, true, queue.Actor, type);
+					location = ChooseBuildLocation(currentBuilding.Item, true, queue.Actor, type);
 				}
 
 				if (location == null)
@@ -506,7 +506,7 @@ namespace OpenRA.Mods.Common.Traits
 				case BuildingType.Fragile:
 
 					// Build far from the closest enemy structure
-					var closestEnemyFraigle = world.ActorsHavingTrait<Building>().Where(a => !a.Disposed && player.Stances[a.Owner] == Stance.Enemy)
+					var closestEnemyFraigle = world.ActorsHavingTrait<Building>().Where(a => !a.Disposed && player.RelationshipWith(a.Owner) == PlayerRelationship.Enemy)
 						.ClosestTo(world.Map.CenterOfCell(baseBuilder.DefenseCenter));
 
 					var targetCellFraigle = closestEnemyFraigle != null ? closestEnemyFraigle.Location : baseCenter;

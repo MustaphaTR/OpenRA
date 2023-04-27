@@ -33,9 +33,6 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 		[Desc("After this many ticks, we remove the condition.")]
 		public readonly int LaunchingTicks = 15;
 
-		[Desc("Pip color for the spawn count.")]
-		public readonly PipType PipType = PipType.Green;
-
 		[Desc("Insta-repair spawners when they return?")]
 		public readonly bool InstaRepair = true;
 
@@ -54,7 +51,7 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 		public override object Create(ActorInitializer init) { return new CarrierMaster(init, this); }
 	}
 
-	public class CarrierMaster : BaseSpawnerMaster, IPips, ITick, INotifyAttack, INotifyBecomingIdle
+	public class CarrierMaster : BaseSpawnerMaster, ITick, INotifyAttack, INotifyBecomingIdle
 	{
 		class CarrierSlaveEntry : BaseSpawnerSlaveEntry
 		{
@@ -66,7 +63,6 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 		public new CarrierMasterInfo Info { get; private set; }
 
 		CarrierSlaveEntry[] slaveEntries;
-		ConditionManager conditionManager;
 		readonly Dictionary<string, Stack<int>> spawnContainTokens = new Dictionary<string, Stack<int>>();
 		Stack<int> loadedTokens = new Stack<int>();
 
@@ -81,19 +77,14 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 		protected override void Created(Actor self)
 		{
 			base.Created(self);
-			conditionManager = self.Trait<ConditionManager>();
 
-			if (conditionManager != null)
+			foreach (var entry in SlaveEntries)
 			{
-				foreach (var entry in SlaveEntries)
-				{
-					string spawnContainCondition;
-					if (Info.SpawnContainConditions.TryGetValue(entry.Actor.Info.Name, out spawnContainCondition))
-						spawnContainTokens.GetOrAdd(entry.Actor.Info.Name).Push(conditionManager.GrantCondition(self, spawnContainCondition));
+				if (Info.SpawnContainConditions.TryGetValue(entry.Actor.Info.Name, out var spawnContainCondition))
+					spawnContainTokens.GetOrAdd(entry.Actor.Info.Name).Push(self.GrantCondition(spawnContainCondition));
 
-					if (!string.IsNullOrEmpty(Info.LoadedCondition))
-						loadedTokens.Push(conditionManager.GrantCondition(self, Info.LoadedCondition));
-				}
+				if (!string.IsNullOrEmpty(Info.LoadedCondition))
+					loadedTokens.Push(self.GrantCondition(Info.LoadedCondition));
 			}
 		}
 
@@ -117,11 +108,11 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 			carrierSlaveEntry.SpawnerSlave = slave.Trait<CarrierSlave>();
 		}
 
-		void INotifyAttack.PreparingAttack(Actor self, Target target, Armament a, Barrel barrel) { }
+		void INotifyAttack.PreparingAttack(Actor self, in Target target, Armament a, Barrel barrel) { }
 
 		// The rate of fire of the dummy weapon determines the launch cycle as each shot
 		// invokes Attacking()
-		void INotifyAttack.Attacking(Actor self, Target target, Armament a, Barrel barrel)
+		void INotifyAttack.Attacking(Actor self, in Target target, Armament a, Barrel barrel)
 		{
 			if (IsTraitDisabled)
 				return;
@@ -142,16 +133,19 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 
 			// Launching condition is timed, so not saving the token.
 			if (Info.LaunchingCondition != null)
-				conditionManager.GrantCondition(self, Info.LaunchingCondition); // TODO removed Info.LaunchingTicks
+				self.GrantCondition(Info.LaunchingCondition); // TODO removed Info.LaunchingTicks
 
 			SpawnIntoWorld(self, carrierSlaveEntry.Actor, self.CenterPosition);
 
 			Stack<int> spawnContainToken;
 			if (spawnContainTokens.TryGetValue(a.Info.Name, out spawnContainToken) && spawnContainToken.Any())
-				conditionManager.RevokeCondition(self, spawnContainToken.Pop());
+				self.RevokeCondition(spawnContainToken.Pop());
 
 			if (loadedTokens.Any())
-				conditionManager.RevokeCondition(self, loadedTokens.Pop());
+				self.RevokeCondition(loadedTokens.Pop());
+
+			// Lambdas can't use 'in' variables, so capture a copy for later
+			var delayedTarget = target;
 
 			// Queue attack order, too.
 			self.World.AddFrameEndTask(w =>
@@ -160,7 +154,7 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 				// Cancel whatever it was trying to do.
 				carrierSlaveEntry.SpawnerSlave.Stop(carrierSlaveEntry.Actor);
 
-				carrierSlaveEntry.SpawnerSlave.Attack(carrierSlaveEntry.Actor, target);
+				carrierSlaveEntry.SpawnerSlave.Attack(carrierSlaveEntry.Actor, delayedTarget);
 			});
 		}
 
@@ -193,25 +187,6 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 			return null;
 		}
 
-		public IEnumerable<PipType> GetPips(Actor self)
-		{
-			if (IsTraitDisabled)
-				yield break;
-
-			int inside = 0;
-			foreach (var carrierSlaveEntry in slaveEntries)
-				if (carrierSlaveEntry.IsValid && !carrierSlaveEntry.IsLaunched)
-					inside++;
-
-			for (var i = 0; i < Info.Actors.Length; i++)
-			{
-				if (i < inside)
-					yield return Info.PipType;
-				else
-					yield return PipType.Transparent;
-			}
-		}
-
 		public void PickupSlave(Actor self, Actor a)
 		{
 			CarrierSlaveEntry slaveEntry = null;
@@ -230,27 +205,22 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 			// setup rearm
 			slaveEntry.RearmTicks = Info.RearmTicks;
 
-			string spawnContainCondition;
-			if (conditionManager != null && Info.SpawnContainConditions.TryGetValue(a.Info.Name, out spawnContainCondition))
-				spawnContainTokens.GetOrAdd(a.Info.Name).Push(conditionManager.GrantCondition(self, spawnContainCondition));
+			if (Info.SpawnContainConditions.TryGetValue(a.Info.Name, out var spawnContainCondition))
+				spawnContainTokens.GetOrAdd(a.Info.Name).Push(self.GrantCondition(spawnContainCondition));
 
-			if (conditionManager != null && !string.IsNullOrEmpty(Info.LoadedCondition))
-				loadedTokens.Push(conditionManager.GrantCondition(self, Info.LoadedCondition));
+			if (!string.IsNullOrEmpty(Info.LoadedCondition))
+				loadedTokens.Push(self.GrantCondition(Info.LoadedCondition));
 		}
 
 		public override void Replenish(Actor self, BaseSpawnerSlaveEntry entry)
 		{
 			base.Replenish(self, entry);
 
-			string spawnContainCondition;
-			if (conditionManager != null)
-			{
-				if (Info.SpawnContainConditions.TryGetValue(entry.Actor.Info.Name, out spawnContainCondition))
-					spawnContainTokens.GetOrAdd(entry.Actor.Info.Name).Push(conditionManager.GrantCondition(self, spawnContainCondition));
+			if (Info.SpawnContainConditions.TryGetValue(entry.Actor.Info.Name, out var spawnContainCondition))
+				spawnContainTokens.GetOrAdd(entry.Actor.Info.Name).Push(self.GrantCondition(spawnContainCondition));
 
-				if (!string.IsNullOrEmpty(Info.LoadedCondition))
-					loadedTokens.Push(conditionManager.GrantCondition(self, Info.LoadedCondition));
-			}
+			if (!string.IsNullOrEmpty(Info.LoadedCondition))
+				loadedTokens.Push(self.GrantCondition(Info.LoadedCondition));
 		}
 
 		public void Tick(Actor self)

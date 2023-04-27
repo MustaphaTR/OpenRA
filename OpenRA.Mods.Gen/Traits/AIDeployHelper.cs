@@ -30,7 +30,7 @@ namespace OpenRA.Mods.AS.Traits
 	}
 
 	[Desc("If this unit is owned by an AI, issue a deploy order automatically.")]
-	public class AIDeployHelperInfo : ITraitInfo
+	public class AIDeployHelperInfo : TraitInfo
 	{
 		[Desc("Events leading to the actor getting uncloaked. Possible values are: None, Attack, Damage, Heal.")]
 		public readonly DeployTriggers DeployTrigger = DeployTriggers.Attack | DeployTriggers.Damage;
@@ -49,7 +49,7 @@ namespace OpenRA.Mods.AS.Traits
 		[Desc("When counting, scan within this radius")]
 		public readonly int ActorScanRadius = 10;
 
-		public object Create(ActorInitializer init) { return new AIDeployHelper(this); }
+		public override object Create(ActorInitializer init) { return new AIDeployHelper(this); }
 	}
 
 	public class AIDeployHelper : INotifyAttack, ITick, INotifyDamage, INotifyCreated, ISync
@@ -113,7 +113,7 @@ namespace OpenRA.Mods.AS.Traits
 			self.World.IssueOrder(new Order("GrantConditionOnDeploy", self, false));
 		}
 
-		void INotifyAttack.Attacking(Actor self, Target target, Armament a, Barrel barrel)
+		void INotifyAttack.Attacking(Actor self, in Target target, Armament a, Barrel barrel)
 		{
 			if (!self.Owner.IsBot)
 				return;
@@ -122,7 +122,7 @@ namespace OpenRA.Mods.AS.Traits
 				TryDeploy(self);
 		}
 
-		void INotifyAttack.PreparingAttack(Actor self, Target target, Armament a, Barrel barrel) { }
+		void INotifyAttack.PreparingAttack(Actor self, in Target target, Armament a, Barrel barrel) { }
 
 		void ITick.Tick(Actor self)
 		{

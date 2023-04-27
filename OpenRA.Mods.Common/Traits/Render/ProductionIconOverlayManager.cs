@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -34,10 +34,6 @@ namespace OpenRA.Mods.Common.Traits.Render
 		[PaletteReference]
 		[Desc("Palette to render the sprite in. Reference the world actor's PaletteFrom* traits.")]
 		public readonly string Palette = "chrome";
-
-		[Desc("Point on the production icon's used as reference for offsetting the overlay. ",
-			"Possible values are combinations of Center, Top, Bottom, Left, Right.")]
-		public readonly ReferencePoints ReferencePoint = ReferencePoints.Top | ReferencePoints.Left;
 
 		public virtual void RulesetLoaded(Ruleset rules, ActorInfo ai)
 		{

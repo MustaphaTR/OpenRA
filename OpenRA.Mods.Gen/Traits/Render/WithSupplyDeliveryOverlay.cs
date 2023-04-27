@@ -17,7 +17,7 @@ using OpenRA.Traits;
 
 namespace OpenRA.Mods.Yupgi_alert.Traits
 {
-	public class WithSupplyDeliveryOverlayInfo : ITraitInfo, Requires<WithSpriteBodyInfo>
+	public class WithSupplyDeliveryOverlayInfo : TraitInfo, Requires<WithSpriteBodyInfo>
 	{
 		[SequenceReference]
 		[Desc("Sequence name to use")]
@@ -34,7 +34,7 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 		[PaletteReference]
 		public readonly string Palette = "effect";
 
-		public object Create(ActorInitializer init) { return new WithSupplyDeliveryOverlay(init.Self, this); }
+		public override object Create(ActorInitializer init) { return new WithSupplyDeliveryOverlay(init.Self, this); }
 	}
 
 	public class WithSupplyDeliveryOverlay

@@ -39,28 +39,21 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 		public override object Create(ActorInitializer init) { return new DelayedWeaponAttachable(init.Self, this); }
 	}
 
-	public class DelayedWeaponAttachable : ConditionalTrait<DelayedWeaponAttachableInfo>, ITick, INotifyKilled, ISelectionBar, INotifyCreated
+	public class DelayedWeaponAttachable : ConditionalTrait<DelayedWeaponAttachableInfo>, ITick, INotifyKilled, ISelectionBar
 	{
 		public HashSet<DelayedWeaponTrigger> Container { get; private set; }
 
 		private readonly Actor self;
 		private readonly HashSet<Actor> detectors = new HashSet<Actor>();
 
-		private int token = ConditionManager.InvalidConditionToken;
-		private bool IsEnabled { get { return token != ConditionManager.InvalidConditionToken; } }
-
-		private ConditionManager manager;
+		private int token = Actor.InvalidConditionToken;
+		private bool IsEnabled { get { return token != Actor.InvalidConditionToken; } }
 
 		public DelayedWeaponAttachable(Actor self, DelayedWeaponAttachableInfo info)
 			: base(info)
 		{
 			this.self = self;
 			Container = new HashSet<DelayedWeaponTrigger>();
-		}
-
-		void INotifyCreated.Created(Actor self)
-		{
-			manager = self.Trait<ConditionManager>();
 		}
 
 		void ITick.Tick(Actor self)
@@ -72,8 +65,8 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 
 				Container.RemoveWhere(p => !p.IsValid);
 
-				if (token != ConditionManager.InvalidConditionToken && !Container.Any())
-					token = manager.RevokeCondition(self, token);
+				if (token != Actor.InvalidConditionToken && !Container.Any())
+					token = self.RevokeCondition(token);
 			}
 		}
 
@@ -100,8 +93,8 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 
 		public void Attach(DelayedWeaponTrigger trigger)
 		{
-			if (token == ConditionManager.InvalidConditionToken)
-				token = manager.GrantCondition(self, Info.Condition);
+			if (token == Actor.InvalidConditionToken)
+				token = self.GrantCondition(Info.Condition);
 
 			Container.Add(trigger);
 		}

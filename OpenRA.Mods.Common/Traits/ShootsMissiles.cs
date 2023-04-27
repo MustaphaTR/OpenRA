@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2017 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -22,7 +22,7 @@ namespace OpenRA.Mods.Common.Traits
 		public readonly string Armament = "pdlaser";
 
 		[Desc("What diplomatic stances are affected.")]
-		public readonly Stance ShootStances = Stance.Ally | Stance.Neutral | Stance.Enemy;
+		public readonly PlayerRelationship ShootStances = PlayerRelationship.Ally | PlayerRelationship.Neutral | PlayerRelationship.Enemy;
 
 		public override object Create(ActorInitializer init) { return new ShootsMissiles(init.Self, this); }
 	}
@@ -35,7 +35,7 @@ namespace OpenRA.Mods.Common.Traits
 		public Armament Armament { get { return armament; } }
 		public WDist Range { get { return armament.MaxRange(); } }
 
-		public Stance DeflectionStances { get { return info.ShootStances; } }
+		public PlayerRelationship DeflectionStances { get { return info.ShootStances; } }
 
 		public ShootsMissiles(Actor self, ShootsMissilesInfo info)
 			: base(info)

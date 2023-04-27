@@ -57,13 +57,14 @@ namespace OpenRA.Mods.Common.Traits
 	class GrantExternalConditionPower : SupportPower
 	{
 		readonly GrantExternalConditionPowerInfo info;
-		readonly char[] footprint;
+		readonly Dictionary<int, char[]> footprints = new Dictionary<int, char[]>();
 
 		public GrantExternalConditionPower(Actor self, GrantExternalConditionPowerInfo info)
 			: base(self, info)
 		{
 			this.info = info;
-			footprint = info.Footprint.Where(c => !char.IsWhiteSpace(c)).ToArray();
+			foreach (var pair in info.Footprints)
+				footprints.Add(pair.Key, pair.Value.Where(c => !char.IsWhiteSpace(c)).ToArray());
 		}
 
 		public override void SelectTarget(Actor self, string order, SupportPowerManager manager)

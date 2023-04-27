@@ -54,9 +54,12 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 		[Desc("Altitude above terrain below which to explode. Zero effectively deactivates airburst.")]
 		public readonly WDist AirburstAltitude = WDist.Zero;
 
-		public readonly WDist TargetCircleRange = WDist.Zero;
+		public readonly Dictionary<int, WDist> TargetCircleRanges;
 		public readonly Color TargetCircleColor = Color.White;
 		public readonly bool TargetCircleUsePlayerColor = false;
+		public readonly float TargetCircleWidth = 1;
+		public readonly Color TargetCircleBorderColor = Color.FromArgb(96, Color.Black);
+		public readonly float TargetCircleBorderWidth = 3;
 
 		public WeaponInfo WeaponInfo { get; private set; }
 
@@ -198,7 +201,7 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 		{
 			var xy = wr.Viewport.ViewToWorld(Viewport.LastMousePos);
 
-			if (power.Info.TargetCircleRange == WDist.Zero)
+			if (power.Info.TargetCircleRanges == null || !power.Info.TargetCircleRanges.Any() || power.GetLevel() == 0)
 			{
 				yield break;
 			}
@@ -206,10 +209,12 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 			{
 				yield return new RangeCircleAnnotationRenderable(
 					world.Map.CenterOfCell(xy),
-					power.Info.TargetCircleRange,
+					power.Info.TargetCircleRanges[power.GetLevel()],
 					0,
 					power.Info.TargetCircleUsePlayerColor ? power.Self.Owner.Color : power.Info.TargetCircleColor,
-					Color.FromArgb(96, Color.Black));
+					power.Info.TargetCircleWidth,
+					power.Info.TargetCircleBorderColor,
+					power.Info.TargetCircleBorderWidth);
 			}
 		}
 

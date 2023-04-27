@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -17,7 +17,7 @@ using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.Traits
 {
-	public class IronCurtainPaletteEffectInfo : ITraitInfo
+	public class IronCurtainPaletteEffectInfo : TraitInfo
 	{
 		[Desc("The palette to apply this effect to.")]
 		public readonly string PaletteName = "invuln";
@@ -26,7 +26,8 @@ namespace OpenRA.Mods.Common.Traits
 
 		[Desc("Cycle speed in game angles per tick. 360 degrees = 1024 game degrees.")]
 		public readonly int CycleSpeed = 16;
-		public object Create(ActorInitializer init) { return new IronCurtainPaletteEffect(this); }
+
+		public override object Create(ActorInitializer init) { return new IronCurtainPaletteEffect(this); }
 	}
 
 	public class IronCurtainPaletteEffect : IPaletteModifier, ITick

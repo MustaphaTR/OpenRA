@@ -87,7 +87,7 @@ namespace OpenRA.Mods.Common.Traits
 				facing = new WAngle(1024 * self.World.SharedRandom.Next(info.QuantizedFacings) / info.QuantizedFacings);
 
 			var altitude = self.World.Map.Rules.Actors[info.UnitTypes.First(ut => ut.Key == GetLevel()).Value].TraitInfo<AircraftInfo>().CruiseAltitude.Length;
-			var attackRotation = WRot.FromFacing(facing.Value);
+			var attackRotation = WRot.FromYaw(facing.Value);
 			var delta = new WVec(0, -1024, 0).Rotate(attackRotation);
 			target = target + new WVec(0, 0, altitude);
 			var startEdge = target - (self.World.Map.DistanceToEdge(target, -delta) + info.Cordon).Length * delta / 1024;
@@ -141,10 +141,11 @@ namespace OpenRA.Mods.Common.Traits
 			};
 
 			// Create the actors immediately so they can be returned
-			for (var i = -info.SquadSize / 2; i <= info.SquadSize / 2; i++)
+			var squadSize = info.SquadSizes.First(ss => ss.Key == GetLevel()).Value;
+			for (var i = -squadSize / 2; i <= squadSize / 2; i++)
 			{
 				// Even-sized squads skip the lead plane
-				if (i == 0 && (info.SquadSize & 1) == 0)
+				if (i == 0 && (squadSize & 1) == 0)
 					continue;
 
 				// Includes the 90 degree rotation between body and world coordinates
@@ -174,7 +175,6 @@ namespace OpenRA.Mods.Common.Traits
 
 				var j = 0;
 				Actor distanceTestActor = null;
-				var squadSize = info.SquadSizes.First(ss => ss.Key == GetLevel()).Value;
 				for (var i = -squadSize / 2; i <= squadSize / 2; i++)
 				{
 					// Even-sized squads skip the lead plane

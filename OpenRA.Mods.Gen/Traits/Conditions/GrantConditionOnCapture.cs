@@ -1,6 +1,6 @@
 ﻿#region Copyright & License Information
 /*
- * Copyright 2007-2017 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -20,7 +20,7 @@ using OpenRA.Traits;
 namespace OpenRA.Mods.Yupgi_alert.Traits
 {
 	[Desc("Grants a condition after actor gets captures..")]
-	public class GrantConditionOnCaptureInfo : ITraitInfo
+	public class GrantConditionOnCaptureInfo : TraitInfo
 	{
 		[GrantedConditionReference]
 		[Desc("The condition to grant")]
@@ -29,36 +29,27 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 		[Desc("Grant condition only if the capturer's CaptureTypes overlap with these types. Leave empty to allow all types.")]
 		public readonly BitSet<CaptureType> CaptureTypes = default(BitSet<CaptureType>);
 
-		public object Create(ActorInitializer init) { return new GrantConditionOnCapture(init.Self, this); }
+		public override object Create(ActorInitializer init) { return new GrantConditionOnCapture(init.Self, this); }
 	}
 
-	public class GrantConditionOnCapture : INotifyCreated, INotifyCapture
+	public class GrantConditionOnCapture : INotifyCapture
 	{
 		readonly GrantConditionOnCaptureInfo info;
-		ConditionManager manager;
 
-		int token = ConditionManager.InvalidConditionToken;
+		int token = Actor.InvalidConditionToken;
 
 		public GrantConditionOnCapture(Actor self, GrantConditionOnCaptureInfo info)
 		{
 			this.info = info;
 		}
 
-		void INotifyCreated.Created(Actor self)
-		{
-			manager = self.Trait<ConditionManager>();
-		}
-
 		void GrantCondition(Actor self, string cond)
 		{
-			if (manager == null)
-				return;
-
 			if (string.IsNullOrEmpty(cond))
 				return;
 
-			if (token == ConditionManager.InvalidConditionToken)
-				token = manager.GrantCondition(self, cond);
+			if (token == Actor.InvalidConditionToken)
+				token = self.GrantCondition(cond);
 		}
 
 		void INotifyCapture.OnCapture(Actor self, Actor captor, Player oldOwner, Player newOwner, BitSet<CaptureType> captureTypes)

@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -141,10 +141,10 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 				var xy = wr.Viewport.ViewToWorld(Viewport.LastMousePos);
 				foreach (var unit in power.UnitsInRange(xy))
 				{
-					var bounds = unit.TraitsImplementing<IDecorationBounds>()
-						.Select(b => b.DecorationBounds(unit, wr))
-						.FirstOrDefault(b => !b.IsEmpty);
-					yield return new SelectionBoxAnnotationRenderable(unit, bounds, Color.Red);
+					var decorations = unit.TraitsImplementing<ISelectionDecorations>().FirstEnabledTraitOrDefault();
+					if (decorations != null)
+						foreach (var d in decorations.RenderSelectionAnnotations(unit, wr, Color.Red))
+							yield return d;
 				}
 			}
 

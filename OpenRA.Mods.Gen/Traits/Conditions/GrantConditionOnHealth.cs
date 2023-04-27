@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -15,7 +15,7 @@ using OpenRA.Traits;
 namespace OpenRA.Mods.Yupgi_alert.Traits
 {
 	[Desc("Applies a condition to the actor at when health is less or equal to a specific value.")]
-	public class GrantConditionOnHealthInfo : ITraitInfo, Requires<HealthInfo>
+	public class GrantConditionOnHealthInfo : TraitInfo, Requires<HealthInfo>
 	{
 		[FieldLoader.Require]
 		[GrantedConditionReference]
@@ -34,7 +34,7 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 		[Desc("Is the condition irrevocable once it has been activated?")]
 		public readonly bool GrantPermanently = false;
 
-		public object Create(ActorInitializer init) { return new GrantConditionOnHealth(init.Self, this); }
+		public override object Create(ActorInitializer init) { return new GrantConditionOnHealth(init.Self, this); }
 	}
 
 	public class GrantConditionOnHealth : INotifyCreated, INotifyDamage
@@ -42,8 +42,7 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 		readonly GrantConditionOnHealthInfo info;
 		readonly Health health;
 
-		ConditionManager conditionManager;
-		int conditionToken = ConditionManager.InvalidConditionToken;
+		int token = Actor.InvalidConditionToken;
 
 		public GrantConditionOnHealth(Actor self, GrantConditionOnHealthInfo info)
 		{
@@ -53,16 +52,15 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 
 		void INotifyCreated.Created(Actor self)
 		{
-			conditionManager = self.TraitOrDefault<ConditionManager>();
 			GrantConditionOnValidHealth(self, health.HP);
 		}
 
 		void GrantConditionOnValidHealth(Actor self, int hp)
 		{
-			if (info.HP < hp || conditionToken != ConditionManager.InvalidConditionToken)
+			if (info.HP < hp || token != Actor.InvalidConditionToken)
 				return;
 
-			conditionToken = conditionManager.GrantCondition(self, info.Condition);
+			token = self.GrantCondition(info.Condition);
 
 			var sound = info.EnabledSounds.RandomOrDefault(Game.CosmeticRandom);
 			Game.Sound.Play(SoundType.World, sound, self.CenterPosition);
@@ -70,15 +68,15 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 
 		void INotifyDamage.Damaged(Actor self, AttackInfo e)
 		{
-			var granted = conditionToken != ConditionManager.InvalidConditionToken;
-			if ((granted && info.GrantPermanently) || conditionManager == null)
+			var granted = token != Actor.InvalidConditionToken;
+			if (granted && info.GrantPermanently)
 				return;
 
 			if (!granted)
 				GrantConditionOnValidHealth(self, health.HP);
 			else if (granted && info.HP < health.HP)
 			{
-				conditionToken = conditionManager.RevokeCondition(self, conditionToken);
+				token = self.RevokeCondition(token);
 
 				var sound = info.DisabledSounds.RandomOrDefault(Game.CosmeticRandom);
 				Game.Sound.Play(SoundType.World, sound, self.CenterPosition);

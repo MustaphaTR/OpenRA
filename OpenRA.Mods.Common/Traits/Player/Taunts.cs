@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2017 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -18,7 +18,7 @@ using OpenRA.Traits;
 namespace OpenRA.Mods.Common.Traits
 {
 	[Desc("Attach this to the player actor.")]
-	public class TauntsInfo : ITraitInfo, ILobbyOptions
+	public class TauntsInfo : TraitInfo, ILobbyOptions
 	{
 		[Translate]
 		[Desc("Descriptive label for the taunts checkbox in the lobby.")]
@@ -45,7 +45,7 @@ namespace OpenRA.Mods.Common.Traits
 			yield return new LobbyBooleanOption("taunts", CheckboxLabel, CheckboxDescription, CheckboxVisible, CheckboxDisplayOrder, CheckboxEnabled, CheckboxLocked);
 		}
 
-		public object Create(ActorInitializer init) { return new Taunts(this); }
+		public override object Create(ActorInitializer init) { return new Taunts(this); }
 	}
 
 	public class Taunts : IResolveOrder, INotifyCreated

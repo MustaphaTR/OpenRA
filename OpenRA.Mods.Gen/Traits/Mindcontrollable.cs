@@ -18,7 +18,7 @@ using OpenRA.Traits;
 namespace OpenRA.Mods.Yupgi_alert.Traits
 {
 	[Desc("Can be mindcontrolled by mindcontrollers?")]
-	public class MindcontrollableInfo : ConditionalTraitInfo
+	public class MindControllableInfo : ConditionalTraitInfo
 	{
 		[Desc("Condition to grant when under mind control")]
 		[GrantedConditionReference]
@@ -27,12 +27,12 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 		[Desc("The sound played when the unit is unmindcontrolled.")]
 		public readonly string[] UnmindcontrolSound = null;
 
-		public override object Create(ActorInitializer init) { return new Mindcontrollable(init.Self, this); }
+		public override object Create(ActorInitializer init) { return new MindControllable(init.Self, this); }
 	}
 
-	class Mindcontrollable : ConditionalTrait<MindcontrollableInfo>, INotifyKilled, INotifyActorDisposing, INotifyCreated
+	class MindControllable : ConditionalTrait<MindControllableInfo>, INotifyKilled, INotifyActorDisposing
 	{
-		readonly MindcontrollableInfo info;
+		readonly MindControllableInfo info;
 		Dictionary<Actor, int> conditions = new Dictionary<Actor, int>();
 
 		Actor master; // The actor who mindcontrolled this unit
@@ -43,46 +43,33 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 		// Then there's ownership change to some non-mindcontrol stuff.
 		Player creatorOwner;
 
-		ConditionManager conditionManager;
-
 		public Actor Master { get { return master; } }
 
-		public Mindcontrollable(Actor self, MindcontrollableInfo info)
+		public MindControllable(Actor self, MindControllableInfo info)
 			: base(info)
 		{
 			this.info = info;
 		}
 
-		protected override void Created(Actor self)
-		{
-			conditionManager = self.TraitOrDefault<ConditionManager>();
-		}
-
 		void ConditionOn(Actor self, Actor master, string cond)
 		{
-			if (conditionManager == null)
-				return;
-
 			if (string.IsNullOrEmpty(cond))
 				return;
 
 			if (conditions.ContainsKey(master))
 				return;
 
-			var tok = conditionManager.GrantCondition(self, cond);
-			conditions.Add(master, tok);
+			var token = self.GrantCondition(cond);
+			conditions.Add(master, token);
 		}
 
 		void ConditionOff(Actor self, Actor master)
 		{
-			if (conditionManager == null)
-				return;
-
 			if (!conditions.ContainsKey(master))
 				return;
 
-			var tok = conditions[master];
-			conditionManager.RevokeCondition(self, tok);
+			var token = conditions[master];
+			self.RevokeCondition(token);
 			conditions.Remove(master);
 		}
 
@@ -121,7 +108,7 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 			if (master == null || master.IsDead)
 				return;
 
-			master.Trait<Mindcontroller>().UnlinkSlave(master, self);
+			master.Trait<MindController>().UnlinkSlave(master, self);
 
 			ConditionOff(self, master);
 		}

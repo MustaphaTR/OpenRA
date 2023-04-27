@@ -56,7 +56,7 @@ namespace OpenRA.Mods.AS.Traits
 		public PeriodicProducer(ActorInitializer init, PeriodicProducerInfo info)
 			: base(info)
 		{
-			faction = init.Contains<FactionInit>() ? init.Get<FactionInit, string>() : init.Self.Owner.Faction.InternalName;
+			faction = init.GetValue<FactionInit, string>(init.Self.Owner.Faction.InternalName);
 			this.info = info;
 			ticks = info.ChargeDuration;
 		}
@@ -83,7 +83,7 @@ namespace OpenRA.Mods.AS.Traits
 							new FactionInit(BuildableInfo.GetInitialFaction(ai, faction))
 						};
 
-						activated |= sp.Produce(self, ai, info.Type, inits);
+						activated |= sp.Produce(self, ai, info.Type, inits, 0);
 					}
 				}
 

@@ -1,6 +1,6 @@
 ﻿#region Copyright & License Information
 /*
- * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -46,7 +46,7 @@ namespace OpenRA.Mods.Yupgi_alert.Activities
 			if (IsCanceling)
 				return true;
 
-			if (collector.DeliveryBuilding == null || !collector.DeliveryBuilding.IsInWorld || !collectorInfo.DeliveryStances.HasStance(self.Owner.Stances[collector.DeliveryBuilding.Owner]))
+			if (collector.DeliveryBuilding == null || !collector.DeliveryBuilding.IsInWorld || !collectorInfo.DeliveryRelationships.HasStance(self.Owner.RelationshipWith(collector.DeliveryBuilding.Owner)))
 			{
 				collector.DeliveryBuilding = collector.ClosestDeliveryBuilding(self);
 			}
@@ -74,14 +74,14 @@ namespace OpenRA.Mods.Yupgi_alert.Activities
 
 			if (self.Trait<IFacing>() != null)
 			{
-				if (centerTrait.Info.Facing >= 0 && self.Trait<IFacing>().Facing != centerTrait.Info.Facing)
+				if (centerTrait.Info.Facing != null && self.Trait<IFacing>().Facing != centerTrait.Info.Facing.Value)
 				{
-					QueueChild(new Turn(self, centerTrait.Info.Facing));
+					QueueChild(new Turn(self, centerTrait.Info.Facing.Value));
 					return false;
 				}
-				else if (centerTrait.Info.Facing == -1)
+				else if (centerTrait.Info.Facing == null)
 				{
-					var facing = (center.CenterPosition - self.CenterPosition).Yaw.Facing;
+					var facing = (center.CenterPosition - self.CenterPosition).Yaw;
 					if (self.Trait<IFacing>().Facing != facing)
 					{
 						QueueChild(new Turn(self, facing));

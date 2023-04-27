@@ -36,7 +36,7 @@ namespace OpenRA.Mods.Common
 
 		public static bool IsOwnedByEnemy(Actor a, Player player)
 		{
-			return player.Stances[a.Owner] == Stance.Enemy && a.Owner.InternalName.ToLowerInvariant().StartsWith("multi");
+			return player.RelationshipWith(a.Owner) == PlayerRelationship.Enemy && a.Owner.InternalName.ToLowerInvariant().StartsWith("multi");
 		}
 
 		public static IEnumerable<ProductionQueue> FindQueues(Player player, string category)

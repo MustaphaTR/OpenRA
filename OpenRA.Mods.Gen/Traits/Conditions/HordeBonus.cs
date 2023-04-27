@@ -26,8 +26,8 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 			"Ignored if 0 (actors are considered regardless of vertical distance).")]
 		public readonly WDist MaximumVerticalOffset = WDist.Zero;
 
-		[Desc("What diplomatic stances are considered.")]
-		public readonly Stance ValidStances = Stance.Ally;
+		[Desc("What PlayerRelationships are considered.")]
+		public readonly PlayerRelationship ValidRelationships = PlayerRelationship.Ally;
 
 		[Desc("Specifies the eligible GrantHordeBonus trait type.")]
 		public readonly string HordeType = "horde";
@@ -46,10 +46,9 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 		public override object Create(ActorInitializer init) { return new HordeBonus(init.Self, this); }
 	}
 
-	public class HordeBonus : ConditionalTrait<HordeBonusInfo>, ITick, INotifyCreated, INotifyAddedToWorld, INotifyRemovedFromWorld, INotifyOtherProduction
+	public class HordeBonus : ConditionalTrait<HordeBonusInfo>, ITick, INotifyAddedToWorld, INotifyRemovedFromWorld, INotifyOtherProduction
 	{
 		readonly Actor self;
-		ConditionManager manager;
 
 		int proximityTrigger;
 		WPos cachedPosition;
@@ -62,9 +61,9 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 
 		HashSet<Actor> sources;
 
-		int token = ConditionManager.InvalidConditionToken;
+		int token = Actor.InvalidConditionToken;
 
-		bool IsEnabled { get { return token != ConditionManager.InvalidConditionToken; } }
+		bool IsEnabled { get { return token != Actor.InvalidConditionToken; } }
 
 		public HordeBonus(Actor self, HordeBonusInfo info)
 			: base(info)
@@ -73,11 +72,6 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 			cachedRange = Info.Range;
 			cachedVRange = Info.MaximumVerticalOffset;
 			sources = new HashSet<Actor>();
-		}
-
-		void INotifyCreated.Created(Actor self)
-		{
-			manager = self.Trait<ConditionManager>();
 		}
 
 		void INotifyAddedToWorld.AddedToWorld(Actor self)
@@ -116,8 +110,8 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 			if (a == self || a.Disposed || self.Disposed)
 				return;
 
-			var stance = self.Owner.Stances[a.Owner];
-			if (!Info.ValidStances.HasStance(stance))
+			var relationship = self.Owner.RelationshipWith(a.Owner);
+			if (!Info.ValidRelationships.HasStance(relationship))
 				return;
 
 			if (a.TraitsImplementing<GrantHordeBonus>().All(h => h.Info.HordeType != Info.HordeType))
@@ -140,8 +134,8 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 			// Work around for actors produced within the region not triggering until the second tick
 			if ((produced.CenterPosition - self.CenterPosition).HorizontalLengthSquared <= Info.Range.LengthSquared)
 			{
-				var stance = self.Owner.Stances[produced.Owner];
-				if (!Info.ValidStances.HasStance(stance))
+				var relationship = self.Owner.RelationshipWith(produced.Owner);
+				if (!Info.ValidRelationships.HasStance(relationship))
 					return;
 
 				if (produced.TraitsImplementing<GrantHordeBonus>().All(h => h.Info.HordeType != Info.HordeType))
@@ -164,7 +158,7 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 			{
 				if (!IsEnabled)
 				{
-					token = manager.GrantCondition(self, Info.Condition);
+					token = self.GrantCondition(Info.Condition);
 					Game.Sound.Play(SoundType.World, Info.EnableSound, self.CenterPosition);
 				}
 			}
@@ -172,7 +166,7 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 			{
 				if (IsEnabled)
 				{
-					token = manager.RevokeCondition(self, token);
+					token = self.RevokeCondition(token);
 					Game.Sound.Play(SoundType.World, Info.DisableSound, self.CenterPosition);
 				}
 			}

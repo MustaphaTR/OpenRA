@@ -45,7 +45,7 @@ namespace OpenRA.Mods.Common.Traits
 		{
 			this.info = info;
 
-			faction = init.Contains<FactionInit>() ? init.Get<FactionInit, string>() : init.Self.Owner.Faction.InternalName;
+			faction = init.GetValue<FactionInit, string>(init.Self.Owner.Faction.InternalName);
 		}
 
 		public void OnOwnerChanged(Actor self, Player oldOwner, Player newOwner)

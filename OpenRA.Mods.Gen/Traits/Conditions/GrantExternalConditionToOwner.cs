@@ -25,7 +25,7 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 
 	class GrantExternalConditionToOwner : ConditionalTrait<GrantExternalConditionToOwnerInfo>, INotifyCreated, INotifyRemovedFromWorld, INotifyAddedToWorld, INotifyOwnerChanged, INotifyKilled
 	{
-		int conditionToken = ConditionManager.InvalidConditionToken;
+		int conditionToken = Actor.InvalidConditionToken;
 		ExternalCondition playerConditionTrait;
 
 		public GrantExternalConditionToOwner(GrantExternalConditionToOwnerInfo info)
@@ -43,15 +43,15 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 
 		protected override void TraitEnabled(Actor self)
 		{
-			if (!self.IsDead && self.IsInWorld && conditionToken == ConditionManager.InvalidConditionToken)
+			if (!self.IsDead && self.IsInWorld && conditionToken == Actor.InvalidConditionToken)
 				conditionToken = playerConditionTrait.GrantCondition(self.Owner.PlayerActor, self);
 		}
 
 		protected override void TraitDisabled(Actor self)
 		{
-			if (!self.IsDead && self.IsInWorld && conditionToken != ConditionManager.InvalidConditionToken)
+			if (!self.IsDead && self.IsInWorld && conditionToken != Actor.InvalidConditionToken)
 				if (playerConditionTrait.TryRevokeCondition(self.Owner.PlayerActor, self, conditionToken))
-					conditionToken = ConditionManager.InvalidConditionToken;
+					conditionToken = Actor.InvalidConditionToken;
 		}
 
 		void UpdatePlayerConditionReference(Actor self)
@@ -62,22 +62,22 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 
 		void INotifyAddedToWorld.AddedToWorld(Actor self)
 		{
-			if (!self.IsDead && !IsTraitDisabled && conditionToken == ConditionManager.InvalidConditionToken)
+			if (!self.IsDead && !IsTraitDisabled && conditionToken == Actor.InvalidConditionToken)
 				conditionToken = playerConditionTrait.GrantCondition(self.Owner.PlayerActor, self);
 		}
 
 		void INotifyRemovedFromWorld.RemovedFromWorld(Actor self)
 		{
-			if (!self.IsDead && !IsTraitDisabled && conditionToken != ConditionManager.InvalidConditionToken)
+			if (!self.IsDead && !IsTraitDisabled && conditionToken != Actor.InvalidConditionToken)
 				if (playerConditionTrait.TryRevokeCondition(self.Owner.PlayerActor, self, conditionToken))
-					conditionToken = ConditionManager.InvalidConditionToken;
+					conditionToken = Actor.InvalidConditionToken;
 		}
 
 		void INotifyKilled.Killed(Actor self, AttackInfo e)
 		{
-			if (conditionToken != ConditionManager.InvalidConditionToken)
+			if (conditionToken != Actor.InvalidConditionToken)
 				if (playerConditionTrait.TryRevokeCondition(self.Owner.PlayerActor, self, conditionToken))
-					conditionToken = ConditionManager.InvalidConditionToken;
+					conditionToken = Actor.InvalidConditionToken;
 		}
 	}
 }

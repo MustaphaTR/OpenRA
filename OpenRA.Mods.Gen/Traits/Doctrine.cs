@@ -14,12 +14,12 @@ using OpenRA.Traits;
 namespace OpenRA.Mods.Yupgi_alert.Traits
 {
 	[Desc("When created, this actor kills all actors with this trait owned by it's owner.")]
-	public class DoctrineInfo : ITraitInfo
+	public class DoctrineInfo : TraitInfo
 	{
 		[Desc("Type of the doctrine. If empty, it falls back to the actor's type.")]
 		public readonly string Type = null;
 
-		public object Create(ActorInitializer init) { return new Doctrine(init.Self, this); }
+		public override object Create(ActorInitializer init) { return new Doctrine(init.Self, this); }
 	}
 
 	public class Doctrine : INotifyCreated

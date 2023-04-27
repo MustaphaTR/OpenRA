@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -34,8 +34,7 @@ namespace OpenRA.Mods.Common.Traits
 	public class GrantConditionAfterDelay : PausableConditionalTrait<GrantConditionAfterDelayInfo>, ITick, ISync, INotifyCreated, ISelectionBar
 	{
 		readonly GrantConditionAfterDelayInfo info;
-		ConditionManager manager;
-		int token = ConditionManager.InvalidConditionToken;
+		int token = Actor.InvalidConditionToken;
 
 		[Sync]
 		public int Ticks { get; private set; }
@@ -47,22 +46,12 @@ namespace OpenRA.Mods.Common.Traits
 			Ticks = info.Delay;
 		}
 
-		protected override void Created(Actor self)
-		{
-			manager = self.TraitOrDefault<ConditionManager>();
-
-			base.Created(self);
-		}
-
 		void GrantCondition(Actor self, string cond)
 		{
-			if (manager == null)
-				return;
-
 			if (string.IsNullOrEmpty(cond))
 				return;
 
-			token = manager.GrantCondition(self, cond);
+			token = self.GrantCondition(cond);
 		}
 
 		void ITick.Tick(Actor self)
@@ -74,7 +63,7 @@ namespace OpenRA.Mods.Common.Traits
 				return;
 
 			if (--Ticks < 0)
-				if (token == ConditionManager.InvalidConditionToken)
+				if (token == Actor.InvalidConditionToken)
 					GrantCondition(self, info.Condition);
 		}
 
@@ -95,10 +84,10 @@ namespace OpenRA.Mods.Common.Traits
 
 		protected override void TraitDisabled(Actor self)
 		{
-			if (token == ConditionManager.InvalidConditionToken)
+			if (token == Actor.InvalidConditionToken)
 				return;
 
-			token = manager.RevokeCondition(self, token);
+			token = self.RevokeCondition(token);
 		}
 	}
 }

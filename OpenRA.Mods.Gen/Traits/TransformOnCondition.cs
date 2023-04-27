@@ -34,7 +34,7 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 			: base(info)
 		{
 			this.info = info;
-			faction = init.Contains<FactionInit>() ? init.Get<FactionInit, string>() : init.Self.Owner.Faction.InternalName;
+			faction = init.GetValue<FactionInit, string>(info, init.Self.Owner.Faction.InternalName);
 		}
 
 		protected override void TraitEnabled(Actor self)

@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2018 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -20,7 +20,7 @@ using OpenRA.Yupgi_alert.Graphics;
 
 namespace OpenRA.Mods.Yupgi_alert.Traits
 {
-	public class WithMindcontrolArcInfo : ITraitInfo
+	public class WithMindcontrolArcInfo : TraitInfo
 	{
 		[Desc("Color of the arc")]
 		public readonly Color Color = Color.FromArgb(128, Color.PaleVioletRed);
@@ -37,14 +37,14 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 		[Desc("Draw with this many piecewise-linear lines")]
 		public readonly int Segments = 16;
 
-		public virtual object Create(ActorInitializer init) { return new WithMindcontrolArc(init.Self, this); }
+		public override object Create(ActorInitializer init) { return new WithMindcontrolArc(init.Self, this); }
 	}
 
 	public class WithMindcontrolArc : IRenderAboveShroudWhenSelected, INotifySelected, INotifyCreated
 	{
 		readonly WithMindcontrolArcInfo info;
-		Mindcontroller mindController;
-		Mindcontrollable mindControllable;
+		MindController mindController;
+		MindControllable mindControllable;
 
 		public WithMindcontrolArc(Actor self, WithMindcontrolArcInfo info)
 		{
@@ -53,8 +53,8 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 
 		void INotifyCreated.Created(Actor self)
 		{
-			mindController = self.TraitOrDefault<Mindcontroller>();
-			mindControllable = self.TraitOrDefault<Mindcontrollable>();
+			mindController = self.TraitOrDefault<MindController>();
+			mindControllable = self.TraitOrDefault<MindControllable>();
 		}
 
 		void INotifySelected.Selected(Actor a) { }

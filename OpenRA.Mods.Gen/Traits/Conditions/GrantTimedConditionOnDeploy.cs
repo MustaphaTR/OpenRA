@@ -76,10 +76,9 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 		readonly Actor self;
 		readonly bool canTurn;
 		readonly Lazy<WithSpriteBody> body;
-		int deployedToken = ConditionManager.InvalidConditionToken;
-		int deployingToken = ConditionManager.InvalidConditionToken;
+		int deployedToken = Actor.InvalidConditionToken;
+		int deployingToken = Actor.InvalidConditionToken;
 
-		ConditionManager manager;
 		TimedDeployState deployState;
 
 		[Sync]
@@ -95,8 +94,6 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 
 		void INotifyCreated.Created(Actor self)
 		{
-			manager = self.Trait<ConditionManager>();
-
 			if (Info.StartsFullyCharged)
 			{
 				ticks = Info.DeployedTicks;
@@ -126,7 +123,7 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 			}
 		}
 
-		Order IIssueOrder.IssueOrder(Actor self, IOrderTargeter order, Target target, bool queued)
+		Order IIssueOrder.IssueOrder(Actor self, IOrderTargeter order, in Target target, bool queued)
 		{
 			if (order.OrderID == "GrantTimedConditionOnDeploy")
 				return new Order(order.OrderID, self, queued);
@@ -144,7 +141,7 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 
 			// Turn to the required facing.
 			if (Info.Facing != -1 && canTurn)
-				self.QueueActivity(new Turn(self, Info.Facing));
+				self.QueueActivity(new Turn(self, WAngle.FromFacing(Info.Facing)));
 
 			self.QueueActivity(new CallFunc(Deploy));
 		}
@@ -176,19 +173,19 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 				OnDeployCompleted();
 			else
 			{
-				if (manager != null && !string.IsNullOrEmpty(Info.DeployingCondition) && deployingToken == ConditionManager.InvalidConditionToken)
-					deployingToken = manager.GrantCondition(self, Info.DeployingCondition);
+				if (!string.IsNullOrEmpty(Info.DeployingCondition) && deployingToken == Actor.InvalidConditionToken)
+					deployingToken = self.GrantCondition(Info.DeployingCondition);
 				body.Value.PlayCustomAnimation(self, Info.DeployAnimation, OnDeployCompleted);
 			}
 		}
 
 		void OnDeployCompleted()
 		{
-			if (manager != null && !string.IsNullOrEmpty(Info.DeployedCondition) && deployedToken == ConditionManager.InvalidConditionToken)
-				deployedToken = manager.GrantCondition(self, Info.DeployedCondition);
+			if (!string.IsNullOrEmpty(Info.DeployedCondition) && deployedToken == Actor.InvalidConditionToken)
+				deployedToken = self.GrantCondition(Info.DeployedCondition);
 
-			if (deployingToken != ConditionManager.InvalidConditionToken)
-				deployingToken = manager.RevokeCondition(self, deployingToken);
+			if (deployingToken != Actor.InvalidConditionToken)
+				deployingToken = self.RevokeCondition(deployingToken);
 
 			deployState = TimedDeployState.Active;
 		}
@@ -204,19 +201,19 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 				OnUndeployCompleted();
 			else
 			{
-				if (manager != null && !string.IsNullOrEmpty(Info.DeployingCondition) && deployingToken == ConditionManager.InvalidConditionToken)
-					deployingToken = manager.GrantCondition(self, Info.DeployingCondition);
+				if (!string.IsNullOrEmpty(Info.DeployingCondition) && deployingToken == Actor.InvalidConditionToken)
+					deployingToken = self.GrantCondition(Info.DeployingCondition);
 				body.Value.PlayCustomAnimationBackwards(self, Info.DeployAnimation, OnUndeployCompleted);
 			}
 		}
 
 		void OnUndeployCompleted()
 		{
-			if (deployedToken != ConditionManager.InvalidConditionToken)
-				deployedToken = manager.RevokeCondition(self, deployedToken);
+			if (deployedToken != Actor.InvalidConditionToken)
+				deployedToken = self.RevokeCondition(deployedToken);
 
-			if (deployingToken != ConditionManager.InvalidConditionToken)
-				deployingToken = manager.RevokeCondition(self, deployingToken);
+			if (deployingToken != Actor.InvalidConditionToken)
+				deployingToken = self.RevokeCondition(deployingToken);
 
 			deployState = TimedDeployState.Charging;
 			ticks = Info.CooldownTicks;

@@ -16,7 +16,7 @@ using OpenRA.Traits;
 namespace OpenRA.Mods.Yupgi_alert.Traits
 {
 	[Desc("Can be slaved to a SpawnerMaster.")]
-	public class BaseSpawnerSlaveInfo : ITraitInfo
+	public class BaseSpawnerSlaveInfo : TraitInfo
 	{
 		[GrantedConditionReference]
 		[Desc("The condition to grant to slaves when the master actor is killed.")]
@@ -25,19 +25,18 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 		[Desc("Can these actors be mind controlled or captured?")]
 		public readonly bool AllowOwnerChange = false;
 
-		public virtual object Create(ActorInitializer init) { return new BaseSpawnerSlave(init, this); }
+		public override object Create(ActorInitializer init) { return new BaseSpawnerSlave(init, this); }
 	}
 
 	public class BaseSpawnerSlave : INotifyCreated, INotifyKilled, INotifyOwnerChanged
 	{
 		protected AttackBase[] attackBases;
-		protected ConditionManager conditionManager;
 
 		readonly BaseSpawnerSlaveInfo info;
 
 		public bool HasFreeWill = false;
 
-		int masterDeadToken = ConditionManager.InvalidConditionToken;
+		int masterDeadToken = Actor.InvalidConditionToken;
 		BaseSpawnerMaster spawnerMaster = null;
 
 		public Actor Master { get; private set; }
@@ -50,7 +49,6 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 		public virtual void Created(Actor self)
 		{
 			attackBases = self.TraitsImplementing<AttackBase>().ToArray();
-			conditionManager = self.Trait<ConditionManager>();
 		}
 
 		public void Killed(Actor self, AttackInfo e)
@@ -118,9 +116,9 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 
 				if (target.Actor == null)
 					ab.AttackTarget(target, AttackSource.Default, false, true, true); // force fire on the ground.
-				else if (target.Actor.Owner.Stances[self.Owner] == Stance.Ally)
+				else if (target.Actor.Owner.RelationshipWith(self.Owner) == PlayerRelationship.Ally)
 					ab.AttackTarget(target, AttackSource.Default, false, true, true); // force fire on ally.
-				else if (target.Actor.Owner.Stances[self.Owner] == Stance.Neutral)
+				else if (target.Actor.Owner.RelationshipWith(self.Owner) == PlayerRelationship.Neutral)
 					ab.AttackTarget(target, AttackSource.Default, false, true, true); // force fire on neutral.
 				else
 					/* Target deprives me of force fire information.
@@ -133,14 +131,14 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 		// DUMMY FUNCTION to suppress masterDeadToken assigned but unused warning (== error for Travis).
 		void OnNewMaster(Actor self, Actor master)
 		{
-			conditionManager.RevokeCondition(self, masterDeadToken);
+			self.RevokeCondition(masterDeadToken);
 		}
 
 		public virtual void OnMasterKilled(Actor self, Actor attacker, SpawnerSlaveDisposal disposal)
 		{
 			// Grant MasterDead condition.
-			if (conditionManager != null && !string.IsNullOrEmpty(info.MasterDeadCondition))
-				masterDeadToken = conditionManager.GrantCondition(self, info.MasterDeadCondition);
+			if (!string.IsNullOrEmpty(info.MasterDeadCondition))
+				masterDeadToken = self.GrantCondition(info.MasterDeadCondition);
 
 			switch (disposal)
 			{

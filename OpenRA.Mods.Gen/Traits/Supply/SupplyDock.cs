@@ -15,7 +15,7 @@ using OpenRA.Traits;
 
 namespace OpenRA.Mods.Yupgi_alert.Traits
 {
-	public class SupplyDockInfo : ITraitInfo
+	public class SupplyDockInfo : TraitInfo
 	{
 		public readonly HashSet<string> SupplyTypes = new HashSet<string> { "supply" };
 
@@ -29,8 +29,8 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 		[Desc("Where can the aircraft supply collectors can collect the supplies from.")]
 		public readonly CVec[] AircraftCollectionOffsets = new CVec[] { };
 
-		[Desc("Collector faces this way before taking the supplies; if -1, faces towards the center of dock.")]
-		public readonly int Facing = -1;
+		[Desc("Collector faces this way before taking the supplies; if undefined, faces towards the center of the actor.")]
+		public readonly WAngle? Facing = null;
 
 		[Desc("Conditions to grant when dock has more than specified amount of supplies.",
 			"A dictionary of [integer]: [condition].")]
@@ -39,7 +39,7 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 		[GrantedConditionReference]
 		public IEnumerable<string> LinterFullnessConditions { get { return FullnessConditions.Values; } }
 
-		public object Create(ActorInitializer init) { return new SupplyDock(init.Self, this); }
+		public override object Create(ActorInitializer init) { return new SupplyDock(init.Self, this); }
 	}
 
 	public class SupplyDock : IProvideTooltipInfo, INotifyCreated, ISupplyDock
@@ -47,7 +47,6 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 		public readonly SupplyDockInfo Info;
 		public int Amount;
 
-		ConditionManager conditionManager;
 		readonly Dictionary<int, int> fullnessTokens = new Dictionary<int, int>();
 
 		public SupplyDock(Actor self, SupplyDockInfo info)
@@ -58,7 +57,6 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 
 		void INotifyCreated.Created(Actor self)
 		{
-			conditionManager = self.TraitOrDefault<ConditionManager>();
 			CheckConditions(self);
 		}
 
@@ -72,19 +70,15 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 
 		public void CheckConditions(Actor self)
 		{
-			if (conditionManager != null)
+			foreach (var pair in Info.FullnessConditions)
 			{
-				foreach (var pair in Info.FullnessConditions)
-				{
-					if (Amount >= pair.Key && !fullnessTokens.ContainsKey(pair.Key))
-						fullnessTokens.Add(pair.Key, conditionManager.GrantCondition(self, pair.Value));
+				if (Amount >= pair.Key && !fullnessTokens.ContainsKey(pair.Key))
+					fullnessTokens.Add(pair.Key, self.GrantCondition(pair.Value));
 
-					int fullnessToken;
-					if (Amount < pair.Key && fullnessTokens.TryGetValue(pair.Key, out fullnessToken))
-					{
-						conditionManager.RevokeCondition(self, fullnessToken);
-						fullnessTokens.Remove(pair.Key);
-					}
+				if (Amount < pair.Key && fullnessTokens.TryGetValue(pair.Key, out var fullnessToken))
+				{
+					self.RevokeCondition(fullnessToken);
+					fullnessTokens.Remove(pair.Key);
 				}
 			}
 		}

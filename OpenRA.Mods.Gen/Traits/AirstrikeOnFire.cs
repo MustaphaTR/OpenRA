@@ -3,7 +3,7 @@
  * By Boolbada of OP Mod
  * Follows OpenRA's license as follows:
  *
- * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -22,7 +22,7 @@ using OpenRA.Traits;
 
 namespace OpenRA.Mods.Yupgi_alert.Traits
 {
-	public class AirstrikeOnFireInfo : ITraitInfo
+	public class AirstrikeOnFireInfo : TraitInfo
 	{
 		[WeaponReference]
 		[Desc("Name of the armament that triggers the airstrike")]
@@ -31,7 +31,7 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 		[Desc("Which airstrike module to use?")]
 		public readonly string OrderName = null;
 
-		public object Create(ActorInitializer init) { return new AirstrikeOnFire(init, this); }
+		public override object Create(ActorInitializer init) { return new AirstrikeOnFire(init, this); }
 	}
 
 	public class AirstrikeOnFire : INotifyAttack
@@ -49,7 +49,7 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 			ap = aps.Where(a => a.Info.OrderName == info.OrderName).First();
 		}
 
-		void INotifyAttack.Attacking(Actor self, Target target, Armament a, Barrel barrel)
+		void INotifyAttack.Attacking(Actor self, in Target target, Armament a, Barrel barrel)
 		{
 			if (a.Info.Name != info.Armament)
 				return;
@@ -61,6 +61,6 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 			self.CurrentActivity.Cancel(self); // Cancel current activity and proceed to next.
 		}
 
-		void INotifyAttack.PreparingAttack(Actor self, Target target, Armament a, Barrel barrel) { }
+		void INotifyAttack.PreparingAttack(Actor self, in Target target, Armament a, Barrel barrel) { }
 	}
 }

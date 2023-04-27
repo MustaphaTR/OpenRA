@@ -92,8 +92,8 @@ namespace OpenRA.Mods.Common.Traits
 				var move = newUnit.TraitOrDefault<IMove>();
 				if (exitinfo != null && move != null)
 				{
-					if (rp.Value != null)
-						rp.Value.QueueRallyOrder(self, newUnit);
+					if (rp != null)
+						rp.QueueRallyOrder(self, newUnit);
 					else
 						foreach (var cell in exitLocations)
 							newUnit.QueueActivity(new AttackMoveActivity(newUnit, () => move.MoveTo(cell, 1, evaluateNearestMovableCell: true, targetLineColor: Color.OrangeRed)));

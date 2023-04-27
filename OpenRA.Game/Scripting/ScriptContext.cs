@@ -173,7 +173,7 @@ namespace OpenRA.Scripting
 
 			Runtime.Globals["EngineDir"] = Platform.EngineDir;
 			Runtime.DoBuffer(File.Open(Path.Combine(Platform.EngineDir, "lua", "scriptwrapper.lua"), FileMode.Open, FileAccess.Read).ReadAllText(), "scriptwrapper.lua").Dispose();
-			tick = (LuaFunction)runtime.Globals["Tick"];
+			tick = (LuaFunction)Runtime.Globals["Tick"];
 
 			// Register globals
 			using (var fn = Runtime.CreateFunctionFromDelegate((Action<string>)FatalError))

@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2018 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -28,9 +28,6 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 		[Desc("The condition to grant to self right after launching a spawned unit. (Used by V3 to make immobile.)")]
 		public readonly string LaunchingCondition = null;
 
-		[Desc("Pip color for the spawn count.")]
-		public readonly PipType PipType = PipType.Green;
-
 		[GrantedConditionReference]
 		[Desc("The condition to grant to self while spawned units are loaded.",
 			"Condition can stack with multiple spawns.")]
@@ -46,11 +43,10 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 		public override object Create(ActorInitializer init) { return new MissileSpawnerMaster(init, this); }
 	}
 
-	public class MissileSpawnerMaster : BaseSpawnerMaster, IPips, ITick, INotifyAttack
+	public class MissileSpawnerMaster : BaseSpawnerMaster, ITick, INotifyAttack
 	{
 		public new MissileSpawnerMasterInfo Info { get; private set; }
 
-		ConditionManager conditionManager;
 		readonly Dictionary<string, Stack<int>> spawnContainTokens = new Dictionary<string, Stack<int>>();
 		Stack<int> loadedTokens = new Stack<int>();
 
@@ -65,27 +61,22 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 		protected override void Created(Actor self)
 		{
 			base.Created(self);
-			conditionManager = self.Trait<ConditionManager>();
 
-			if (conditionManager != null)
+			foreach (var entry in SlaveEntries)
 			{
-				foreach (var entry in SlaveEntries)
-				{
-					string spawnContainCondition;
-					if (Info.SpawnContainConditions.TryGetValue(entry.Actor.Info.Name, out spawnContainCondition))
-						spawnContainTokens.GetOrAdd(entry.Actor.Info.Name).Push(conditionManager.GrantCondition(self, spawnContainCondition));
+				if (Info.SpawnContainConditions.TryGetValue(entry.Actor.Info.Name, out var spawnContainCondition))
+					spawnContainTokens.GetOrAdd(entry.Actor.Info.Name).Push(self.GrantCondition(spawnContainCondition));
 
-					if (!string.IsNullOrEmpty(Info.LoadedCondition))
-						loadedTokens.Push(conditionManager.GrantCondition(self, Info.LoadedCondition));
-				}
+				if (!string.IsNullOrEmpty(Info.LoadedCondition))
+					loadedTokens.Push(self.GrantCondition(Info.LoadedCondition));
 			}
 		}
 
-		void INotifyAttack.PreparingAttack(Actor self, Target target, Armament a, Barrel barrel) { }
+		void INotifyAttack.PreparingAttack(Actor self, in Target target, Armament a, Barrel barrel) { }
 
 		// The rate of fire of the dummy weapon determines the launch cycle as each shot
 		// invokes Attacking()
-		void INotifyAttack.Attacking(Actor self, Target target, Armament a, Barrel barrel)
+		void INotifyAttack.Attacking(Actor self, in Target target, Armament a, Barrel barrel)
 		{
 			if (IsTraitDisabled)
 				return;
@@ -104,7 +95,7 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 
 			// Launching condition is timed, so not saving the token.
 			if (Info.LaunchingCondition != null)
-				conditionManager.GrantCondition(self, Info.LaunchingCondition);
+				self.GrantCondition(Info.LaunchingCondition);
 
 			// Program the trajectory.
 			var sbm = se.Actor.Trait<ShootableBallisticMissile>();
@@ -112,12 +103,11 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 
 			SpawnIntoWorld(self, se.Actor, self.CenterPosition);
 
-			Stack<int> spawnContainToken;
-			if (spawnContainTokens.TryGetValue(a.Info.Name, out spawnContainToken) && spawnContainToken.Any())
-				conditionManager.RevokeCondition(self, spawnContainToken.Pop());
+			if (spawnContainTokens.TryGetValue(a.Info.Name, out var spawnContainToken) && spawnContainToken.Any())
+				self.RevokeCondition(spawnContainToken.Pop());
 
 			if (loadedTokens.Any())
-				conditionManager.RevokeCondition(self, loadedTokens.Pop());
+				self.RevokeCondition(loadedTokens.Pop());
 
 			// Queue attack order, too.
 			self.World.AddFrameEndTask(w =>
@@ -142,38 +132,15 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 			return null;
 		}
 
-		public IEnumerable<PipType> GetPips(Actor self)
-		{
-			if (IsTraitDisabled)
-				yield break;
-
-			int inside = 0;
-			foreach (var se in SlaveEntries)
-				if (se.IsValid)
-					inside++;
-
-			for (var i = 0; i < Info.Actors.Length; i++)
-			{
-				if (i < inside)
-					yield return Info.PipType;
-				else
-					yield return PipType.Transparent;
-			}
-		}
-
 		public override void Replenish(Actor self, BaseSpawnerSlaveEntry entry)
 		{
 			base.Replenish(self, entry);
 
-			string spawnContainCondition;
-			if (conditionManager != null)
-			{
-				if (Info.SpawnContainConditions.TryGetValue(entry.Actor.Info.Name, out spawnContainCondition))
-					spawnContainTokens.GetOrAdd(entry.Actor.Info.Name).Push(conditionManager.GrantCondition(self, spawnContainCondition));
+			if (Info.SpawnContainConditions.TryGetValue(entry.Actor.Info.Name, out var spawnContainCondition))
+				spawnContainTokens.GetOrAdd(entry.Actor.Info.Name).Push(self.GrantCondition(spawnContainCondition));
 
-				if (!string.IsNullOrEmpty(Info.LoadedCondition))
-					loadedTokens.Push(conditionManager.GrantCondition(self, Info.LoadedCondition));
-			}
+			if (!string.IsNullOrEmpty(Info.LoadedCondition))
+				loadedTokens.Push(self.GrantCondition(Info.LoadedCondition));
 		}
 
 		public void Tick(Actor self)

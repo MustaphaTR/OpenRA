@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2018 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -33,8 +33,8 @@ namespace OpenRA.Mods.Common.Traits.Radar
 
 		public readonly Color Color = Color.White;
 
-		[Desc("Player stances who can view this actor's icon on radar.")]
-		public readonly Stance ValidStances = Stance.Ally;
+		[Desc("PlayerRelationships who can view this actor's icon on radar.")]
+		public readonly PlayerRelationship ValidRelationships = PlayerRelationship.Ally;
 
 		public override object Create(ActorInitializer init) { return new RadarIcon(this); }
 	}
@@ -52,10 +52,10 @@ namespace OpenRA.Mods.Common.Traits.Radar
 			modifier = self.TraitsImplementing<IRadarColorModifier>().FirstOrDefault();
 		}
 
-		public void PopulateRadarSignatureCells(Actor self, List<Pair<CPos, Color>> destinationBuffer)
+		public void PopulateRadarSignatureCells(Actor self, List<(CPos, Color)> destinationBuffer)
 		{
 			var viewer = self.World.RenderPlayer ?? self.World.LocalPlayer;
-			if (IsTraitDisabled || (viewer != null && !Info.ValidStances.HasStance(self.Owner.Stances[viewer])))
+			if (IsTraitDisabled || (viewer != null && !Info.ValidRelationships.HasStance(self.Owner.RelationshipWith(viewer))))
 				return;
 
 			var color = Info.Color;
@@ -64,7 +64,7 @@ namespace OpenRA.Mods.Common.Traits.Radar
 
 			var cells = Info.Locations.Select(loc => self.Location + loc);
 			foreach (var cell in cells)
-				destinationBuffer.Add(Pair.New(cell, color));
+				destinationBuffer.Add((cell, color));
 		}
 	}
 }

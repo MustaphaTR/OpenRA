@@ -22,7 +22,7 @@ using OpenRA.Traits;
 namespace OpenRA.Mods.Yupgi_alert.Traits
 {
 	[Desc("This unit, when ordered to move, will fly in ballistic path then will detonate itself upon reaching target.")]
-	public class ShootableBallisticMissileInfo : ITraitInfo, IMoveInfo, IPositionableInfo, IFacingInfo
+	public class ShootableBallisticMissileInfo : TraitInfo, IMoveInfo, IPositionableInfo, IFacingInfo
 	{
 		[Desc("Projectile speed in WDist / tick, two values indicate variable velocity.")]
 		public readonly int Speed = 17;
@@ -33,13 +33,16 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 		// public readonly int LaunchTicks = 15; // Time needed to make init pitch to launch pitch.
 		*/
 
+		[Desc("Turn speed.")]
+		public readonly WAngle TurnSpeed = new WAngle(25);
+
 		[Desc("In angle. Missile is launched at this pitch and the intial tangential line of the ballistic path will be this.")]
 		public readonly WAngle LaunchAngle = WAngle.Zero;
 
 		[Desc("Minimum altitude where this missile is considered airborne")]
 		public readonly int MinAirborneAltitude = 5;
 
-		public virtual object Create(ActorInitializer init) { return new ShootableBallisticMissile(init, this); }
+		public override object Create(ActorInitializer init) { return new ShootableBallisticMissile(init, this); }
 
 		[GrantedConditionReference]
 		[Desc("The condition to grant to self while airborne.")]
@@ -54,23 +57,43 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 		}
 
 		// set by spawned logic, not this.
-		public int GetInitialFacing() { return 0; }
+		public WAngle GetInitialFacing() { return WAngle.Zero; }
+		public Color GetTargetLineColor() { return Color.Green; }
 	}
 
 	public class ShootableBallisticMissile : ITick, ISync, IFacing, IMove, IPositionable,
-		INotifyCreated, INotifyAddedToWorld, INotifyRemovedFromWorld, INotifyActorDisposing, IOccupySpace
+		INotifyCreated, INotifyAddedToWorld, INotifyRemovedFromWorld, IOccupySpace
 	{
-		static readonly Pair<CPos, SubCell>[] NoCells = { };
+		static readonly (CPos Cell, SubCell SubCell)[] NoCells = { };
 
 		public readonly ShootableBallisticMissileInfo Info;
 		readonly Actor self;
 		public Target Target { get; set; }
 
-		ConditionManager conditionManager;
 		IEnumerable<int> speedModifiers;
 
+		WRot orientation;
+
 		[Sync]
-		public int Facing { get; set; }
+		public WAngle Facing
+		{
+			get { return orientation.Yaw; }
+			set { orientation = orientation.WithYaw(value); }
+		}
+
+		public WAngle Pitch
+		{
+			get { return orientation.Pitch; }
+			set { orientation = orientation.WithPitch(value); }
+		}
+
+		public WAngle Roll
+		{
+			get { return orientation.Roll; }
+			set { orientation = orientation.WithRoll(value); }
+		}
+
+		public WRot Orientation { get { return orientation; } }
 
 		[Sync]
 		public WPos CenterPosition { get; private set; }
@@ -78,29 +101,29 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 		public CPos TopLeft { get { return self.World.Map.CellContaining(CenterPosition); } }
 
 		bool airborne;
-		int airborneToken = ConditionManager.InvalidConditionToken;
+		int airborneToken = Actor.InvalidConditionToken;
 
 		public ShootableBallisticMissile(ActorInitializer init, ShootableBallisticMissileInfo info)
 		{
 			Info = info;
 			self = init.Self;
 
-			if (init.Contains<LocationInit>())
-				SetPosition(self, init.Get<LocationInit, CPos>());
+			var locationInit = init.GetOrDefault<LocationInit>(info);
+			if (locationInit != null)
+				SetPosition(self, locationInit.Value);
 
-			if (init.Contains<CenterPositionInit>())
-				SetPosition(self, init.Get<CenterPositionInit, WPos>());
+			var centerPositionInit = init.GetOrDefault<CenterPositionInit>(info);
+			if (centerPositionInit != null)
+				SetPosition(self, centerPositionInit.Value);
 
 			// I need facing but initial facing doesn't matter, they are determined by the spawner's facing.
-			Facing = init.Contains<FacingInit>() ? init.Get<FacingInit, int>() : 0;
+			Facing = init.GetValue<FacingInit, WAngle>(info, WAngle.Zero);
 		}
 
-		// This kind of missile will not turn anyway. Hard-coding here.
-		public int TurnSpeed { get { return 10; } }
+		public WAngle TurnSpeed => Info.TurnSpeed;
 
 		public void Created(Actor self)
 		{
-			conditionManager = self.TraitOrDefault<ConditionManager>();
 			speedModifiers = self.TraitsImplementing<ISpeedModifier>().ToArray().Select(sm => sm.GetSpeedModifier());
 		}
 
@@ -120,16 +143,19 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 			get { return Util.ApplyPercentageModifiers(Info.Speed, speedModifiers); }
 		}
 
-		public IEnumerable<Pair<CPos, SubCell>> OccupiedCells() { return NoCells; }
+		(CPos Cell, SubCell SubCell)[] IOccupySpace.OccupiedCells()
+		{
+			return NoCells;
+		}
 
-		public WVec FlyStep(int facing)
+		public WVec FlyStep(WAngle facing)
 		{
 			return FlyStep(MovementSpeed, facing);
 		}
 
-		public WVec FlyStep(int speed, int facing)
+		public WVec FlyStep(int speed, WAngle facing)
 		{
-			var dir = new WVec(0, -1024, 0).Rotate(WRot.FromFacing(facing));
+			var dir = new WVec(0, -1024, 0).Rotate(WRot.FromFacing(facing.Facing));
 			return speed * dir / 1024;
 		}
 
@@ -180,19 +206,19 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 			return new ShootableBallisticMissileFly(self, Target.FromCell(self.World, cell));
 		}
 
-		public Activity MoveWithinRange(Target target, WDist range,
+		public Activity MoveWithinRange(in Target target, WDist range,
 			WPos? initialTargetPosition = null, Color? targetLineColor = null)
 		{
 			return new ShootableBallisticMissileFly(self, target);
 		}
 
-		public Activity MoveWithinRange(Target target, WDist minRange, WDist maxRange,
+		public Activity MoveWithinRange(in Target target, WDist minRange, WDist maxRange,
 			WPos? initialTargetPosition = null, Color? targetLineColor = null)
 		{
 			return new ShootableBallisticMissileFly(self, target);
 		}
 
-		public Activity MoveFollow(Actor self, Target target, WDist minRange, WDist maxRange,
+		public Activity MoveFollow(Actor self, in Target target, WDist minRange, WDist maxRange,
 			WPos? initialTargetPosition = null, Color? targetLineColor = null)
 		{
 			return null;
@@ -200,13 +226,13 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 
 		public Activity ReturnToCell(Actor self) { return null; }
 
-		public Activity MoveToTarget(Actor self, Target target,
+		public Activity MoveToTarget(Actor self, in Target target,
 			WPos? initialTargetPosition = null, Color? targetLineColor = null)
 		{
 			return new ShootableBallisticMissileFly(self, target);
 		}
 
-		public Activity MoveIntoTarget(Actor self, Target target)
+		public Activity MoveIntoTarget(Actor self, in Target target)
 		{
 			return null;
 		}
@@ -238,7 +264,7 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 			}
 		}
 
-		public bool CanEnterTargetNow(Actor self, Target target)
+		public bool CanEnterTargetNow(Actor self, in Target target)
 		{
 			// you can never control ballistic missiles anyway
 			return false;
@@ -299,8 +325,8 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 				return;
 
 			airborne = true;
-			if (conditionManager != null && !string.IsNullOrEmpty(Info.AirborneCondition) && airborneToken == ConditionManager.InvalidConditionToken)
-				airborneToken = conditionManager.GrantCondition(self, Info.AirborneCondition);
+			if (!string.IsNullOrEmpty(Info.AirborneCondition) && airborneToken == Actor.InvalidConditionToken)
+				airborneToken = self.GrantCondition(Info.AirborneCondition);
 		}
 
 		void OnAirborneAltitudeLeft()
@@ -309,17 +335,10 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 				return;
 
 			airborne = false;
-			if (conditionManager != null && airborneToken != ConditionManager.InvalidConditionToken)
-				airborneToken = conditionManager.RevokeCondition(self, airborneToken);
+			if (airborneToken != Actor.InvalidConditionToken)
+				airborneToken = self.RevokeCondition(airborneToken);
 		}
 
 		#endregion
-
-		public void Disposing(Actor self) { }
-
-		Pair<CPos, SubCell>[] IOccupySpace.OccupiedCells()
-		{
-			return NoCells;
-		}
 	}
 }

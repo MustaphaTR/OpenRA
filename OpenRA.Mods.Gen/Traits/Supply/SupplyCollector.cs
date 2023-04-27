@@ -1,6 +1,6 @@
 ﻿#region Copyright & License Information
 /*
- * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -23,12 +23,12 @@ using OpenRA.Traits;
 
 namespace OpenRA.Mods.Yupgi_alert.Traits
 {
-	public class SupplyCollectorInfo : ITraitInfo
+	public class SupplyCollectorInfo : TraitInfo
 	{
 		public readonly HashSet<string> SupplyTypes = new HashSet<string> { "supply" };
 
-		public readonly Stance DeliveryStances = Stance.Ally;
-		public readonly Stance CollectionStances = Stance.Ally | Stance.Neutral;
+		public readonly PlayerRelationship DeliveryRelationships = PlayerRelationship.Ally;
+		public readonly PlayerRelationship CollectionRelationships = PlayerRelationship.Ally | PlayerRelationship.Neutral;
 
 		[Desc("How long (in ticks) to wait until (re-)checking for a nearby available TradeActors if not yet linked to one.")]
 		public readonly int SearchForCollectionBuildingDelay = 125;
@@ -64,7 +64,7 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 		[Desc("The pathfinding cost penalty applied for each collector waiting to load at a supply dock.")]
 		public readonly int CollectionQueueCostModifier = 6;
 
-		[Desc("Go to AircraftCollectionOffsets of supply dock, even tho actually has Mobile trait.")]
+		[Desc("Go to AircraftCollectionOffsets of supply dock, despite having Mobile trait.")]
 		public readonly bool IsAircraft = false;
 
 		[Desc("Conditions to grant when collector has more than specified amount of supplies.",
@@ -80,10 +80,10 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 		[VoiceReference]
 		public readonly string DeliverVoice = null;
 
-		public object Create(ActorInitializer init) { return new SupplyCollector(init.Self, this); }
+		public override object Create(ActorInitializer init) { return new SupplyCollector(init.Self, this); }
 	}
 
-	public class SupplyCollector : IIssueOrder, IResolveOrder, IOrderVoice, IPips, ISync, INotifyCreated, INotifyIdle, INotifyBlockingMove
+	public class SupplyCollector : IIssueOrder, IResolveOrder, IOrderVoice, ISync, INotifyCreated, INotifyIdle, INotifyBlockingMove
 	{
 		public readonly SupplyCollectorInfo Info;
 		readonly Mobile mobile;
@@ -102,7 +102,6 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 		[Sync]
 		public Actor CollectionBuilding = null;
 
-		ConditionManager conditionManager;
 		readonly Dictionary<int, int> fullnessTokens = new Dictionary<int, int>();
 
 		public SupplyCollector(Actor self, SupplyCollectorInfo info)
@@ -120,7 +119,6 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 			if (Info.SearchOnCreation)
 				self.QueueActivity(new FindGoods(self, Color.Green));
 
-			conditionManager = self.TraitOrDefault<ConditionManager>();
 			CheckConditions(self);
 		}
 
@@ -171,15 +169,15 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 			get
 			{
 				yield return new GenericTargeter<BuildingInfo>("Collect", 5,
-					a => IsEmpty && a.TraitOrDefault<SupplyDock>() != null && Info.SupplyTypes.Overlaps(a.Trait<SupplyDock>().Info.SupplyTypes) && !a.Trait<SupplyDock>().IsEmpty && (Info.CollectionStances.HasStance(self.Owner.Stances[a.Owner])),
+					a => IsEmpty && a.TraitOrDefault<SupplyDock>() != null && Info.SupplyTypes.Overlaps(a.Trait<SupplyDock>().Info.SupplyTypes) && !a.Trait<SupplyDock>().IsEmpty && (Info.CollectionRelationships.HasStance(self.Owner.RelationshipWith(a.Owner))),
 					a => "enter");
 				yield return new GenericTargeter<BuildingInfo>("Deliver", 5,
-					a => !IsEmpty && a.TraitOrDefault<SupplyCenter>() != null && Info.SupplyTypes.Overlaps(a.Trait<SupplyCenter>().Info.SupplyTypes) && (Info.DeliveryStances.HasStance(self.Owner.Stances[a.Owner])),
+					a => !IsEmpty && a.TraitOrDefault<SupplyCenter>() != null && Info.SupplyTypes.Overlaps(a.Trait<SupplyCenter>().Info.SupplyTypes) && (Info.DeliveryRelationships.HasStance(self.Owner.RelationshipWith(a.Owner))),
 					a => "enter");
 			}
 		}
 
-		public Order IssueOrder(Actor self, IOrderTargeter order, Target target, bool queued)
+		public Order IssueOrder(Actor self, IOrderTargeter order, in Target target, bool queued)
 		{
 			if (order.OrderID == "Collect")
 				return new Order(order.OrderID, self, target, queued);
@@ -259,19 +257,15 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 
 		public void CheckConditions(Actor self)
 		{
-			if (conditionManager != null)
+			foreach (var pair in Info.FullnessConditions)
 			{
-				foreach (var pair in Info.FullnessConditions)
-				{
-					if (Amount >= pair.Key && !fullnessTokens.ContainsKey(pair.Key))
-						fullnessTokens.Add(pair.Key, conditionManager.GrantCondition(self, pair.Value));
+				if (Amount >= pair.Key && !fullnessTokens.ContainsKey(pair.Key))
+					fullnessTokens.Add(pair.Key, self.GrantCondition(pair.Value));
 
-					int fullnessToken;
-					if (Amount < pair.Key && fullnessTokens.TryGetValue(pair.Key, out fullnessToken))
-					{
-						conditionManager.RevokeCondition(self, fullnessToken);
-						fullnessTokens.Remove(pair.Key);
-					}
+				if (Amount < pair.Key && fullnessTokens.TryGetValue(pair.Key, out var fullnessToken))
+				{
+					self.RevokeCondition(fullnessToken);
+					fullnessTokens.Remove(pair.Key);
 				}
 			}
 		}
@@ -281,7 +275,7 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 			// Find all docks
 			var docks = (
 				from a in self.World.ActorsWithTrait<SupplyDock>()
-				where (Info.SupplyTypes.Overlaps(a.Actor.Trait<SupplyDock>().Info.SupplyTypes)) && (!a.Actor.Trait<SupplyDock>().IsEmpty) && (Info.CollectionStances.HasStance(self.Owner.Stances[a.Actor.Owner]))
+				where (Info.SupplyTypes.Overlaps(a.Actor.Trait<SupplyDock>().Info.SupplyTypes)) && (!a.Actor.Trait<SupplyDock>().IsEmpty) && (Info.CollectionRelationships.HasStance(self.Owner.RelationshipWith(a.Actor.Owner)))
 				select new
 				{
 					Location = a.Actor.Location,
@@ -375,24 +369,6 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 				return centers[path.Last()].Actor;
 
 			return null;
-		}
-
-		PipType GetPipAt(int i)
-		{
-			var n = i * Info.Capacity / Info.PipCount;
-
-			if (n < Amount)
-				return PipType.Green;
-
-			return PipType.Transparent;
-		}
-
-		public IEnumerable<PipType> GetPips(Actor self)
-		{
-			var numPips = Info.PipCount;
-
-			for (var i = 0; i < numPips; i++)
-				yield return GetPipAt(i);
 		}
 	}
 }

@@ -28,7 +28,7 @@ namespace OpenRA.Mods.Common.Traits
 			this.self = self;
 		}
 
-		int IFirepowerModifier.GetFirepowerModifier()
+		int IFirepowerModifier.GetFirepowerModifier(string armamentName)
 		{
 			// Equivalent to the firepower handicap from C&C3:
 			//  5% handicap = 95% firepower
