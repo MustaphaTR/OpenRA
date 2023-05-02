@@ -276,14 +276,15 @@ namespace OpenRA.Mods.Common.Traits
 					if (order.Target.Type != TargetType.Actor)
 						break;
 
+					var args = order.TargetString.Split(' ');
 					var producer = order.Target.Actor;
 					var production = producer.TraitsImplementing<Production>().FirstOrDefault();
 					var actors = self.World.Map.Rules.Actors;
-					var actorToProduce = actors.Keys.Contains(order.TargetString) ? actors[order.TargetString] : null;
+					var actorToProduce = actors.Keys.Contains(args[0]) ? actors[args[0]] : null;
 
 					if (production != null && actorToProduce != null)
 					{
-						var faction = BuildableInfo.GetInitialFaction(actorToProduce, production.Faction);
+						var faction = args.Length > 1 ? args[1] : BuildableInfo.GetInitialFaction(actorToProduce, production.Faction);
 						var inits = new TypeDictionary
 						{
 							new OwnerInit(producer.Owner),
