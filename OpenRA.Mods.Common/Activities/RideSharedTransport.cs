@@ -46,8 +46,6 @@ namespace OpenRA.Mods.Common.Activities
 			if (enterAircraft != null && !enterAircraft.AtLandAltitude)
 				return false;
 
-			Game.AddChatLine("TEST", Color.Wheat, "Test");
-
 			return true;
 		}
 

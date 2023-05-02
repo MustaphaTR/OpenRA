@@ -142,7 +142,7 @@ namespace OpenRA.Mods.Common.Traits
 				specificCargoToken = self.GrantCondition(specificCargoCondition);
 
 			// Allow scripted / initial actors to move from the unload point back into the cell grid on unload
-			// This is handled by the RideTransport activity for player-loaded cargo
+			// This is handled by the RideSharedTransport activity for player-loaded cargo
 			if (self.IsIdle)
 			{
 				// IMove is not used anywhere else in this trait, there is no benefit to caching it from Created.
@@ -178,7 +178,7 @@ namespace OpenRA.Mods.Common.Traits
 			if (!IsCorrectCargoType(targetActor))
 				return;
 
-			self.QueueActivity(order.Queued, new RideTransport(self, order.Target, Info.TargetLineColor));
+			self.QueueActivity(order.Queued, new RideSharedTransport(self, order.Target, Info.TargetLineColor));
 			self.ShowTargetLines();
 		}
 
