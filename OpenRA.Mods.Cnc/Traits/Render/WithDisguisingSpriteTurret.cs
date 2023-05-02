@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2017 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -9,6 +9,7 @@
  */
 #endregion
 
+using System.Linq;
 using OpenRA.Mods.Common.Traits;
 using OpenRA.Mods.Common.Traits.Render;
 using OpenRA.Traits;
@@ -24,12 +25,15 @@ namespace OpenRA.Mods.Cnc.Traits.Render
 	{
 		readonly Disguise disguise;
 		readonly RenderSprites rs;
+		readonly Turreted t;
 		string intendedSprite;
 
 		public WithDisguisingSpriteTurret(Actor self, WithDisguisingSpriteTurretInfo info)
 			: base(self, info)
 		{
 			rs = self.Trait<RenderSprites>();
+			t = self.TraitsImplementing<Turreted>()
+				.First(tt => tt.Name == info.Turret);
 			disguise = self.Trait<Disguise>();
 			intendedSprite = disguise.AsSprite;
 		}
@@ -41,6 +45,9 @@ namespace OpenRA.Mods.Cnc.Traits.Render
 				intendedSprite = disguise.AsSprite;
 				DefaultAnimation.ChangeImage(intendedSprite ?? rs.GetImage(self), DefaultAnimation.CurrentSequence.Name);
 				rs.UpdatePalette();
+
+				// Restrict turret facings to match the sprite
+				t.QuantizedFacings = DefaultAnimation.CurrentSequence.Facings;
 			}
 		}
 	}
