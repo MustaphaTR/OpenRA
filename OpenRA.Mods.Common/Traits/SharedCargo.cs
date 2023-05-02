@@ -22,10 +22,7 @@ namespace OpenRA.Mods.Common.Traits
 	[Desc("This actor can transport Passenger actors.")]
 	public class SharedCargoInfo : PausableConditionalTraitInfo, Requires<IOccupySpaceInfo>
 	{
-		[Desc("Number of pips to display when this actor is selected.")]
-		public readonly int PipCount = 0;
-
-		[Desc("`Passenger.CargoType`s that can be loaded into this actor.")]
+		[Desc("`SharedPassenger.CargoType`s that can be loaded into this actor.")]
 		public readonly HashSet<string> Types = new HashSet<string>();
 
 		[Desc("`SharedCargoManager.Type` thar this actor shares its passengers.")]
@@ -68,6 +65,7 @@ namespace OpenRA.Mods.Common.Traits
 			"Condition can stack with multiple passengers.")]
 		public readonly string LoadedCondition = null;
 
+		[ActorReference(dictionaryReference: LintDictionaryReference.Keys)]
 		[Desc("Conditions to grant when specified actors are loaded inside the transport.",
 			"A dictionary of [actor id]: [condition].")]
 		public readonly Dictionary<string, string> PassengerConditions = new Dictionary<string, string>();
@@ -91,6 +89,7 @@ namespace OpenRA.Mods.Common.Traits
 		int loadingToken = Actor.InvalidConditionToken;
 		Stack<int> loadedTokens = new Stack<int>();
 		bool takeOffAfterLoad;
+		bool initialized;
 
 		CPos currentCell;
 		public IEnumerable<CPos> CurrentAdjacentCells { get; private set; }
@@ -208,10 +207,10 @@ namespace OpenRA.Mods.Common.Traits
 		}
 
 		// Prepare for transport pickup
-		bool LockForPickup(Actor self)
+		void LockForPickup(Actor self)
 		{
 			if (state == State.Locked)
-				return false;
+				return;
 
 			state = State.Locked;
 
@@ -225,7 +224,6 @@ namespace OpenRA.Mods.Common.Traits
 			}
 
 			self.QueueActivity(new WaitFor(() => state != State.Locked, false));
-			return true;
 		}
 
 		void ReleaseLock(Actor self)
@@ -307,6 +305,7 @@ namespace OpenRA.Mods.Common.Traits
 			{
 				Manager.ReservedWeight -= w;
 				Manager.Reserves.Remove(a);
+				ReleaseLock(self);
 
 				if (loadingToken != Actor.InvalidConditionToken)
 					loadingToken = self.RevokeCondition(loadingToken);
@@ -315,6 +314,8 @@ namespace OpenRA.Mods.Common.Traits
 			// If not initialized then this will be notified in the first tick
 			if (initialized)
 			{
+				a.Trait<SharedPassenger>().Transport = self;
+
 				foreach (var nec in a.TraitsImplementing<INotifyEnteredSharedCargo>())
 					nec.OnEnteredSharedCargo(a, self);
 
@@ -322,21 +323,11 @@ namespace OpenRA.Mods.Common.Traits
 					npe.OnPassengerEntered(self, a);
 			}
 
-			var p = a.Trait<SharedPassenger>();
-			p.Transport = self;
-
 			if (Info.PassengerConditions.TryGetValue(a.Info.Name, out var passengerCondition))
 				passengerTokens.GetOrAdd(a.Info.Name).Push(self.GrantCondition(passengerCondition));
 
 			if (!string.IsNullOrEmpty(Info.LoadedCondition))
 				loadedTokens.Push(self.GrantCondition(Info.LoadedCondition));
-		}
-
-		void INotifyAddedToWorld.AddedToWorld(Actor self)
-		{
-			// Force location update to avoid issues when initial spawn is outside map
-			currentCell = self.Location;
-			CurrentAdjacentCells = GetAdjacentCells();
 		}
 
 		void INotifyKilled.Killed(Actor self, AttackInfo e)
@@ -351,7 +342,13 @@ namespace OpenRA.Mods.Common.Traits
 				Manager.Clear();
 		}
 
-		bool initialized;
+		void INotifyAddedToWorld.AddedToWorld(Actor self)
+		{
+			// Force location update to avoid issues when initial spawn is outside map
+			currentCell = self.Location;
+			CurrentAdjacentCells = GetAdjacentCells();
+		}
+
 		void ITick.Tick(Actor self)
 		{
 			// Notify initial cargo load

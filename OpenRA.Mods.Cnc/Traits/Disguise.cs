@@ -210,14 +210,16 @@ namespace OpenRA.Mods.Cnc.Traits
 
 					var targetTurreted = target.TraitsImplementing<Turreted>();
 					if (targetTurreted != null)
-						{
-							TurretOffsets.Clear();
-							foreach (var t in targetTurreted)
-								TurretOffsets.Add(t.Offset);
-						}
+					{
+						TurretOffsets.Clear();
+						foreach (var t in targetTurreted)
+							TurretOffsets.Add(t.Offset);
+					}
 					else
+					{
 						TurretOffsets.Clear();
 						TurretOffsets.Add(WVec.Zero);
+					}
 				}
 			}
 			else

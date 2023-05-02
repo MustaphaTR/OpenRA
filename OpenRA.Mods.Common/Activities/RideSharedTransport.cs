@@ -23,8 +23,8 @@ namespace OpenRA.Mods.Common.Activities
 		SharedCargo enterCargo;
 		Aircraft enterAircraft;
 
-		public RideSharedTransport(Actor self, Target target)
-			: base(self, target, WDist.Zero, Color.Green)
+		public RideSharedTransport(Actor self, in Target target, Color? targetLineColor)
+			: base(self, target, WDist.Zero, targetLineColor)
 		{
 			passenger = self.Trait<SharedPassenger>();
 		}
@@ -45,6 +45,8 @@ namespace OpenRA.Mods.Common.Activities
 
 			if (enterAircraft != null && !enterAircraft.AtLandAltitude)
 				return false;
+
+			Game.AddChatLine("TEST", Color.Wheat, "Test");
 
 			return true;
 		}

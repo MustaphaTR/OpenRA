@@ -55,6 +55,8 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 
 		IFacing facing;
 		HashSet<Armament> activeArmaments;
+
+		bool turreted;
 		HashSet<Turreted> turrets;
 
 		bool enabled;
@@ -75,6 +77,10 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 		{
 			facing = self.TraitOrDefault<IFacing>();
 			Armaments = self.TraitsImplementing<Armament>().Where(t => t.Info.Name.Contains(FireArmamentPowerInfo.ArmamentName)).ToArray();
+			activeArmaments = new HashSet<Armament>();
+
+			var armamentTurrets = Armaments.Select(x => x.Info.Turret).ToHashSet();
+			turreted = self.TraitsImplementing<Turreted>().Where(x => armamentTurrets.Contains(x.Name)).Count() > 0;
 		}
 
 		public override void Activate(Actor self, Order order, SupportPowerManager manager)
@@ -97,10 +103,13 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 		{
 			activeArmaments = Armaments.Where(x => !x.IsTraitDisabled).ToHashSet();
 
-			var armamentTurrets = activeArmaments.Select(x => x.Info.Turret).ToHashSet();
+			if (turreted)
+			{
+				var armamentTurrets = activeArmaments.Select(x => x.Info.Turret).ToHashSet();
 
-			// TODO: Fix this when upgradable Turreteds arrive.
-			turrets = self.TraitsImplementing<Turreted>().Where(x => armamentTurrets.Contains(x.Name)).ToHashSet();
+				// TODO: Fix this when upgradable Turreteds arrive.
+				turrets = self.TraitsImplementing<Turreted>().Where(x => armamentTurrets.Contains(x.Name)).ToHashSet();
+			}
 
 			if (self.Owner.IsAlliedWith(self.World.RenderPlayer))
 				Game.Sound.Play(SoundType.World, FireArmamentPowerInfo.LaunchSound);
@@ -172,9 +181,17 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 			if (!enabled)
 				return;
 
-			foreach (var t in turrets)
-				if (!t.FaceTarget(self, target))
-					return;
+			if (turreted)
+			{
+				foreach (var t in turrets)
+				{
+					// HACK HACK HACK HACK
+					// FireArmamentPower does not set AttackTurreted.IsAiming which means that Turreted.Tick will try to realign against.
+					// Duplicating the FaceTarget call here ensures that there is a step towards the target direction.
+					if (!t.FaceTarget(self, target) && !t.FaceTarget(self, target))
+						return;
+				}
+			}
 
 			foreach (var a in activeArmaments)
 				a.CheckFire(self, facing, target);

@@ -33,6 +33,7 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("The condition to grant to when this actor is loaded inside any transport.")]
 		public readonly string CargoCondition = null;
 
+		[ActorReference(dictionaryReference: LintDictionaryReference.Keys)]
 		[Desc("Conditions to grant when this actor is loaded inside specified transport.",
 			"A dictionary of [actor id]: [condition].")]
 		public readonly Dictionary<string, string> CargoConditions = new Dictionary<string, string>();
@@ -42,6 +43,9 @@ namespace OpenRA.Mods.Common.Traits
 
 		[VoiceReference]
 		public readonly string Voice = "Action";
+
+		[Desc("Color to use for the target line.")]
+		public readonly Color TargetLineColor = Color.Green;
 
 		[ConsumedConditionReference]
 		[Desc("Boolean expression defining the condition under which the regular (non-force) enter cursor is disabled.")]
@@ -123,6 +127,9 @@ namespace OpenRA.Mods.Common.Traits
 			if (order.OrderString != "EnterSharedTransport")
 				return null;
 
+			if (order.Target.Type != TargetType.Actor || !CanEnter(order.Target.Actor))
+				return null;
+
 			return Info.Voice;
 		}
 
@@ -171,7 +178,7 @@ namespace OpenRA.Mods.Common.Traits
 			if (!IsCorrectCargoType(targetActor))
 				return;
 
-			self.QueueActivity(order.Queued, new RideSharedTransport(self, order.Target));
+			self.QueueActivity(order.Queued, new RideTransport(self, order.Target, Info.TargetLineColor));
 			self.ShowTargetLines();
 		}
 

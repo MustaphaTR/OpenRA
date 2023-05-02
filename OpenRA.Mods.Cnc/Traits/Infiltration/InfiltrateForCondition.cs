@@ -42,11 +42,12 @@ namespace OpenRA.Mods.Cnc.Traits
 		readonly InfiltrateForConditionInfo info;
 		int token = Actor.InvalidConditionToken;
 
-		[Sync] public int Ticks { get; private set; }
+		[Sync]
+		public int Ticks { get; private set; }
 		bool infiltrated = false;
 
 		public InfiltrateForCondition(InfiltrateForConditionInfo info)
-		{ 
+		{
 			this.info = info;
 		}
 
