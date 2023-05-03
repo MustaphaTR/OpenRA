@@ -369,6 +369,16 @@ namespace OpenRA.Mods.Common.Traits
 				passengerFacing.Facing = facing.Value.Facing + Info.PassengerFacing;
 		}
 
+		public (CPos Cell, SubCell SubCell)? ChooseExitSubCell(Actor passenger)
+		{
+			var pos = passenger.Trait<IPositionable>();
+
+			return CurrentAdjacentCells.Shuffle(self.World.SharedRandom)
+				.Select(c => (c, pos.GetAvailableSubCell(c)))
+				.Cast<(CPos, SubCell SubCell)?>()
+				.FirstOrDefault(s => s.Value.SubCell != SubCell.Invalid);
+		}
+
 		public void Load(Actor self, Actor a)
 		{
 			var w = GetWeight(a);
@@ -380,7 +390,12 @@ namespace OpenRA.Mods.Common.Traits
 				var cp = self.CenterPosition;
 				var inAir = self.World.Map.DistanceAboveTerrain(cp).Length != 0;
 				var positionable = passenger.Trait<IPositionable>();
-				positionable.SetPosition(passenger, self.Location);
+				var exitSubCell = ChooseExitSubCell(passenger);
+				if (exitSubCell != null)
+					positionable.SetPosition(passenger, exitSubCell.Value.Cell, exitSubCell.Value.SubCell);
+				else
+					positionable.SetPosition(passenger, self.Location);
+				positionable.SetVisualPosition(passenger, self.CenterPosition);
 
 				if (self.Owner.WinState != WinState.Lost && !inAir && positionable.CanEnterCell(self.Location, self, BlockedByActor.None))
 				{
@@ -432,7 +447,12 @@ namespace OpenRA.Mods.Common.Traits
 				var inAir = self.World.Map.DistanceAboveTerrain(cp).Length != 0;
 				var positionable = passenger.Trait<IPositionable>();
 				var health = passenger.TraitOrDefault<Health>();
-				positionable.SetPosition(passenger, self.Location);
+				var exitSubCell = ChooseExitSubCell(passenger);
+				if (exitSubCell != null)
+					positionable.SetPosition(passenger, exitSubCell.Value.Cell, exitSubCell.Value.SubCell);
+				else
+					positionable.SetPosition(passenger, self.Location);
+				positionable.SetVisualPosition(passenger, self.CenterPosition);
 
 				if (self.Owner.WinState != WinState.Lost && !inAir && positionable.CanEnterCell(self.Location, self, BlockedByActor.None))
 				{
