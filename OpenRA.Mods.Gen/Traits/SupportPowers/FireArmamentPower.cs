@@ -73,7 +73,7 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 			enabled = false;
 		}
 
-		void INotifyCreated.Created(Actor self)
+		protected override void Created(Actor self)
 		{
 			facing = self.TraitOrDefault<IFacing>();
 			Armaments = self.TraitsImplementing<Armament>().Where(t => t.Info.Name.Contains(FireArmamentPowerInfo.ArmamentName)).ToArray();
@@ -81,6 +81,8 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 
 			var armamentTurrets = Armaments.Select(x => x.Info.Turret).ToHashSet();
 			turreted = self.TraitsImplementing<Turreted>().Where(x => armamentTurrets.Contains(x.Name)).Count() > 0;
+
+			base.Created(self);
 		}
 
 		public override void Activate(Actor self, Order order, SupportPowerManager manager)

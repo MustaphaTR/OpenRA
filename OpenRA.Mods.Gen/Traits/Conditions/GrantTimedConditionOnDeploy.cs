@@ -92,7 +92,7 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 			body = Exts.Lazy(self.TraitOrDefault<WithSpriteBody>);
 		}
 
-		void INotifyCreated.Created(Actor self)
+		protected override void Created(Actor self)
 		{
 			if (Info.StartsFullyCharged)
 			{
@@ -104,6 +104,8 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 				ticks = Info.CooldownTicks;
 				deployState = TimedDeployState.Charging;
 			}
+
+			base.Created(self);
 		}
 
 		Order IIssueDeployOrder.IssueDeployOrder(Actor self, bool queued)

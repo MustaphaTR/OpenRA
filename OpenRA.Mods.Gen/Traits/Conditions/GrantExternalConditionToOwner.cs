@@ -31,8 +31,10 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 		public GrantExternalConditionToOwner(GrantExternalConditionToOwnerInfo info)
 			: base(info) { }
 
-		void INotifyCreated.Created(Actor self)
+		protected override void Created(Actor self)
 		{
+			base.Created(self);
+
 			UpdatePlayerConditionReference(self);
 		}
 

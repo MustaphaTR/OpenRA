@@ -33,9 +33,11 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 			health = self.Trait<Health>();
 		}
 
-		void INotifyCreated.Created(Actor self)
+		protected override void Created(Actor self)
 		{
 			buildingInfo = self.Info.TraitInfoOrDefault<BuildingInfo>();
+
+			base.Created(self);
 		}
 
 		void INotifyKilled.Killed(Actor self, AttackInfo e)
