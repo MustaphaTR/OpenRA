@@ -75,11 +75,11 @@ namespace OpenRA.Mods.Common.Traits.Render
 			if (a == null || barrel == null || !armaments.Contains(a))
 				return;
 
-			var sequence = a.Info.MuzzleSequence;
 			// Weapon might had been fired from some other attack base, such as AttackGarrisoned
 			if (!anims.ContainsKey(barrel))
 				return;
 
+			var sequence = a.Info.MuzzleSequence;
 			visible[barrel] = true;
 			anims[barrel].Animation.PlayThen(sequence, () => visible[barrel] = false);
 		}

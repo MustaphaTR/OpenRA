@@ -316,6 +316,6 @@ namespace OpenRA.Mods.Common.Traits
 			Game.Debug("Cheat used: {0} by {1}{2}", order.OrderString, self.Owner.PlayerName, debugSuffix);
 		}
 
-		bool IUnlocksRenderPlayer.RenderPlayerUnlocked { get { return Enabled; } } 
+		bool IUnlocksRenderPlayer.RenderPlayerUnlocked { get { return Enabled; } }
 	}
 }
