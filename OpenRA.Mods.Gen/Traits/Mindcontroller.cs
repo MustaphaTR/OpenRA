@@ -164,7 +164,7 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 			}
 		}
 
-		public void Killed(Actor self, AttackInfo e)
+		void INotifyKilled.Killed(Actor self, AttackInfo e)
 		{
 			ReleaseSlaves(self);
 		}

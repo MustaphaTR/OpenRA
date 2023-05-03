@@ -46,12 +46,17 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 			this.info = info;
 		}
 
-		public virtual void Created(Actor self)
+		void INotifyCreated.Created(Actor self)
+		{
+			Created(self);
+		}
+
+		protected virtual void Created(Actor self)
 		{
 			attackBases = self.TraitsImplementing<AttackBase>().ToArray();
 		}
 
-		public void Killed(Actor self, AttackInfo e)
+		void INotifyKilled.Killed(Actor self, AttackInfo e)
 		{
 			if (Master == null || Master.IsDead)
 				return;

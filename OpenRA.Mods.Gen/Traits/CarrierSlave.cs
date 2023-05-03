@@ -82,7 +82,7 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 			// return ammoPools.All(x => !x.AutoReloads && !x.HasAmmo());
 		}
 
-		public virtual void OnBecomingIdle(Actor self)
+		void INotifyBecomingIdle.OnBecomingIdle(Actor self)
 		{
 			EnterSpawner(self);
 		}

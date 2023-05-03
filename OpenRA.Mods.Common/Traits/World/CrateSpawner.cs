@@ -76,7 +76,7 @@ namespace OpenRA.Mods.Common.Traits
 			ticks = Info.InitialSpawnDelay;
 		}
 
-		void INotifyCreated.Created(Actor self)
+		protected override void Created(Actor self)
 		{
 			// Special case handling is required for the World actor.
 			// Created is called before World.WorldActor is assigned,
@@ -87,6 +87,8 @@ namespace OpenRA.Mods.Common.Traits
 			var mapOptions = worldActor.Info.TraitInfo<MapOptionsInfo>();
 			enabled = self.World.LobbyInfo.GlobalSettings
 				.OptionOrDefault("crates", mapOptions.CratesCheckboxEnabled);
+
+			base.Created(self);
 		}
 
 		void ITick.Tick(Actor self)

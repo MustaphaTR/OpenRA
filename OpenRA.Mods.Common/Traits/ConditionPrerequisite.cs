@@ -46,7 +46,7 @@ namespace OpenRA.Mods.Common.Traits
 			queues = self.TraitsImplementing<ProductionQueue>().Where(t => Info.Queue.Contains(t.Info.Type)).ToArray();
 		}
 
-		void INotifyCreated.Created(Actor self)
+		protected override void Created(Actor self)
 		{
 			if (Info.RequiresCondition == null)
 			{
@@ -67,6 +67,8 @@ namespace OpenRA.Mods.Common.Traits
 					queue.Producible[self.World.Map.Rules.Actors[Info.Actor]].Visible = false;
 				}
 			}
+
+			base.Created(self);
 		}
 
 		void INotifyOwnerChanged.OnOwnerChanged(Actor self, Player oldOwner, Player newOwner)

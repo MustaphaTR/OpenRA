@@ -143,7 +143,7 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 				loadedTokens.Push(self.GrantCondition(Info.LoadedCondition));
 		}
 
-		public void Tick(Actor self)
+		void ITick.Tick(Actor self)
 		{
 			if (respawnTicks > 0)
 			{

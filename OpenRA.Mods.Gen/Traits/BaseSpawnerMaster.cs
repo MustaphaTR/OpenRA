@@ -14,7 +14,6 @@
 
 using System;
 using System.Linq;
-using OpenRA.Mods.Common;
 using OpenRA.Mods.Common.Traits;
 using OpenRA.Primitives;
 using OpenRA.Traits;
@@ -201,7 +200,7 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 			return candidates.Random(self.World.SharedRandom);
 		}
 
-		public virtual void Killed(Actor self, AttackInfo e)
+		void INotifyKilled.Killed(Actor self, AttackInfo e)
 		{
 			// Notify slaves.
 			foreach (var se in SlaveEntries)

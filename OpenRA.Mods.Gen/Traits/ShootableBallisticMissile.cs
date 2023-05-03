@@ -61,7 +61,7 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 		public Color GetTargetLineColor() { return Color.Green; }
 	}
 
-	public class ShootableBallisticMissile : ITick, ISync, IFacing, IMove, IPositionable,
+	public class ShootableBallisticMissile : ISync, IFacing, IMove, IPositionable,
 		INotifyCreated, INotifyAddedToWorld, INotifyRemovedFromWorld, IOccupySpace
 	{
 		static readonly (CPos Cell, SubCell SubCell)[] NoCells = { };
@@ -122,12 +122,12 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 
 		public WAngle TurnSpeed => Info.TurnSpeed;
 
-		public void Created(Actor self)
+		void INotifyCreated.Created(Actor self)
 		{
 			speedModifiers = self.TraitsImplementing<ISpeedModifier>().ToArray().Select(sm => sm.GetSpeedModifier());
 		}
 
-		public void AddedToWorld(Actor self)
+		void INotifyAddedToWorld.AddedToWorld(Actor self)
 		{
 			self.World.AddToMaps(self, this);
 
@@ -135,8 +135,6 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 			if (altitude.Length >= Info.MinAirborneAltitude)
 				OnAirborneAltitudeReached();
 		}
-
-		public virtual void Tick(Actor self) { }
 
 		public int MovementSpeed
 		{
@@ -311,7 +309,7 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 
 		#endregion
 
-		public void RemovedFromWorld(Actor self)
+		void INotifyRemovedFromWorld.RemovedFromWorld(Actor self)
 		{
 			self.World.RemoveFromMaps(self, this);
 			OnAirborneAltitudeLeft();

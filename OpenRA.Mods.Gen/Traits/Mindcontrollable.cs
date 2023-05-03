@@ -130,7 +130,7 @@ namespace OpenRA.Mods.Yupgi_alert.Traits
 				Game.Sound.Play(SoundType.World, info.UnmindcontrolSound.Random(self.World.SharedRandom), self.CenterPosition);
 		}
 
-		public void Killed(Actor self, AttackInfo e)
+		void INotifyKilled.Killed(Actor self, AttackInfo e)
 		{
 			UnlinkMaster(self, master);
 		}
