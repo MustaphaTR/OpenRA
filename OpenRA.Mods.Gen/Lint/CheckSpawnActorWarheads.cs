@@ -36,8 +36,12 @@ namespace OpenRA.Mods.Yupgi_alert.Lint
 							break;
 						}
 
-						if (!rules.Actors[a.ToLowerInvariant()].HasTraitInfo<IPositionableInfo>())
-							emitError("Warhead type {0} tries to spawn unpositionable actor {1}!"
+						if (!rules.Actors[a.ToLowerInvariant()].HasTraitInfo<IOccupySpaceInfo>())
+							emitError("Warhead type {0} tries to spawn a non space occupying actor {1}!"
+							.F(weaponInfo.Key, a));
+
+						if (rules.Actors[a.ToLowerInvariant()].HasTraitInfo<BuildingInfo>())
+							emitError("Warhead type {0} tries to spawn building {1}!"
 							.F(weaponInfo.Key, a));
 
 						if (!rules.Actors[a.ToLowerInvariant()].HasTraitInfo<ParachutableInfo>() && warhead.Paradrop == true)
