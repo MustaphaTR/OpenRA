@@ -87,7 +87,7 @@ namespace OpenRA.Mods.Common.Traits.Render
 			return new float2(x, y);
 		}
 
-		bool IProductionIconOverlay.IsOverlayActive(ActorInfo ai)
+		bool IProductionIconOverlay.IsOverlayActive(ActorInfo ai, Actor producer)
 		{
 			if (!overlayActive.TryGetValue(ai, out var isActive))
 				return false;

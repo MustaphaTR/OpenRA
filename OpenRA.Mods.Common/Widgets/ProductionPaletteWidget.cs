@@ -442,7 +442,7 @@ namespace OpenRA.Mods.Common.Widgets
 		void UpdateCachedProductionIconOverlays()
 		{
 			cachedQueueOwner = CurrentQueue.Actor.Owner;
-			pios = cachedQueueOwner.PlayerActor.TraitsImplementing<IProductionIconOverlay>().ToArray();
+			pios = cachedQueueOwner.World.ActorsWithTrait<IProductionIconOverlay>().Where(a => a.Actor.Owner == cachedQueueOwner).Select(a => a.Trait).ToArray();
 		}
 
 		public void RefreshIcons()
@@ -527,7 +527,7 @@ namespace OpenRA.Mods.Common.Widgets
 				WidgetUtils.DrawSHPCentered(icon.Sprite, icon.Pos + iconOffset, icon.Palette);
 
 				// Draw the ProductionIconOverlay's sprites
-				foreach (var pio in pios.Where(p => p.IsOverlayActive(icon.Actor)))
+				foreach (var pio in pios.Where(p => p.IsOverlayActive(icon.Actor, icon.ProductionQueue.Actor)))
 					WidgetUtils.DrawSHPCentered(pio.Sprite, icon.Pos + iconOffset + pio.Offset(IconSize), worldRenderer.Palette(pio.Palette), 1f);
 
 				// Build progress
