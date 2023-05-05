@@ -92,7 +92,7 @@ namespace OpenRA.Mods.Common.Widgets
 			var playerStatistics = stats.Update(player);
 
 			var items = playerStatistics.Units.Values
-				.Where(u => u.Count > 0 && u.Icon != null)
+				.Where(u => u.Count > 0 && u.Icon != null && !u.Upgrade)
 				.OrderBy(u => u.ProductionQueueOrder)
 				.ThenBy(u => u.BuildPaletteOrder);
 

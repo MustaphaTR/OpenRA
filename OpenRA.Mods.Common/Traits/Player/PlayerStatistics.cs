@@ -151,6 +151,7 @@ namespace OpenRA.Mods.Common.Traits
 		public readonly int BuildPaletteOrder;
 		public readonly TooltipInfo TooltipInfo;
 		public readonly BuildableInfo BuildableInfo;
+		public readonly bool Upgrade;
 
 		public int Count { get; set; }
 
@@ -178,6 +179,12 @@ namespace OpenRA.Mods.Common.Traits
 					.Select(q => q.DisplayOrder)
 					.MinByOrDefault(o => o);
 			}
+
+			var upsi = actorInfo.TraitInfoOrDefault<UpdatesPlayerStatisticsInfo>();
+			if (upsi != null)
+				Upgrade = upsi.AddToUpgradesTab;
+			else
+				Upgrade = false;
 		}
 	}
 
@@ -193,6 +200,9 @@ namespace OpenRA.Mods.Common.Traits
 		[ActorReference]
 		[Desc("Count this actor as a different type in the spectator army display.")]
 		public string OverrideActor = null;
+
+		[Desc("Show this actor in the upgrades display.")]
+		public bool AddToUpgradesTab = false;
 
 		public override object Create(ActorInitializer init) { return new UpdatesPlayerStatistics(this, init.Self); }
 	}
@@ -235,11 +245,13 @@ namespace OpenRA.Mods.Common.Traits
 
 			attackerStats.KillsCost += cost;
 			playerStats.DeathsCost += cost;
+			if (includedInArmyValue || info.AddToUpgradesTab)
+				playerStats.Units[actorName].Count--;
+
 			if (includedInArmyValue)
 			{
 				playerStats.ArmyValue -= cost;
 				includedInArmyValue = false;
-				playerStats.Units[actorName].Count--;
 			}
 
 			if (includedInAssetsValue)
@@ -252,11 +264,11 @@ namespace OpenRA.Mods.Common.Traits
 		void INotifyCreated.Created(Actor self)
 		{
 			includedInArmyValue = info.AddToArmyValue;
-			if (includedInArmyValue)
-			{
-				playerStats.ArmyValue += cost;
+			if (includedInArmyValue || info.AddToUpgradesTab)
 				playerStats.Units[actorName].Count++;
-			}
+
+			if (includedInArmyValue)
+				playerStats.ArmyValue += cost;
 
 			includedInAssetsValue = info.AddToAssetsValue;
 			if (includedInAssetsValue)
@@ -266,12 +278,16 @@ namespace OpenRA.Mods.Common.Traits
 		void INotifyOwnerChanged.OnOwnerChanged(Actor self, Player oldOwner, Player newOwner)
 		{
 			var newOwnerStats = newOwner.PlayerActor.Trait<PlayerStatistics>();
+			if (includedInArmyValue || info.AddToUpgradesTab)
+			{
+				playerStats.Units[actorName].Count--;
+				newOwnerStats.Units[actorName].Count++;
+			}
+
 			if (includedInArmyValue)
 			{
 				playerStats.ArmyValue -= cost;
 				newOwnerStats.ArmyValue += cost;
-				playerStats.Units[actorName].Count--;
-				newOwnerStats.Units[actorName].Count++;
 			}
 
 			if (includedInAssetsValue)
@@ -285,11 +301,13 @@ namespace OpenRA.Mods.Common.Traits
 
 		void INotifyActorDisposing.Disposing(Actor self)
 		{
+			if (includedInArmyValue || info.AddToUpgradesTab)
+				playerStats.Units[actorName].Count--;
+
 			if (includedInArmyValue)
 			{
 				playerStats.ArmyValue -= cost;
 				includedInArmyValue = false;
-				playerStats.Units[actorName].Count--;
 			}
 
 			if (includedInAssetsValue)
