@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
+ * Copyright (c) The OpenRA Developers and Contributors
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -36,7 +36,7 @@ namespace OpenRA.GameRules
 	public class WarheadArgs
 	{
 		public WeaponInfo Weapon;
-		public int[] DamageModifiers = { };
+		public int[] DamageModifiers = Array.Empty<int>();
 		public WPos? Source;
 		public WRot ImpactOrientation;
 		public WPos ImpactPosition;
@@ -90,6 +90,12 @@ namespace OpenRA.GameRules
 		[Desc("The sound played when the weapon is reloaded.")]
 		public readonly string[] AfterFireSound = null;
 
+		[Desc("Do the sounds play under shroud or fog.")]
+		public readonly bool AudibleThroughFog = false;
+
+		[Desc("Volume the report sounds played at.")]
+		public readonly float SoundVolume = 1f;
+
 		[Desc("Delay in ticks to play reloading sound.")]
 		public readonly int AfterFireSoundDelay = 0;
 
@@ -98,6 +104,12 @@ namespace OpenRA.GameRules
 
 		[Desc("Number of shots in a single ammo magazine.")]
 		public readonly int Burst = 1;
+
+		[Desc("Can this weapon target the attacker itself?")]
+		public readonly bool CanTargetSelf = false;
+
+		[Desc("What player relationships are affected.")]
+		public readonly PlayerRelationship ValidRelationships = PlayerRelationship.Ally | PlayerRelationship.Neutral | PlayerRelationship.Enemy;
 
 		[Desc("What types of targets are affected.")]
 		public readonly BitSet<TargetableType> ValidTargets = new BitSet<TargetableType>("Ground", "Water");
@@ -145,7 +157,11 @@ namespace OpenRA.GameRules
 		{
 			if (!yaml.ToDictionary().TryGetValue("Projectile", out var proj))
 				return null;
+
 			var ret = Game.CreateObject<IProjectileInfo>(proj.Value + "Info");
+			if (ret == null)
+				return null;
+
 			FieldLoader.Load(ret, proj);
 			return ret;
 		}
@@ -156,6 +172,9 @@ namespace OpenRA.GameRules
 			foreach (var node in yaml.Nodes.Where(n => n.Key.StartsWith("Warhead")))
 			{
 				var ret = Game.CreateObject<IWarhead>(node.Value.Value + "Warhead");
+				if (ret == null)
+					continue;
+
 				FieldLoader.Load(ret, node.Value);
 				retList.Add(ret);
 			}
@@ -200,29 +219,31 @@ namespace OpenRA.GameRules
 		/// <summary>Checks if the weapon is valid against (can target) the actor.</summary>
 		public bool IsValidAgainst(Actor victim, Actor firedBy)
 		{
-			var targetTypes = victim.GetEnabledTargetTypes();
-
-			if (!IsValidTarget(targetTypes))
+			if (!CanTargetSelf && victim == firedBy)
 				return false;
 
-			// PERF: Avoid LINQ.
-			foreach (var warhead in Warheads)
-				if (warhead.IsValidAgainst(victim, firedBy))
-					return true;
+			var relationship = firedBy.Owner.RelationshipWith(victim.Owner);
+			if (!ValidRelationships.HasStance(relationship))
+				return false;
 
-			return false;
+			var targetTypes = victim.GetEnabledTargetTypes();
+			return IsValidTarget(targetTypes);
 		}
 
 		/// <summary>Checks if the weapon is valid against (can target) the frozen actor.</summary>
 		public bool IsValidAgainst(FrozenActor victim, Actor firedBy)
 		{
-			if (!IsValidTarget(victim.TargetTypes))
+			if (!victim.IsValid)
 				return false;
 
-			if (!Warheads.Any(w => w.IsValidAgainst(victim, firedBy)))
+			if (!CanTargetSelf && victim.Actor == firedBy)
 				return false;
 
-			return true;
+			var relationship = firedBy.Owner.RelationshipWith(victim.Owner);
+			if (!ValidRelationships.HasStance(relationship))
+				return false;
+
+			return IsValidTarget(victim.TargetTypes);
 		}
 
 		/// <summary>Applies all the weapon's warheads to the target.</summary>
