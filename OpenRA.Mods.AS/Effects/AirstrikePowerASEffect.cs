@@ -21,7 +21,6 @@ namespace OpenRA.Mods.AS.Effects
 {
 	public class AirstrikePowerASEffect : IEffect
 	{
-		readonly AirstrikePowerAS power;
 		readonly AirstrikePowerASInfo info;
 		readonly Player owner;
 		readonly World world;
@@ -34,7 +33,6 @@ namespace OpenRA.Mods.AS.Effects
 
 		public AirstrikePowerASEffect(World world, Player p, WPos pos, IEnumerable<Actor> planes, AirstrikePowerAS power, AirstrikePowerASInfo info)
 		{
-			this.power = power;
 			this.info = info;
 			this.world = world;
 			owner = p;

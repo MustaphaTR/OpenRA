@@ -58,16 +58,16 @@ namespace OpenRA.Mods.Common.Traits
 		public override object Create(ActorInitializer init) { return new RallyPoint(init.Self, this); }
 	}
 
-	public class RallyPoint : IIssueOrder, IResolveOrder, INotifyOwnerChanged, INotifyCreated
+	public class RallyPoint : IIssueOrder, IResolveOrder, INotifyOwnerChanged, INotifyCreated, INotifyAddedToWorld, INotifyRemovedFromWorld
 	{
 		const string OrderID = "SetRallyPoint";
+		const uint ForceSet = 1;
 
 		public List<CPos> Path;
 
 		public RallyPointInfo Info;
 		public string PaletteName { get; private set; }
-
-		const uint ForceSet = 1;
+		RallyPointIndicator effect;
 
 		public void ResetPath(Actor self)
 		{
@@ -83,7 +83,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		void INotifyCreated.Created(Actor self)
 		{
-			self.World.Add(new RallyPointIndicator(self, this));
+			effect = new RallyPointIndicator(self, this);
 		}
 
 		public void OnOwnerChanged(Actor self, Player oldOwner, Player newOwner)
@@ -138,7 +138,17 @@ namespace OpenRA.Mods.Common.Traits
 			return order.OrderString == OrderID && order.ExtraData == ForceSet;
 		}
 
-		class RallyPointOrderTargeter : IOrderTargeter
+		void INotifyAddedToWorld.AddedToWorld(Actor self)
+		{
+			self.World.AddFrameEndTask(w => w.Add(effect));
+		}
+
+		void INotifyRemovedFromWorld.RemovedFromWorld(Actor self)
+		{
+			self.World.AddFrameEndTask(w => w.Remove(effect));
+		}
+
+		sealed class RallyPointOrderTargeter : IOrderTargeter
 		{
 			readonly RallyPointInfo info;
 
@@ -151,7 +161,7 @@ namespace OpenRA.Mods.Common.Traits
 			public int OrderPriority => 0;
 			public bool TargetOverridesSelection(Actor self, in Target target, List<Actor> actorsAt, CPos xy, TargetModifiers modifiers) { return true; }
 			public bool ForceSet { get; private set; }
-			public bool IsQueued { get; protected set; }
+			public bool IsQueued { get; private set; }
 
 			public bool CanTarget(Actor self, in Target target, ref TargetModifiers modifiers, ref string cursor)
 			{

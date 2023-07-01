@@ -28,11 +28,10 @@ namespace OpenRA.Mods.AS.Effects
 		readonly WDist[] speed;
 		readonly WDist[] gravity;
 		readonly bool visibleThroughFog;
-		readonly bool scaleSizeWithZoom;
 		readonly bool canDamage;
 		readonly int turnRate;
-		readonly HashSet<IReloadModifier> reloadModifiers = new HashSet<IReloadModifier>();
-		readonly HashSet<IFirepowerModifier> damageModifiers = new HashSet<IFirepowerModifier>();
+		readonly HashSet<IReloadModifier> reloadModifiers = new();
+		readonly HashSet<IFirepowerModifier> damageModifiers = new();
 
 		WPos pos, lastPos;
 		int lifetime;
@@ -41,7 +40,7 @@ namespace OpenRA.Mods.AS.Effects
 		int facing;
 		bool ending;
 
-		public SmokeParticle(Actor invoker, ISmokeParticleInfo smoke, WPos pos, int facing = -1, bool visibleThroughFog = false, bool scaleSizeWithZoom = false)
+		public SmokeParticle(Actor invoker, ISmokeParticleInfo smoke, WPos pos, int facing = -1, bool visibleThroughFog = false)
 		{
 			this.invoker = invoker;
 			world = invoker.World;
@@ -49,7 +48,6 @@ namespace OpenRA.Mods.AS.Effects
 			this.smoke = smoke;
 			speed = smoke.Speed;
 			gravity = smoke.Gravity;
-			this.scaleSizeWithZoom = scaleSizeWithZoom;
 			this.visibleThroughFog = visibleThroughFog;
 
 			if (invoker != null && !invoker.IsDead)
@@ -141,7 +139,7 @@ namespace OpenRA.Mods.AS.Effects
 				};
 
 				smoke.Weapon.Impact(Target.FromPos(pos), args);
-				explosionInterval = OpenRA.Mods.Common.Util.ApplyPercentageModifiers(smoke.Weapon.ReloadDelay, reloadModifiers.Select(m => m.GetReloadModifier()));
+				explosionInterval = Common.Util.ApplyPercentageModifiers(smoke.Weapon.ReloadDelay, reloadModifiers.Select(m => m.GetReloadModifier()));
 			}
 		}
 

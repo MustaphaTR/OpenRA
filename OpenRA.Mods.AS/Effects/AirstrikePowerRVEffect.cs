@@ -23,15 +23,12 @@ namespace OpenRA.Mods.AS.Effects
 {
 	public class AirstrikePowerRVEffect : IEffect
 	{
-		readonly AirstrikePowerRV power;
 		readonly AirstrikePowerRVInfo info;
 		readonly Player owner;
 		readonly World world;
 		readonly WPos target;
-		readonly WPos startEdge;
 		readonly WPos finishEdge;
 		readonly WRot attackRotation;
-		readonly int altitude;
 		readonly int level;
 
 		int ticks = 0;
@@ -44,15 +41,12 @@ namespace OpenRA.Mods.AS.Effects
 
 		public AirstrikePowerRVEffect(World world, Player p, WPos target, WPos startEdge, WPos finishEdge, WRot attackRotation, int altitude, int level, Actor[] aircraft, AirstrikePowerRV power, AirstrikePowerRVInfo info)
 		{
-			this.power = power;
 			this.info = info;
 			this.world = world;
 			owner = p;
 			this.target = target;
-			this.startEdge = startEdge;
 			this.finishEdge = finishEdge;
 			this.attackRotation = attackRotation;
-			this.altitude = altitude;
 			this.level = level;
 			this.aircraft = aircraft;
 			ticks = 0;
@@ -60,7 +54,7 @@ namespace OpenRA.Mods.AS.Effects
 			if (info.DisplayBeacon)
 			{
 				var distance = (target - startEdge).HorizontalLength;
-				Actor distanceTestActor = aircraft.Last();
+				var distanceTestActor = aircraft.Last();
 
 				beacon = new Beacon(
 					owner,
@@ -77,7 +71,7 @@ namespace OpenRA.Mods.AS.Effects
 					() => FractionComplete(distanceTestActor, target, distance),
 					info.BeaconDelay);
 
-				world.Add(beacon);
+				world.AddFrameEndTask(w => w.Add(beacon));
 			}
 		}
 
@@ -92,28 +86,31 @@ namespace OpenRA.Mods.AS.Effects
 
 			if (!spawned)
 			{
-				var j = 0;
-				var squadSize = info.SquadSizes.First(ss => ss.Key == level).Value;
-				for (var i = -squadSize / 2; i <= squadSize / 2; i++)
+				world.AddFrameEndTask(w =>
 				{
-					// Even-sized squads skip the lead plane
-					if (i == 0 && (squadSize & 1) == 0)
-						continue;
+					var j = 0;
+					var squadSize = info.SquadSizes.First(ss => ss.Key == level).Value;
+					for (var i = -squadSize / 2; i <= squadSize / 2; i++)
+					{
+						// Even-sized squads skip the lead plane
+						if (i == 0 && (squadSize & 1) == 0)
+							continue;
 
-					// Includes the 90 degree rotation between body and world coordinates
-					var so = info.SquadOffset;
-					var spawnOffset = new WVec(i * so.Y, -Math.Abs(i) * so.X, 0).Rotate(attackRotation);
+						// Includes the 90 degree rotation between body and world coordinates
+						var so = info.SquadOffset;
+						var spawnOffset = new WVec(i * so.Y, -Math.Abs(i) * so.X, 0).Rotate(attackRotation);
 
-					var a = aircraft[j++];
-					if (a.IsDead)
-						continue;
+						var a = aircraft[j++];
+						if (a.IsDead)
+							continue;
 
-					world.Add(a);
+						world.Add(a);
 
-					a.QueueActivity(new Fly(a, Target.FromPos(target + spawnOffset)));
-					a.QueueActivity(new Fly(a, Target.FromPos(finishEdge + spawnOffset)));
-					a.QueueActivity(new RemoveSelf());
-				}
+						a.QueueActivity(new Fly(a, Target.FromPos(target + spawnOffset)));
+						a.QueueActivity(new Fly(a, Target.FromPos(finishEdge + spawnOffset)));
+						a.QueueActivity(new RemoveSelf());
+					}
+				});
 
 				spawned = true;
 			}
@@ -136,7 +133,7 @@ namespace OpenRA.Mods.AS.Effects
 		float FractionComplete(Actor distanceTestActor, WPos target, int distance)
 		{
 			if (info.ActivationDelay > 0)
-				return ((ticks * 1f / info.ActivationDelay) + (1 - ((distanceTestActor.CenterPosition - target).HorizontalLength - info.BeaconDistanceOffset.Length * 1f) / distance)) / 2;
+				return (ticks * 1f / info.ActivationDelay + (1 - ((distanceTestActor.CenterPosition - target).HorizontalLength - info.BeaconDistanceOffset.Length * 1f) / distance)) / 2;
 
 			return 1 - ((distanceTestActor.CenterPosition - target).HorizontalLength - info.BeaconDistanceOffset.Length) * 1f / distance;
 		}
