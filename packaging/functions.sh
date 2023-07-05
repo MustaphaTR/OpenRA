@@ -14,6 +14,7 @@
 #   COPY_GENERIC_LAUNCHER: If set to True the OpenRA.exe will also be copied (True, False)
 #   COPY_CNC_DLL: If set to True the OpenRA.Mods.Cnc.dll will also be copied (True, False)
 #   COPY_D2K_DLL: If set to True the OpenRA.Mods.D2k.dll will also be copied (True, False)
+#   COPY_GEN_DLL: If set to True the OpenRA.Mods.Gen.dll will also be copied (True, False)
 # Used by:
 #   Makefile (install target for local installs and downstream packaging)
 #   Linux AppImage packaging
@@ -29,6 +30,7 @@ install_assemblies_mono() {
 	COPY_GENERIC_LAUNCHER="${4}"
 	COPY_CNC_DLL="${5}"
 	COPY_D2K_DLL="${6}"
+	COPY_GEN_DLL="${7}"
 
 	echo "Building assemblies"
 	ORIG_PWD=$(pwd)
@@ -63,6 +65,10 @@ install_assemblies_mono() {
 
 	if [ "${COPY_D2K_DLL}" = "True" ]; then
 		install -m644 "${SRC_PATH}/bin/OpenRA.Mods.D2k.dll" "${DEST_PATH}"
+	fi
+
+	if [ "${COPY_GEN_DLL}" = "True" ]; then
+		install -m644 "${SRC_PATH}/bin/OpenRA.Mods.Gen.dll" "${DEST_PATH}"
 	fi
 
 	# Managed Dependencies
