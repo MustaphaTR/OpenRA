@@ -128,7 +128,7 @@ namespace OpenRA.Mods.Common.Activities
 
 				return true;
 			}
-			else if (activeResupplyTypes != 0 && aircraft == null && !isCloseEnough)
+			else if (activeResupplyTypes != 0 && (aircraft == null || aircraft.Info.VTOL) && !isCloseEnough)
 			{
 				var targetCell = self.World.Map.CellContaining(host.Actor.CenterPosition);
 				QueueChild(move.MoveWithinRange(host, closeEnough, targetLineColor: moveInfo.GetTargetLineColor()));
