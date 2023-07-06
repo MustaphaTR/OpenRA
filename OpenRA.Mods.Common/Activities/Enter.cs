@@ -24,17 +24,22 @@ namespace OpenRA.Mods.Common.Activities
 		enum EnterState { Approaching, Entering, Exiting, Finished }
 
 		readonly IMove move;
+		readonly Mobile mobile;
 		readonly Color? targetLineColor;
 
 		Target target;
 		Target lastVisibleTarget;
 		bool useLastVisibleTarget;
 		EnterState lastState = EnterState.Approaching;
+		bool wasMobileMoved = false;
 
 		protected Enter(Actor self, in Target target, Color? targetLineColor = null)
 		{
 			ActivityType = ActivityType.Move;
 			move = self.Trait<IMove>();
+			mobile = move as Mobile;
+			if (mobile != null)
+				mobile.MoveResult = MoveResult.SoFarSoGood;
 			this.target = target;
 			this.targetLineColor = targetLineColor;
 			ChildHasPriority = false;
@@ -73,6 +78,11 @@ namespace OpenRA.Mods.Common.Activities
 			if (!IsCanceling && useLastVisibleTarget && lastState == EnterState.Entering)
 				Cancel(self, true);
 
+			if (wasMobileMoved && mobile != null && mobile.MoveResult == MoveResult.MovementStuck)
+				return true;
+			else
+				wasMobileMoved = false;
+
 			TickInner(self, target, useLastVisibleTarget);
 
 			// We need to wait for movement to finish before transitioning to
@@ -100,6 +110,7 @@ namespace OpenRA.Mods.Common.Activities
 						// Target lines are managed by this trait, so we do not pass targetLineColor
 						var initialTargetPosition = (useLastVisibleTarget ? lastVisibleTarget : target).CenterPosition;
 						QueueChild(move.MoveToTarget(self, target, initialTargetPosition));
+						wasMobileMoved = true;
 						return false;
 					}
 
@@ -113,6 +124,7 @@ namespace OpenRA.Mods.Common.Activities
 					{
 						lastState = EnterState.Entering;
 						QueueChild(move.MoveIntoTarget(self, target));
+						wasMobileMoved = true;
 						return false;
 					}
 
@@ -138,6 +150,7 @@ namespace OpenRA.Mods.Common.Activities
 				case EnterState.Exiting:
 				{
 					QueueChild(move.ReturnToCell(self));
+					wasMobileMoved = true;
 					lastState = EnterState.Finished;
 					return false;
 				}

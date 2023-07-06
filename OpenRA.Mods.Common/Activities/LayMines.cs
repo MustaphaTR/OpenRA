@@ -26,10 +26,12 @@ namespace OpenRA.Mods.Common.Activities
 		readonly IMove movement;
 		readonly IMoveInfo moveInfo;
 		readonly RearmableInfo rearmableInfo;
+		readonly Mobile mobile;
 
 		List<CPos> minefield;
 		bool returnToBase;
 		Actor rearmTarget;
+		bool wasMobileMoved = false;
 
 		public LayMines(Actor self, List<CPos> minefield = null)
 		{
@@ -40,6 +42,9 @@ namespace OpenRA.Mods.Common.Activities
 			moveInfo = self.Info.TraitInfo<IMoveInfo>();
 			rearmableInfo = self.Info.TraitInfoOrDefault<RearmableInfo>();
 			this.minefield = minefield;
+			mobile = movement as Mobile;
+			if (mobile != null)
+				mobile.MoveResult = MoveResult.SoFarSoGood;
 		}
 
 		protected override void OnFirstRun(Actor self)
@@ -64,6 +69,11 @@ namespace OpenRA.Mods.Common.Activities
 			if (IsCanceling)
 				return true;
 
+			if (wasMobileMoved && mobile != null && mobile.MoveResult == MoveResult.MovementStuck)
+				return true;
+			else
+				wasMobileMoved = false;
+
 			if ((minefield == null || minefield.Contains(self.Location)) && CanLayMine(self, self.Location))
 			{
 				if (rearmableInfo != null && ammoPools.Any(p => p.Info.Name == minelayer.Info.AmmoPoolName && !p.HasAmmo))
@@ -80,6 +90,7 @@ namespace OpenRA.Mods.Common.Activities
 					QueueChild(movement.MoveTo(self.World.Map.CellContaining(rearmTarget.CenterPosition), ignoreActor: rearmTarget));
 					QueueChild(new Resupply(self, rearmTarget, new WDist(512)));
 					returnToBase = true;
+					wasMobileMoved = true;
 					return false;
 				}
 
@@ -92,6 +103,7 @@ namespace OpenRA.Mods.Common.Activities
 			var nextCell = NextValidCell(self);
 			if (nextCell != null)
 			{
+				wasMobileMoved = true;
 				QueueChild(movement.MoveTo(nextCell.Value, 0));
 				return false;
 			}

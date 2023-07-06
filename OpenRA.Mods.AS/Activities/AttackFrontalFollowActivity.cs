@@ -26,6 +26,8 @@ namespace OpenRA.Mods.AS.Activities
 		readonly AttackFollowFrontal attack;
 		readonly RevealsShroud[] revealsShroud;
 		readonly IMove move;
+		readonly bool isAircraft;
+		readonly Mobile mobile;
 		readonly bool forceAttack;
 		readonly Color? targetLineColor;
 		readonly IFacing facing;
@@ -45,6 +47,13 @@ namespace OpenRA.Mods.AS.Activities
 			ActivityType = ActivityType.Attack;
 			attack = self.Trait<AttackFollowFrontal>();
 			move = allowMove ? self.TraitOrDefault<IMove>() : null;
+			isAircraft = self.Info.HasTraitInfo<AircraftInfo>();
+			if (!isAircraft && move != null)
+			{
+				mobile = move as Mobile;
+				mobile.MoveResult = MoveResult.SoFarSoGood;
+			}
+
 			revealsShroud = self.TraitsImplementing<RevealsShroud>().ToArray();
 			facing = self.Trait<IFacing>();
 
@@ -138,8 +147,14 @@ namespace OpenRA.Mods.AS.Activities
 
 			// If we are ticking again after previously sequencing a MoveWithRange then that move must have completed
 			// Either we are in range and can see the target, or we've lost track of it and should give up
-			if (wasMovingWithinRange && targetIsHiddenActor)
-				return true;
+			if (wasMovingWithinRange)
+			{
+				wasMovingWithinRange = false;
+				if (targetIsHiddenActor)
+					return true;
+				else if (!isAircraft && mobile.MoveResult == MoveResult.MovementStuck)
+					return true;
+			}
 
 			// Target is hidden or dead, and we don't have a fallback position to move towards
 			if (useLastVisibleTarget && !lastVisibleTarget.IsValidFor(self))

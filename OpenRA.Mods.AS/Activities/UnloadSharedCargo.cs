@@ -34,6 +34,7 @@ namespace OpenRA.Mods.AS.Activities
 
 		Target destination;
 		bool takeOffAfterUnload;
+		bool wasMobileMoved = false;
 
 		public UnloadSharedCargo(Actor self, WDist unloadRange, bool unloadAll = true)
 			: this(self, Target.Invalid, unloadRange, unloadAll)
@@ -91,6 +92,7 @@ namespace OpenRA.Mods.AS.Activities
 			{
 				var cell = self.World.Map.Clamp(this.self.World.Map.CellContaining(destination.CenterPosition));
 				QueueChild(new Move(self, cell, unloadRange));
+				wasMobileMoved = true;
 			}
 
 			QueueChild(new Wait(cargo.Info.BeforeUnloadDelay));
@@ -100,6 +102,11 @@ namespace OpenRA.Mods.AS.Activities
 		{
 			if (IsCanceling || cargo.Manager.IsEmpty())
 				return true;
+
+			if (wasMobileMoved && mobile != null && mobile.MoveResult == MoveResult.MovementStuck)
+				return true;
+			else
+				wasMobileMoved = false;
 
 			if (cargo.CanUnload())
 			{

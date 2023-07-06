@@ -57,10 +57,11 @@ namespace OpenRA.Mods.Common.Activities
 			revealsShroud = self.TraitsImplementing<RevealsShroud>().ToArray();
 			facing = self.Trait<IFacing>();
 			positionable = self.Trait<IPositionable>();
-
-			var iMove = self.TraitOrDefault<IMove>();
-			mobile = iMove as Mobile;
-			move = allowMovement ? iMove : null;
+			move = allowMovement ? self.TraitOrDefault<IMove>() : null;
+			if (move != null)
+				mobile = move as Mobile;
+			if (mobile != null)
+				mobile.MoveResult = MoveResult.SoFarSoGood;
 
 			// The target may become hidden between the initial order request and the first tick (e.g. if queued)
 			// Moving to any position (even if quite stale) is still better than immediately giving up
@@ -117,8 +118,13 @@ namespace OpenRA.Mods.Common.Activities
 
 			// If we are ticking again after previously sequencing a MoveWithRange then that move must have completed
 			// Either we are in range and can see the target, or we've lost track of it and should give up
-			if (wasMovingWithinRange && targetIsHiddenActor)
-				return true;
+			if (wasMovingWithinRange)
+			{
+				if (targetIsHiddenActor)
+					return true;
+				else if (mobile != null && mobile.MoveResult == MoveResult.MovementStuck)
+					return true;
+			}
 
 			// Target is hidden or dead, and we don't have a fallback position to move towards
 			if (useLastVisibleTarget && !lastVisibleTarget.IsValidFor(self))
