@@ -132,7 +132,7 @@ namespace OpenRA.Mods.Common.Traits
 				if (item == null)
 					return false;
 
-				bot.QueueOrder(Order.StartProduction(queue.Actor, item.Name, 1));
+				bot.QueueOrder(Order.StartProductionAI(queue.Actor, item.Name, 1));
 				productOnce = true;
 			}
 			else if (currentBuilding != null && currentBuilding.Done)
