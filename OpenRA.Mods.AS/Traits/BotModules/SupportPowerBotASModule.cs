@@ -88,7 +88,7 @@ namespace OpenRA.Mods.AS.Traits
 						continue;
 					}
 
-					if (sp.Info.Cost != 0 && playerResource.Cash + playerResource.Resources < sp.Info.Cost)
+					if (sp.Info.Cost != 0 && playerResource.GetCashAndResources() < sp.Info.Cost)
 					{
 						AIUtils.BotDebug("AI: {1} can't afford the activation of support power {0}. Delaying rescan.", sp.Info.OrderName, player.PlayerName);
 						waitingPowers[sp] += powerDecision.GetNextScanTime(world);

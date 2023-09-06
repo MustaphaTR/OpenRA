@@ -148,7 +148,7 @@ namespace OpenRA.Mods.AS.Widgets.Logic
 				costIcon.IsVisible = () => cost != 0;
 
 				costLabel.Text = cost.ToString(NumberFormatInfo.CurrentInfo);
-				costLabel.GetColor = () => pr.Cash + pr.Resources >= cost ? Color.White : Color.Red;
+				costLabel.GetColor = () => pr.GetCashAndResources() >= cost ? Color.White : Color.Red;
 				var costSize = font.Measure(costLabel.Text);
 
 				var powerSize = new int2(0, 0);

@@ -235,7 +235,7 @@ namespace OpenRA.Mods.Common.Traits
 
 					// Record buildings being produced only when AI can produce,
 					// and record their power only when AI can produce
-					if (playerResources.Cash >= Info.ProductionMinCashRequirement)
+					if (playerResources.GetCashAndResources() >= Info.ProductionMinCashRequirement)
 					{
 						foreach (var queue in queues)
 						{

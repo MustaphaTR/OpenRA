@@ -473,7 +473,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 
 			var res = player.PlayerActor.Trait<PlayerResources>();
 			var cashText = new CachedTransform<int, string>(i => "$" + i);
-			template.Get<LabelWidget>("CASH").GetText = () => cashText.Update(res.Cash + res.Resources);
+			template.Get<LabelWidget>("CASH").GetText = () => cashText.Update(res.GetCashAndResources());
 
 			var incomeText = new CachedTransform<int, string>(i => "$" + i);
 			template.Get<LabelWidget>("INCOME").GetText = () => incomeText.Update(stats.DisplayIncome);
@@ -514,7 +514,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 
 			var res = player.PlayerActor.Trait<PlayerResources>();
 			var cashText = new CachedTransform<int, string>(i => "$" + i);
-			template.Get<LabelWidget>("CASH").GetText = () => cashText.Update(res.Cash + res.Resources);
+			template.Get<LabelWidget>("CASH").GetText = () => cashText.Update(res.GetCashAndResources());
 
 			var powerRes = player.PlayerActor.TraitOrDefault<PowerManager>();
 			if (powerRes != null)
@@ -548,7 +548,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 
 			var res = player.PlayerActor.Trait<PlayerResources>();
 			var cashText = new CachedTransform<int, string>(i => "$" + i);
-			template.Get<LabelWidget>("CASH").GetText = () => cashText.Update(res.Cash + res.Resources);
+			template.Get<LabelWidget>("CASH").GetText = () => cashText.Update(res.GetCashAndResources());
 
 			var powerRes = player.PlayerActor.TraitOrDefault<PowerManager>();
 			if (powerRes != null)
