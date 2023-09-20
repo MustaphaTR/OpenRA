@@ -9,12 +9,18 @@
  */
 #endregion
 
+using System;
 using OpenRA.Primitives;
 using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.Traits
 {
-	public abstract class DockClientBaseInfo : ConditionalTraitInfo, IDockClientInfo, Requires<DockClientManagerInfo> { }
+	public abstract class DockClientBaseInfo : ConditionalTraitInfo, IDockClientInfo, Requires<DockClientManagerInfo>
+	{
+		[Desc("Player relationships the owner of the dock host needs, when not forced enter.",
+			"Use None to only allow the same owner.")]
+		public readonly PlayerRelationship ValidRelationships = PlayerRelationship.None;
+	}
 
 	public abstract class DockClientBase<InfoType> : ConditionalTrait<InfoType>, IDockClient, INotifyCreated where InfoType : DockClientBaseInfo
 	{
@@ -22,12 +28,17 @@ namespace OpenRA.Mods.Common.Traits
 
 		public abstract BitSet<DockType> GetDockType { get; }
 		public DockClientManager DockClientManager { get; }
+		readonly Predicate<Actor> hasValidRelationshipWith;
 
 		protected DockClientBase(Actor self, InfoType info)
 			: base(info)
 		{
 			this.self = self;
 			DockClientManager = self.Trait<DockClientManager>();
+			if (info.ValidRelationships == PlayerRelationship.None)
+				hasValidRelationshipWith = a => a.Owner == self.Owner;
+			else
+				hasValidRelationshipWith = a => info.ValidRelationships.HasRelationship(a.Owner.RelationshipWith(self.Owner));
 		}
 
 		protected virtual bool CanDock()
@@ -42,7 +53,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		public virtual bool CanDockAt(Actor hostActor, IDockHost host, bool forceEnter = false, bool ignoreOccupancy = false)
 		{
-			return (forceEnter || self.Owner.IsAlliedWith(hostActor.Owner)) && IsDockingPossible(host.GetDockType, forceEnter) && host.IsDockingPossible(self, this, ignoreOccupancy);
+			return (forceEnter || hasValidRelationshipWith(hostActor)) && IsDockingPossible(host.GetDockType, forceEnter) && host.IsDockingPossible(self, this, ignoreOccupancy);
 		}
 
 		public virtual void OnDockStarted(Actor self, Actor hostActor, IDockHost host) { }
