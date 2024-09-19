@@ -99,7 +99,8 @@ namespace OpenRA.Mods.Common.Traits
 					new SpawnedByMapInit(),
 				});
 				var baseActorIsMovable =
-					baseActor.OccupiesSpace is Mobile mobile && !mobile.IsTraitDisabled && !mobile.IsTraitPaused && !mobile.IsImmovable;
+					(baseActor.OccupiesSpace is Mobile mobile && !mobile.IsTraitDisabled && !mobile.IsTraitPaused && !mobile.IsImmovable) ||
+					(baseActor.OccupiesSpace is Aircraft aircraft && !aircraft.IsTraitDisabled && !aircraft.IsTraitPaused && !aircraft.ForceLanding);
 				if (baseActorIsMovable)
 				{
 					// If the base is movable, we want support actors to be able to path to its location.
