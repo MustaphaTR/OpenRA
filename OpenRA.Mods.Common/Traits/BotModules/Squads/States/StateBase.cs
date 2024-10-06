@@ -247,7 +247,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 
 			foreach (var u in squad.Units)
 			{
-				if (IsRearming(u.Actor) || IsAttackingAndTryAttack(u.Actor).IsFiring)
+				if (IsRearming(u.Actor))
 					continue;
 
 				var orderQueued = false;
@@ -262,6 +262,10 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 						orderQueued = true;
 					}
 				}
+
+				// Don't retreat unit that has a target
+				if (IsAttackingAndTryAttack(u.Actor).IsFiring)
+					continue;
 
 				// Try repair units.
 				// Don't use grounp order here becuase we have 2 kinds of repaid orders and we need to find repair building for both traits.
