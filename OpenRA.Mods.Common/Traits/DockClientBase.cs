@@ -52,24 +52,16 @@ namespace OpenRA.Mods.Common.Traits
 				hasDockForcedRelationshipWith = a => info.ForceDockRelationships.HasRelationship(a.Owner.RelationshipWith(self.Owner));
 		}
 
-		protected virtual bool CanDock()
+		public virtual bool CanDock(BitSet<DockType> type, bool forceEnter = false)
 		{
-			return true;
-		}
-
-		public virtual bool IsDockingPossible(BitSet<DockType> type, bool? forceEnter = false)
-		{
-			return !IsTraitDisabled && GetDockType.Overlaps(type) && (!forceEnter.HasValue || forceEnter.Value || CanDock());
+			return !IsTraitDisabled && GetDockType.Overlaps(type);
 		}
 
 		public virtual bool CanDockAt(Actor hostActor, IDockHost host, bool? forceEnter = false, bool ignoreOccupancy = false)
 		{
-			return (forceEnter.HasValue
-				? (forceEnter.Value
-					? hasDockForcedRelationshipWith(hostActor)
-					: hasDockRelationshipWith(hostActor))
-				: (hasDockForcedRelationshipWith(hostActor) || hasDockRelationshipWith(hostActor)))
-					&& IsDockingPossible(host.GetDockType, forceEnter) && host.IsDockingPossible(self, this, ignoreOccupancy);
+			return (forceEnter || self.Owner.IsAlliedWith(hostActor.Owner)) &&
+				CanDock(host.GetDockType, forceEnter) &&
+				host.IsDockingPossible(self, this, ignoreOccupancy);
 		}
 
 		public virtual void OnDockStarted(Actor self, Actor hostActor, IDockHost host) { }

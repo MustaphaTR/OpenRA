@@ -66,7 +66,7 @@ namespace OpenRA.Mods.Common.Traits
 		public readonly bool ForceIconLocation = false;
 
 		[Desc("Text shown in the production tooltip.")]
-		[TranslationReference(optional: true)]
+		[FluentReference(optional: true)]
 		public readonly string Description;
 
 		[NotificationReference("Speech")]

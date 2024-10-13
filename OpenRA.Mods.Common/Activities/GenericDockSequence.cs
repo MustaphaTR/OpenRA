@@ -41,7 +41,8 @@ namespace OpenRA.Mods.Common.Activities
 
 		bool dockInitiated = false;
 
-		public GenericDockSequence(Actor self, DockClientManager client, Actor hostActor, IDockHost host)
+		public GenericDockSequence(Actor self, DockClientManager client, Actor hostActor, IDockHost host,
+			int dockWait, bool isDragRequired, WVec dragOffset, int dragLength)
 		{
 			ActivityType = ActivityType.Move;
 			dockingState = DockingState.Drag;
@@ -55,17 +56,12 @@ namespace OpenRA.Mods.Common.Activities
 			DockHostSpriteOverlay = hostActor.TraitOrDefault<WithDockingOverlay>();
 			notifyDockHosts = hostActor.TraitsImplementing<INotifyDockHost>().ToArray();
 
-			if (host is IDockHostDrag sequence)
-			{
-				IsDragRequired = sequence.IsDragRequired;
-				DragLength = sequence.DragLength;
-				StartDrag = self.CenterPosition;
-				EndDrag = hostActor.CenterPosition + sequence.DragOffset;
-			}
-			else
-				IsDragRequired = false;
+			IsDragRequired = isDragRequired;
+			DragLength = dragLength;
+			StartDrag = self.CenterPosition;
+			EndDrag = hostActor.CenterPosition + dragOffset;
 
-			QueueChild(new Wait(host.DockWait));
+			QueueChild(new Wait(dockWait));
 		}
 
 		public override bool Tick(Actor self)
@@ -203,7 +199,7 @@ namespace OpenRA.Mods.Common.Activities
 			foreach (var nd in notifyDockClients)
 				nd.Undocked(self, DockHostActor);
 
-			if (DockHostActor.IsInWorld && !DockHostActor.IsDead)
+			if (!DockHostActor.IsDead)
 				foreach (var nd in notifyDockHosts)
 					nd.Undocked(DockHostActor, self);
 		}

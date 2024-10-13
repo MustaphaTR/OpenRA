@@ -141,7 +141,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		public List<Squad> Squads = new();
 		readonly Stack<Squad> squadsPendingUpdate = new();
-		readonly ActorIndex.OwnerAndNamesAndTrait<Building> constructionYardBuildings;
+		readonly ActorIndex.OwnerAndNamesAndTrait<BuildingInfo> constructionYardBuildings;
 
 		IBot bot;
 		IBotPositionsUpdated[] notifyPositionsUpdated;
@@ -164,7 +164,7 @@ namespace OpenRA.Mods.Common.Traits
 			alertedTicks = 0;
 
 			UnitCannotBeOrdered = a => a == null || a.Owner != Player || a.IsDead || !a.IsInWorld || a.CurrentActivity is Enter;
-			constructionYardBuildings = new ActorIndex.OwnerAndNamesAndTrait<Building>(World, info.ConstructionYardTypes, Player);
+			constructionYardBuildings = new ActorIndex.OwnerAndNamesAndTrait<BuildingInfo>(World, info.ConstructionYardTypes, Player);
 		}
 
 		// Use for proactive targeting.

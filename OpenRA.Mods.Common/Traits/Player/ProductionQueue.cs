@@ -67,7 +67,7 @@ namespace OpenRA.Mods.Common.Traits
 			"The filename of the audio is defined per faction in notifications.yaml.")]
 		public readonly string ReadyAudio = null;
 
-		[TranslationReference(optional: true)]
+		[FluentReference(optional: true)]
 		[Desc("Notification displayed when production is complete.")]
 		public readonly string ReadyTextNotification = null;
 
@@ -77,7 +77,7 @@ namespace OpenRA.Mods.Common.Traits
 			"The filename of the audio is defined per faction in notifications.yaml.")]
 		public readonly string BlockedAudio = null;
 
-		[TranslationReference(optional: true)]
+		[FluentReference(optional: true)]
 		[Desc("Notification displayed when you can't train another actor",
 			"when the build limit exceeded or the exit is jammed.")]
 		public readonly string BlockedTextNotification = null;
@@ -88,7 +88,7 @@ namespace OpenRA.Mods.Common.Traits
 			"The filename of the audio is defined per faction in notifications.yaml.")]
 		public readonly string LimitedAudio = null;
 
-		[TranslationReference(optional: true)]
+		[FluentReference(optional: true)]
 		[Desc("Notification displayed when you can't queue another actor",
 			"when the queue length limit is exceeded.")]
 		public readonly string LimitedTextNotification = null;
@@ -108,7 +108,7 @@ namespace OpenRA.Mods.Common.Traits
 			"The filename of the audio is defined per faction in notifications.yaml.")]
 		public readonly string QueuedAudio = null;
 
-		[TranslationReference(optional: true)]
+		[FluentReference(optional: true)]
 		[Desc("Notification displayed when user clicks on the build palette icon.")]
 		public readonly string QueuedTextNotification = null;
 
@@ -117,7 +117,7 @@ namespace OpenRA.Mods.Common.Traits
 			"The filename of the audio is defined per faction in notifications.yaml.")]
 		public readonly string OnHoldAudio = null;
 
-		[TranslationReference(optional: true)]
+		[FluentReference(optional: true)]
 		[Desc("Notification displayed when player right-clicks on the build palette icon.")]
 		public readonly string OnHoldTextNotification = null;
 
@@ -126,7 +126,7 @@ namespace OpenRA.Mods.Common.Traits
 			"The filename of the audio is defined per faction in notifications.yaml.")]
 		public readonly string CancelledAudio = null;
 
-		[TranslationReference(optional: true)]
+		[FluentReference(optional: true)]
 		[Desc("Notification displayed when player right-clicks on a build palette icon that is already on hold.")]
 		public readonly string CancelledTextNotification = null;
 

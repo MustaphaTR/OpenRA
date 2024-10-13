@@ -21,7 +21,7 @@ namespace OpenRA.Mods.Common.Widgets
 {
 	public class SupportPowerTimerWidget : Widget
 	{
-		[TranslationReference("player", "support-power", "time")]
+		[FluentReference("player", "support-power", "time")]
 		const string Format = "support-power-timer";
 
 		public readonly string Font = "Bold";
@@ -62,9 +62,11 @@ namespace OpenRA.Mods.Common.Widgets
 				var owner = self.Owner;
 				var viewer = owner.World.RenderPlayer ?? owner.World.LocalPlayer;
 				var time = WidgetUtils.FormatTime(p.RemainingTicks, false, self.World.Timestep);
-				var supportPowerName = TranslationProvider.GetString(p.Info.NameForPlayerStance(owner.RelationshipWith(viewer), level));
-				var text = TranslationProvider.GetString(
-					Format, Translation.Arguments("player", owner.ResolvedPlayerName, "support-power", supportPowerName, "time", time));
+				var supportPowerName = FluentProvider.GetString(p.Info.NameForPlayerStance(owner.RelationshipWith(viewer), level));
+				var text = FluentProvider.GetString(Format,
+					"player", owner.ResolvedPlayerName,
+					"support-power", supportPowerName,
+					"time", time);
 
 				var color = !p.Ready || Game.LocalTick % 50 < 25 ? self.OwnerColor() : Color.White;
 

@@ -21,11 +21,11 @@ namespace OpenRA.Mods.Common.Traits
 	[Desc("Attach this to the player actor.")]
 	public class DeveloperModeInfo : TraitInfo, ILobbyOptions
 	{
-		[TranslationReference]
+		[FluentReference]
 		[Desc("Descriptive label for the developer mode checkbox in the lobby.")]
 		public readonly string CheckboxLabel = "checkbox-debug-menu.label";
 
-		[TranslationReference]
+		[FluentReference]
 		[Desc("Tooltip description for the developer mode checkbox in the lobby.")]
 		public readonly string CheckboxDescription = "checkbox-debug-menu.description";
 
@@ -76,7 +76,7 @@ namespace OpenRA.Mods.Common.Traits
 
 	public class DeveloperMode : IResolveOrder, ISync, INotifyCreated, IUnlocksRenderPlayer
 	{
-		[TranslationReference("cheat", "player", "suffix")]
+		[FluentReference("cheat", "player", "suffix")]
 		const string CheatUsed = "notification-cheat-used";
 
 		[TranslationReference("actor")]
@@ -323,8 +323,10 @@ namespace OpenRA.Mods.Common.Traits
 					return;
 			}
 
-			var arguments = Translation.Arguments("cheat", order.OrderString, "player", self.Owner.ResolvedPlayerName, "suffix", debugSuffix);
-			TextNotificationsManager.Debug(TranslationProvider.GetString(CheatUsed, arguments));
+			TextNotificationsManager.Debug(FluentProvider.GetString(CheatUsed,
+				"cheat", order.OrderString,
+				"player", self.Owner.ResolvedPlayerName,
+				"suffix", debugSuffix));
 		}
 
 		bool IUnlocksRenderPlayer.RenderPlayerUnlocked => Enabled;

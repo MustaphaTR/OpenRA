@@ -24,82 +24,82 @@ namespace OpenRA.Mods.Common.Commands
 
 	public class DevCommands : IChatCommand, IWorldLoaded
 	{
-		[TranslationReference]
+		[FluentReference]
 		const string CheatsDisabled = "notification-cheats-disabled";
 
-		[TranslationReference]
+		[FluentReference]
 		const string InvalidCashAmount = "notification-invalid-cash-amount";
 
-		[TranslationReference]
+		[FluentReference]
 		const string ToggleVisiblityDescription = "description-toggle-visibility";
 
-		[TranslationReference]
+		[FluentReference]
 		const string ToggleVisiblityAllDescription = "description-toggle-visibility-all";
 
-		[TranslationReference]
+		[FluentReference]
 		const string GiveCashDescription = "description-give-cash";
 
-		[TranslationReference]
+		[FluentReference]
 		const string GiveCashAllDescription = "description-give-cash-all";
 
-		[TranslationReference]
+		[FluentReference]
 		const string InstantBuildingDescription = "description-instant-building";
 
-		[TranslationReference]
+		[FluentReference]
 		const string InstantBuildingAllDescription = "description-instant-building-all";
 
-		[TranslationReference]
+		[FluentReference]
 		const string BuildAnywhereDescription = "description-build-anywhere";
 
-		[TranslationReference]
+		[FluentReference]
 		const string BuildAnywhereAllDescription = "description-build-anywhere-all";
 
-		[TranslationReference]
+		[FluentReference]
 		const string UnlimitedPowerDescription = "description-unlimited-power";
 
-		[TranslationReference]
+		[FluentReference]
 		const string UnlimitedPowerAllDescription = "description-unlimited-power-all";
 
-		[TranslationReference]
+		[FluentReference]
 		const string EnableTechDescription = "description-enable-tech";
 
-		[TranslationReference]
+		[FluentReference]
 		const string EnableTechAllDescription = "description-enable-tech-all";
 
-		[TranslationReference]
+		[FluentReference]
 		const string FastChargeDescription = "description-fast-charge";
 
-		[TranslationReference]
+		[FluentReference]
 		const string FastChargeAllDescription = "description-fast-charge-all";
 
-		[TranslationReference]
+		[FluentReference]
 		const string DevCheatAllDescription = "description-dev-cheat-all";
 
-		[TranslationReference]
+		[FluentReference]
 		const string DevCheatAllForAllDescription = "description-dev-cheat-all-for-all";
 
-		[TranslationReference]
+		[FluentReference]
 		const string DevCrashDescription = "description-dev-crash";
 
-		[TranslationReference]
+		[FluentReference]
 		const string LevelUpActorDescription = "description-levelup-actor";
 
-		[TranslationReference]
+		[FluentReference]
 		const string PlayerExperienceDescription = "description-player-experience";
 
-		[TranslationReference]
+		[FluentReference]
 		const string PowerOutageDescription = "description-power-outage";
 
-		[TranslationReference]
+		[FluentReference]
 		const string KillSelectedActorsDescription = "description-kill-selected-actors";
 
-		[TranslationReference]
+		[FluentReference]
 		const string DisposeSelectedActorsDescription = "description-dispose-selected-actors";
 
-		[TranslationReference]
+		[FluentReference]
 		const string ProduceFromSelectedActorsDescription = "description-produce-from-selected-actors";
 
-		[TranslationReference]
+		[FluentReference]
 		const string ClearResourcesDescription = "description-clear-resources";
 
 		readonly IDictionary<string, (string Description, Action<string, World> Handler)> commandHandlers = new Dictionary<string, (string, Action<string, World>)>
@@ -157,7 +157,7 @@ namespace OpenRA.Mods.Common.Commands
 
 			if (!developerMode.Enabled)
 			{
-				TextNotificationsManager.Debug(TranslationProvider.GetString(CheatsDisabled));
+				TextNotificationsManager.Debug(FluentProvider.GetString(CheatsDisabled));
 				return;
 			}
 
@@ -185,7 +185,7 @@ namespace OpenRA.Mods.Common.Commands
 				giveCashOrder.ExtraData = (uint)cash;
 			else
 			{
-				TextNotificationsManager.Debug(TranslationProvider.GetString(InvalidCashAmount));
+				TextNotificationsManager.Debug(FluentProvider.GetString(InvalidCashAmount));
 				return;
 			}
 
