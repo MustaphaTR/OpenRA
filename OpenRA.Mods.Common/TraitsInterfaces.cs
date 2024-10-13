@@ -233,7 +233,7 @@ namespace OpenRA.Mods.Common.Traits
 		/// Does not check if <see cref="Traits.DockClientManager"/> is enabled.
 		/// Function should only be called from within <see cref="IDockClient"/> or <see cref="Traits.DockClientManager"/>.
 		/// </remarks>
-		bool CanDockAt(Actor hostActor, IDockHost host, bool? forceEnter = false, bool ignoreOccupancy = false);
+		bool CanDockAt(Actor hostActor, IDockHost host, bool forceEnter = false, bool ignoreOccupancy = false);
 	}
 
 	public interface IDockHostInfo : ITraitInfoInterface { }

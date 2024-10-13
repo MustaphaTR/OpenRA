@@ -61,7 +61,7 @@ namespace OpenRA.Mods.AS.Widgets.Logic
 						if (!string.IsNullOrEmpty(descText))
 							descText += "\n";
 
-						descText += TranslationProvider.GetString(tooltipDesc.TooltipText);
+						descText += FluentProvider.GetString(tooltipDesc.TooltipText);
 					}
 
 					descLabel.Text = descText;
@@ -71,7 +71,7 @@ namespace OpenRA.Mods.AS.Widgets.Logic
 				}
 				else if (buildable != null && !string.IsNullOrEmpty(buildable.Description))
 				{
-					descLabel.Text = TranslationProvider.GetString(buildable.Description);
+					descLabel.Text = FluentProvider.GetString(buildable.Description);
 					descSize = descFont.Measure(descLabel.Text);
 					descLabel.Bounds.Width = descSize.X;
 					descLabel.Bounds.Height = descSize.Y + descLabelPadding;

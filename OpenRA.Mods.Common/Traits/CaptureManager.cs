@@ -42,7 +42,7 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Notification to play when this actor is being captured.")]
 		public readonly string BeingCapturedNotification = null;
 
-		[TranslationReference(optional: true)]
+		[FluentReference(optional: true)]
 		[Desc("Text notification to display when this actor is being captured.")]
 		public readonly string BeingCapturedTextNotification = null;
 

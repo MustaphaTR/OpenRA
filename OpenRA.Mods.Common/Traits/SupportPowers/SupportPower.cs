@@ -174,10 +174,10 @@ namespace OpenRA.Mods.Common.Traits
 		public string NameForPlayerStance(PlayerRelationship relationship, int level)
 		{
 			if (relationship == PlayerRelationship.None || !GenericVisibility.HasRelationship(relationship))
-				return TranslationProvider.GetString(Names.First(gn => gn.Key == level).Value);
+				return FluentProvider.GetString(Names.First(gn => gn.Key == level).Value);
 
 			var genericName = GenericNames.First(gn => gn.Key == level).Value;
-			return string.IsNullOrEmpty(genericName) ? "" : TranslationProvider.GetString(genericName);
+			return string.IsNullOrEmpty(genericName) ? "" : FluentProvider.GetString(genericName);
 		}
 
 		protected SupportPowerInfo() { OrderName = GetType().Name + "Order"; }

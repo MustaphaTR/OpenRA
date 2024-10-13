@@ -18,7 +18,7 @@ namespace OpenRA.Mods.AS.Traits
 {
 	[Desc("This actor explodes when killed and the kill XP goes to the parent actor.",
 		"Hack: Explodes cannot pass XP because it is KIA and XP cannot pass in INotifyKilled, we will use this instead.")]
-	public class ExplodesForMasterInfo : ExplodesInfo
+	public class ExplodesForMasterInfo : FireWarheadsOnDeathInfo
 	{
 		[Desc("Armament used by parent or master. Share the same modifier.")]
 		public readonly string MasterArmamentName = null;

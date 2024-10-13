@@ -22,12 +22,13 @@ namespace OpenRA.Mods.Common.Traits
 	[Desc("Support power that spawns a group of aircraft and orders them to deliver an airstrike.")]
 	public class AirstrikePowerInfo : DirectionalSupportPowerInfo
 	{
-		[ActorReference(typeof(AircraftInfo))]
+		[FieldLoader.Require]
 		[Desc("Aircraft used to deliver the airstrike.")]
-		public readonly string UnitType = "badr.bomber";
+		public readonly Dictionary<int, string> UnitTypes = new();
 
+		[FieldLoader.Require]
 		[Desc("Number of aircraft to use in an airstrike formation.")]
-		public readonly int SquadSize = 1;
+		public readonly Dictionary<int, int> SquadSizes = new();
 
 		[Desc("Offset vector between the aircraft in a formation.")]
 		public readonly WVec SquadOffset = new(-1536, 1536, 0);

@@ -88,7 +88,7 @@ namespace OpenRA.Mods.AS.Traits
 			var pos = self.Trait<IPositionable>();
 			if (pos.CanEnterCell(destination.Value))
 			{
-				self.QueueActivity(false, new ChronoResourceTeleport(destination.Value, Info, harvestedField, hostActor, host, forceEnter));
+				self.QueueActivity(false, new ChronoResourceTeleport(destination.Value, Info, harvestedField, hostActor, host as DockHost, forceEnter));
 				Reset();
 			}
 		}

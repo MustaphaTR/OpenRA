@@ -25,7 +25,7 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Sound the perpetrator will hear after successful infiltration.")]
 		public readonly string ForceUncloakNotification = null;
 
-		[TranslationReference(optional: true)]
+		[FluentReference(optional: true)]
 		[Desc("Text notification the perpetrator will see after successful infiltration.")]
 		public readonly string ForceUncloakTextNotification = null;
 
@@ -33,7 +33,7 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Sound the perpetrator will hear after successful infiltration.")]
 		public readonly string ForceUncloakWarningNotification = null;
 
-		[TranslationReference(optional: true)]
+		[FluentReference(optional: true)]
 		[Desc("Text notification the perpetrator will see after successful infiltration.")]
 		public readonly string ForceUncloakWarningTextNotification = null;
 

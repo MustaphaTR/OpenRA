@@ -79,10 +79,10 @@ namespace OpenRA.Mods.Common.Traits
 		[FluentReference("cheat", "player", "suffix")]
 		const string CheatUsed = "notification-cheat-used";
 
-		[TranslationReference("actor")]
+		[FluentReference("actor")]
 		const string InvalidActorName = "notification-invalid-actor-name";
 
-		[TranslationReference("actor")]
+		[FluentReference("actor")]
 		const string UnbuildableActorName = "notification-unbuildable-actor-name";
 
 		readonly DeveloperModeInfo info;
@@ -303,9 +303,9 @@ namespace OpenRA.Mods.Common.Traits
 					}
 
 					if (actorToProduce == null)
-						TextNotificationsManager.Debug(TranslationProvider.GetString(InvalidActorName, Translation.Arguments("actor", args[0])));
+						TextNotificationsManager.Debug(FluentProvider.GetString(InvalidActorName, "actor", args[0]));
 					else if (!buildable)
-						TextNotificationsManager.Debug(TranslationProvider.GetString(UnbuildableActorName, Translation.Arguments("actor", args[0])));
+						TextNotificationsManager.Debug(FluentProvider.GetString(UnbuildableActorName, "actor", args[0]));
 
 					break;
 				}

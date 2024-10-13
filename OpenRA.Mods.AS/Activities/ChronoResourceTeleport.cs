@@ -22,10 +22,10 @@ namespace OpenRA.Mods.AS.Activities
 		readonly ChronoResourceDeliveryInfo info;
 		readonly CPos harvestedField;
 		readonly Actor hostActor;
-		readonly IDockHost host;
+		readonly DockHost host;
 		readonly bool forceEnter;
 
-		public ChronoResourceTeleport(CPos destination, ChronoResourceDeliveryInfo info, CPos harvestedField, Actor hostActor, IDockHost host, bool forceEnter)
+		public ChronoResourceTeleport(CPos destination, ChronoResourceDeliveryInfo info, CPos harvestedField, Actor hostActor, DockHost host, bool forceEnter)
 		{
 			this.destination = destination;
 			this.info = info;
@@ -47,7 +47,7 @@ namespace OpenRA.Mods.AS.Activities
 
 			var facing = self.TraitOrDefault<IFacing>();
 			if (facing != null)
-				facing.Facing = host.DockAngle;
+				facing.Facing = host.Info.DockAngle;
 
 			if (hostActor == null)
 				self.QueueActivity(new FindAndDeliverResources(self, harvestedField));

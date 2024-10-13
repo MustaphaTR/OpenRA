@@ -393,9 +393,9 @@ namespace OpenRA.Mods.AS.Traits
 
 			var activeArmor = Array.Find(Armors, a => !a.IsTraitDisabled);
 			if (activeArmor == null)
-				return TranslationProvider.GetString("label-armor-class.no-armor");
+				return FluentProvider.GetString("label-armor-class.no-armor");
 
-			return TranslationProvider.GetString("label-armor-class." + activeArmor?.Info.Type.Replace('.', '-'));
+			return FluentProvider.GetString("label-armor-class." + activeArmor?.Info.Type.Replace('.', '-'));
 		}
 
 		public string CalculateSight()

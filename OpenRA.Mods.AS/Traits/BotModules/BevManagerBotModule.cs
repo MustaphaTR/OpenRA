@@ -58,14 +58,14 @@ namespace OpenRA.Mods.AS.Traits
 		CPos initialBaseCenter;
 		int scanInterval;
 		bool firstTick = true;
-		readonly ActorIndex.OwnerAndNamesAndTrait<Building> constructionYardBuildings;
+		readonly ActorIndex.OwnerAndNamesAndTrait<BuildingInfo> constructionYardBuildings;
 
 		public BevManagerBotModule(Actor self, BevManagerBotModuleInfo info)
 			: base(info)
 		{
 			world = self.World;
 			player = self.Owner;
-			constructionYardBuildings = new ActorIndex.OwnerAndNamesAndTrait<Building>(world, info.ConstructionYardTypes, player);
+			constructionYardBuildings = new ActorIndex.OwnerAndNamesAndTrait<BuildingInfo>(world, info.ConstructionYardTypes, player);
 		}
 
 		protected override void TraitEnabled(Actor self)

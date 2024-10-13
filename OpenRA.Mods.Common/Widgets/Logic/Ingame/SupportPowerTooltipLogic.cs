@@ -63,18 +63,18 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 					return;
 
 				var cost = sp.Info.Cost;
-				var costString = TranslationProvider.GetString(costLabel.Text) + cost.ToString(NumberFormatInfo.CurrentInfo);
+				var costString = FluentProvider.GetString(costLabel.Text) + cost.ToString(NumberFormatInfo.CurrentInfo);
 				costLabel.GetText = () => costString;
 				costLabel.GetColor = () => playerResources.Cash + playerResources.Resources >= cost
 					? Color.White : Color.Red;
 				costLabel.Visible = cost != 0;
 				var costSize = costFont.Measure(costString);
 
-				var nameText = TranslationProvider.GetString(sp.Info.Names.First(ld => ld.Key == level).Value);
+				var nameText = FluentProvider.GetString(sp.Info.Names.First(ld => ld.Key == level).Value);
 				nameLabel.GetText = () => nameText;
 				var nameSize = nameFont.Measure(nameText);
 
-				var descText = TranslationProvider.GetString(sp.Info.Descriptions.First(ld => ld.Key == level).Value);
+				var descText = FluentProvider.GetString(sp.Info.Descriptions.First(ld => ld.Key == level).Value);
 				descLabel.GetText = () => descText;
 				var descSize = descFont.Measure(descText);
 

@@ -57,7 +57,7 @@ namespace OpenRA.Mods.Common.Traits
 			return !IsTraitDisabled && GetDockType.Overlaps(type);
 		}
 
-		public virtual bool CanDockAt(Actor hostActor, IDockHost host, bool? forceEnter = false, bool ignoreOccupancy = false)
+		public virtual bool CanDockAt(Actor hostActor, IDockHost host, bool forceEnter = false, bool ignoreOccupancy = false)
 		{
 			return (forceEnter || self.Owner.IsAlliedWith(hostActor.Owner)) &&
 				CanDock(host.GetDockType, forceEnter) &&

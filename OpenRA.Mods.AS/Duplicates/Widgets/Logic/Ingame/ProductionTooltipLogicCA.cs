@@ -21,7 +21,7 @@ namespace OpenRA.Mods.AS.Widgets.Logic
 {
 	public class ProductionTooltipLogicCA : ChromeLogic
 	{
-		[TranslationReference("prequisites")]
+		[FluentReference("prequisites")]
 		const string Requires = "label-requires";
 
 		[ObjectCreator.UseCtor]
@@ -78,7 +78,7 @@ namespace OpenRA.Mods.AS.Widgets.Logic
 					return;
 
 				var tooltip = actor.TraitInfos<TooltipInfo>().FirstOrDefault(info => info.EnabledByDefault);
-				var name = tooltip != null ? TranslationProvider.GetString(tooltip.Name) : actor.Name;
+				var name = tooltip != null ? FluentProvider.GetString(tooltip.Name) : actor.Name;
 				var buildable = BuildableInfo.GetTraitForQueue(actor, tooltipIcon.ProductionQueue?.Info.Type);
 
 				var cost = 0;
@@ -123,12 +123,12 @@ namespace OpenRA.Mods.AS.Widgets.Logic
 				}
 
 				var prereqs = buildable.Prerequisites.Select(a => ActorName(mapRules, a))
-					.Where(s => !s.StartsWith('~') && !s.StartsWith('!')).Select(s => TranslationProvider.GetString(s)).ToList();
+					.Where(s => !s.StartsWith('~') && !s.StartsWith('!')).Select(s => FluentProvider.GetString(s)).ToList();
 
 				var requiresSize = int2.Zero;
 				if (prereqs.Count > 0)
 				{
-					requiresLabel.Text = TranslationProvider.GetString(Requires, Translation.Arguments("prequisites", prereqs.JoinWith(", ")));
+					requiresLabel.Text = FluentProvider.GetString(Requires, "prequisites", prereqs.JoinWith(", "));
 					requiresSize = requiresFont.Measure(requiresLabel.Text);
 					requiresLabel.Visible = true;
 					descLabel.Bounds.Y = descLabelY + requiresLabel.Bounds.Height + descLabel.Bounds.X / 2;
@@ -178,7 +178,7 @@ namespace OpenRA.Mods.AS.Widgets.Logic
 
 				var extrasSpacing = descLabel.Bounds.X / 2;
 
-				var desc = string.IsNullOrEmpty(buildable.Description) ? "" : TranslationProvider.GetString(buildable.Description);
+				var desc = string.IsNullOrEmpty(buildable.Description) ? "" : FluentProvider.GetString(buildable.Description);
 				descLabel.Text = desc;
 				var descSize = descFont.Measure(descLabel.Text);
 				descLabel.Bounds.Width = descSize.X;

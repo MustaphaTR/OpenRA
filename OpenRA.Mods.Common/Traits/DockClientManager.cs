@@ -225,7 +225,7 @@ namespace OpenRA.Mods.Common.Traits
 		}
 
 		/// <summary>Do we have an enabled client with matching <paramref name="type"/>.</summary>
-		public bool DockingPossible(BitSet<DockType> type, bool? forceEnter = false)
+		public bool DockingPossible(BitSet<DockType> type, bool forceEnter = false)
 		{
 			return !IsTraitDisabled && dockClients.Any(client => client.CanDock(type, forceEnter));
 		}
@@ -239,14 +239,14 @@ namespace OpenRA.Mods.Common.Traits
 		}
 
 		/// <summary>Can we dock to this <paramref name="host"/>.</summary>
-		public bool CanDockAt(Actor hostActor, IDockHost host, bool? forceEnter = false, bool ignoreOccupancy = false)
+		public bool CanDockAt(Actor hostActor, IDockHost host, bool forceEnter = false, bool ignoreOccupancy = false)
 		{
 			return !IsTraitDisabled && dockClients.Any(
 				client => client.CanDockAt(hostActor, host, forceEnter, ignoreOccupancy));
 		}
 
 		/// <summary>Can we dock to this <paramref name="target"/>.</summary>
-		public bool CanDockAt(Actor target, bool? forceEnter = false, bool ignoreOccupancy = false)
+		public bool CanDockAt(Actor target, bool forceEnter = false, bool ignoreOccupancy = false)
 		{
 			return !IsTraitDisabled && target.TraitsImplementing<IDockHost>().Any(
 				host => dockClients.Any(client => client.CanDockAt(target, host, forceEnter, ignoreOccupancy)));
@@ -254,7 +254,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		/// <summary>Find the closest viable <see cref="IDockHost"/>.</summary>
 		/// <remarks>If <paramref name="type"/> is not set, scans all clients. Does not check if <see cref="DockClientManager"/> is enabled.</remarks>
-		public TraitPair<IDockHost>? ClosestDock(IDockHost ignore, BitSet<DockType> type = default, bool? forceEnter = false, bool ignoreOccupancy = false)
+		public TraitPair<IDockHost>? ClosestDock(IDockHost ignore, BitSet<DockType> type = default, bool forceEnter = false, bool ignoreOccupancy = false)
 		{
 			var clients = type.IsEmpty ? dockClients : AvailableDockClients(type, forceEnter);
 			return self.World.ActorsWithTrait<IDockHost>()
