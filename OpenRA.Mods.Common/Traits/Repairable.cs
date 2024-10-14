@@ -50,7 +50,6 @@ namespace OpenRA.Mods.Common.Traits
 	{
 		public readonly RepairableInfo Info;
 		readonly IHealth health;
-		readonly Actor self;
 		Rearmable rearmable;
 		bool requireForceMove;
 		bool isAircraft;
@@ -59,7 +58,6 @@ namespace OpenRA.Mods.Common.Traits
 		{
 			Info = info;
 			health = self.Trait<IHealth>();
-			this.self = self;
 		}
 
 		void INotifyCreated.Created(Actor self)
@@ -73,13 +71,13 @@ namespace OpenRA.Mods.Common.Traits
 			get
 			{
 				if (!isAircraft)
-					yield return new EnterActorTargeter<BuildingInfo>(
+					yield return new EnterAlliedActorTargeter<BuildingInfo>(
 						"Repair",
 						5,
 						Info.EnterCursor,
 						Info.EnterBlockedCursor,
 						CanRepairAt,
-						target => self.Owner.IsAlliedWith(target.Owner) && (CanRepair() || CanRearm()));
+						_ => CanRepair() || CanRearm());
 			}
 		}
 
