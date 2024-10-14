@@ -1014,21 +1014,21 @@ namespace OpenRA.Mods.Common.Traits
 		{
 			get
 			{
-				yield return new EnterActorTargeter<BuildingInfo>(
+				yield return new EnterAlliedActorTargeter<BuildingInfo>(
 					"ForceEnter",
 					6,
 					Info.EnterCursor,
 					Info.EnterBlockedCursor,
 					(target, modifiers) => Info.CanForceLand && modifiers.HasModifier(TargetModifiers.ForceMove) && AircraftCanEnter(target),
-					target => self.Owner.IsAlliedWith(target.Owner) && Reservable.IsAvailableFor(target, self) && AircraftCanResupplyAt(target, true));
+					target => Reservable.IsAvailableFor(target, self) && AircraftCanResupplyAt(target, true));
 
-				yield return new EnterActorTargeter<BuildingInfo>(
+				yield return new EnterAlliedActorTargeter<BuildingInfo>(
 					"Enter",
 					5,
 					Info.EnterCursor,
 					Info.EnterBlockedCursor,
 					AircraftCanEnter,
-					target => self.Owner.IsAlliedWith(target.Owner) && Reservable.IsAvailableFor(target, self) && AircraftCanResupplyAt(target, !Info.TakeOffOnResupply));
+					target => Reservable.IsAvailableFor(target, self) && AircraftCanResupplyAt(target, !Info.TakeOffOnResupply));
 
 				yield return new AircraftMoveOrderTargeter(this);
 			}

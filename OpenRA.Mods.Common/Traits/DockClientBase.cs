@@ -9,22 +9,12 @@
  */
 #endregion
 
-using System;
 using OpenRA.Primitives;
 using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.Traits
 {
-	public abstract class DockClientBaseInfo : ConditionalTraitInfo, IDockClientInfo, Requires<IDockClientManagerInfo>
-	{
-		[Desc("Player relationships the owner of the dock host needs, when not forced enter.",
-			"Use None to only allow the same owner.")]
-		public readonly PlayerRelationship DockRelationships = PlayerRelationship.None;
-
-		[Desc("Player relationships the owner of the dock host needs, when forced enter.",
-			"Use None to only allow the same owner.")]
-		public readonly PlayerRelationship ForceDockRelationships = PlayerRelationship.Ally;
-	}
+	public abstract class DockClientBaseInfo : ConditionalTraitInfo, IDockClientInfo, Requires<IDockClientManagerInfo> { }
 
 	public abstract class DockClientBase<InfoType> : ConditionalTrait<InfoType>, IDockClient, INotifyCreated where InfoType : DockClientBaseInfo
 	{
@@ -32,24 +22,12 @@ namespace OpenRA.Mods.Common.Traits
 
 		public abstract BitSet<DockType> GetDockType { get; }
 		public DockClientManager DockClientManager { get; }
-		readonly Predicate<Actor> hasDockRelationshipWith;
-		readonly Predicate<Actor> hasDockForcedRelationshipWith;
 
 		protected DockClientBase(Actor self, InfoType info)
 			: base(info)
 		{
 			this.self = self;
 			DockClientManager = self.TraitOrDefault<DockClientManager>();
-
-			if (info.DockRelationships == PlayerRelationship.None)
-				hasDockRelationshipWith = a => a.Owner == self.Owner;
-			else
-				hasDockRelationshipWith = a => info.DockRelationships.HasRelationship(a.Owner.RelationshipWith(self.Owner));
-
-			if (info.ForceDockRelationships == PlayerRelationship.None)
-				hasDockForcedRelationshipWith = a => a.Owner == self.Owner;
-			else
-				hasDockForcedRelationshipWith = a => info.ForceDockRelationships.HasRelationship(a.Owner.RelationshipWith(self.Owner));
 		}
 
 		public virtual bool CanDock(BitSet<DockType> type, bool forceEnter = false)

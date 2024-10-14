@@ -64,7 +64,6 @@ namespace OpenRA.Mods.AS.Traits
 	{
 		public readonly SharedPassengerInfo Info;
 		public Actor Transport;
-		readonly Actor self;
 		bool requireForceMove;
 
 		int anyCargoToken = Actor.InvalidConditionToken;
@@ -73,7 +72,6 @@ namespace OpenRA.Mods.AS.Traits
 		public SharedPassenger(SharedPassengerInfo info, Actor self)
 		{
 			Info = info;
-			this.self = self;
 		}
 
 		public SharedCargo ReservedCargo { get; private set; }
@@ -82,13 +80,13 @@ namespace OpenRA.Mods.AS.Traits
 		{
 			get
 			{
-				yield return new EnterActorTargeter<SharedCargoInfo>(
+				yield return new EnterAlliedActorTargeter<SharedCargoInfo>(
 					"EnterSharedTransport",
 					5,
 					Info.EnterCursor,
 					Info.EnterBlockedCursor,
 					IsCorrectCargoType,
-					target => self.Owner.IsAlliedWith(target.Owner) && CanEnter(target));
+					CanEnter);
 			}
 		}
 
