@@ -48,11 +48,14 @@ namespace OpenRA.Mods.AS.Traits
 
 		public void Clear(AttackInfo e = null)
 		{
-			foreach (var passenger in Cargo)
+			for (var i = 0; i < Cargo.Count; i++)
+			{
+				var passenger = Cargo[i];
 				if (e != null)
 					passenger.Kill(e.Attacker, e.Damage.DamageTypes);
 				else
 					passenger.Dispose();
+			}
 
 			Cargo.Clear();
 			TotalWeight = 0;
