@@ -56,7 +56,7 @@ namespace OpenRA.Mods.AS.Traits
 	}
 
 	public class IssueOrderToBot : ConditionalTrait<IssueOrderToBotInfo>, INotifyAttack, ITick, INotifyDamage,
-		INotifyCreated, ISync, INotifyOwnerChanged, INotifyBecomingIdle
+		INotifyCreated, INotifyOwnerChanged, INotifyBecomingIdle
 	{
 		int secondOrderTicks = -1, firstOrderTicks;
 		ExternalBotOrdersManager orderManager;

@@ -61,7 +61,7 @@ namespace OpenRA.Mods.AS.Traits
 		public override object Create(ActorInitializer init) { return new WeaponStorm(this); }
 	}
 
-	sealed class WeaponStorm : ConditionalTrait<WeaponStormInfo>, IPaletteModifier, ISync, ITick, IWorldLoaded
+	sealed class WeaponStorm : ConditionalTrait<WeaponStormInfo>, IPaletteModifier, ITick, IWorldLoaded
 	{
 		readonly WeaponStormInfo info;
 
