@@ -130,13 +130,12 @@ namespace OpenRA.Mods.Common.Traits
 			return randomConstructionYard?.Location ?? initialBaseCenter;
 		}
 
-		const int MaxRespondToAttackCooldown = 30;
-
 		public readonly World World;
 		public readonly Player Player;
 		public readonly int RepeatedAltertTicks = 15;
 
 		public readonly Predicate<Actor> UnitCannotBeOrdered;
+		readonly List<UnitWposWrapper> unitsHangingAroundTheBase = [];
 
 		// Units that the bot already knows about. Any unit not on this list needs to be given a role.
 		readonly List<Actor> activeUnits = [];
@@ -149,18 +148,12 @@ namespace OpenRA.Mods.Common.Traits
 		IBotPositionsUpdated[] notifyPositionsUpdated;
 		IBotNotifyIdleBaseUnits[] notifyIdleBaseUnits;
 
-		List<Actor> unitsHangingAroundTheBase = [];
 		CPos initialBaseCenter;
 		Actor airStrikeTarget;
 
-		Actor protectFrom;
-
-		int rushTicks;
-		int assignRolesTicks;
 		int attackForceTicks;
 
 		int minAttackForceDelayTicks;
-		int respondToAttackCooldown = MaxRespondToAttackCooldown; // prevent too many responses to the same wave of attacks
 
 		int alertedTicks;
 
@@ -350,9 +343,6 @@ namespace OpenRA.Mods.Common.Traits
 				unitsHangingAroundTheBase.RemoveAll(u => UnitCannotBeOrdered(u.Actor));
 				CreateAttackForce(bot);
 			}
-
-			if (respondToAttackCooldown-- == MaxRespondToAttackCooldown)
-				ProtectOwn(bot, protectFrom);
 		}
 
 		void FindNewUnits(IBot bot)

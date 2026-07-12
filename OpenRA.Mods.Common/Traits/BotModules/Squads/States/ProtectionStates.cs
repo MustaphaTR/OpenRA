@@ -78,8 +78,6 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 			var followingUnits = new List<Actor>();
 			var attackingUnits = new List<Actor>();
 
-			owner.Bot.QueueOrder(new Order("AttackMove", null, owner.Target, false, groupedActors: owner.Units.ToArray()));
-
 			if (!owner.IsTargetVisible)
 			{
 				if (Backoff < 0)

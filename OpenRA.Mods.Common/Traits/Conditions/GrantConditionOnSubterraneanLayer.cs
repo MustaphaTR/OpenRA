@@ -68,7 +68,7 @@ namespace OpenRA.Mods.Common.Traits
 		WDist transitionDepth;
 		protected int resurfaceConditionToken = Actor.InvalidConditionToken;
 
-		[Sync]
+		[VerifySync]
 		int resurfaceTicks;
 
 		public GrantConditionOnSubterraneanLayer(GrantConditionOnSubterraneanLayerInfo info)

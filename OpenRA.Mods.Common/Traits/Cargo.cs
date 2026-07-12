@@ -540,7 +540,7 @@ namespace OpenRA.Mods.Common.Traits
 			init.Add(new RuntimeCargoInit(Info, Passengers.ToArray()));
 		}
 
-		static int DamageVersus(Actor victim, Dictionary<string, int> versus)
+		static int DamageVersus(Actor victim, FrozenDictionary<string, int> versus)
 		{
 			// If no Versus values are defined, DamageVersus would return 100 anyway, so we might as well do that early.
 			if (versus.Count == 0 || victim.IsDead)
@@ -554,10 +554,9 @@ namespace OpenRA.Mods.Common.Traits
 		}
 
 		void INotifyPassengersDamage.DamagePassengers(
-			int damage, Actor attacker, int amount, Dictionary<string, int> versus, BitSet<DamageType> damageTypes, IEnumerable<int> damageModifiers)
+			int damage, Actor attacker, int amount, FrozenDictionary<string, int> versus, BitSet<DamageType> damageTypes, IEnumerable<int> damageModifiers)
 		{
-			var passengersToDamage = amount > 0 && amount < cargo.Count ? cargo.Shuffle(self.World.SharedRandom).Take(amount).ToArray() : cargo.ToArray();
-			foreach (var passenger in passengersToDamage)
+			foreach (var passenger in amount > 0 && amount < cargo.Count ? cargo.Shuffle(self.World.SharedRandom).Take(amount).ToArray() : cargo.ToArray())
 			{
 				var d = Util.ApplyPercentageModifiers(damage, damageModifiers.Append(DamageVersus(passenger, versus)));
 				passenger.InflictDamage(attacker, new Damage(d, damageTypes));

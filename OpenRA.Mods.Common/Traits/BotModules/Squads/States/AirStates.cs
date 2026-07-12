@@ -17,6 +17,8 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 {
 	abstract class AirStateBase : StateBase
 	{
+		protected const int MissileUnitMultiplier = 3;
+
 		protected static int CountAntiAirUnits(Squad owner, IReadOnlyCollection<Actor> units)
 		{
 			if (units.Count == 0)
@@ -66,7 +68,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 			if (unitsAroundPos.Count == 0)
 				return true;
 
-			if (CountAntiAirUnits(owner, unitsAroundPos) < owner.Units.Count)
+			if (CountAntiAirUnits(owner, unitsAroundPos) * MissileUnitMultiplier < owner.Units.Count)
 			{
 				detectedEnemyTarget = unitsAroundPos.Random(owner.Random);
 				return true;
@@ -78,7 +80,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 		// Checks the number of anti air enemies around units
 		protected virtual bool ShouldFlee(Squad owner, Actor leader)
 		{
-			return ShouldFlee(owner, enemies => CountAntiAirUnits(owner, enemies) > owner.Units.Count);
+			return ShouldFlee(owner, enemies => CountAntiAirUnits(owner, enemies) * MissileUnitMultiplier > owner.Units.Count);
 		}
 	}
 
@@ -97,7 +99,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 		{
 			map = owner.World.Map;
 			dangerRadius = owner.SquadManager.Info.DangerScanRadius;
-			var dangerIndiceSideLength = dangerRadius * 141 / 100; // ¡Ö DangerScanRadius * sqrt(2)
+			var dangerIndiceSideLength = dangerRadius * 141 / 100; // ï¿½ï¿½ DangerScanRadius * sqrt(2)
 
 			columnCount = (map.Bounds.Width + dangerIndiceSideLength - 1) / dangerIndiceSideLength;
 			rowCount = (map.Bounds.Height + dangerIndiceSideLength - 1) / dangerIndiceSideLength;
@@ -109,7 +111,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 
 		Actor FindDefenselessTarget(Squad owner)
 		{
-			var position = owner.CenterPosition();
+			var position = owner.CenterPosition;
 
 			for (var checktime = 0; checktime <= MaxCheckTimesPerTick; checkedIndex++, checktime++)
 			{

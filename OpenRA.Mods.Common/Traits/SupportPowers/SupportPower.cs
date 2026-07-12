@@ -70,7 +70,7 @@ namespace OpenRA.Mods.Common.Traits
 			"Normal rules apply for subsequent charges.")]
 		public readonly bool StartFullyChargedForTheFirstTime = false;
 
-		public readonly Dictionary<int, string[]> Prerequisites = [];
+		public readonly Dictionary<int, ImmutableArray<string>> Prerequisites = [];
 
 		public readonly string DetectedSound = null;
 
