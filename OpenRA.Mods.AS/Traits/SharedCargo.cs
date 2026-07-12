@@ -10,6 +10,7 @@
 #endregion
 
 using System;
+using System.Collections.Frozen;
 using System.Collections.Generic;
 using System.Linq;
 using OpenRA.Mods.AS.Activities;
@@ -366,7 +367,7 @@ namespace OpenRA.Mods.AS.Traits
 			}
 		}
 
-		static int DamageVersus(Actor victim, Dictionary<string, int> versus)
+		static int DamageVersus(Actor victim, FrozenDictionary<string, int> versus)
 		{
 			// If no Versus values are defined, DamageVersus would return 100 anyway, so we might as well do that early.
 			if (versus.Count == 0 || victim.IsDead)
@@ -380,7 +381,7 @@ namespace OpenRA.Mods.AS.Traits
 		}
 
 		void INotifyPassengersDamage.DamagePassengers(
-			int damage, Actor attacker, int amount, Dictionary<string, int> versus, BitSet<DamageType> damageTypes, IEnumerable<int> damageModifiers)
+			int damage, Actor attacker, int amount, FrozenDictionary<string, int> versus, BitSet<DamageType> damageTypes, IEnumerable<int> damageModifiers)
 		{
 			var passengersToDamage = amount > 0 && amount < Manager.Cargo.ToArray().Length
 				? Manager.Cargo.Shuffle(self.World.SharedRandom).Take(amount).ToArray()

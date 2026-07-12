@@ -55,7 +55,7 @@ namespace OpenRA.Mods.AS.Traits
 		public Tuple<Actor, AttackInfect, AttackInfectInfo> Infector;
 		public int[] FirepowerMultipliers = [];
 
-		[Sync]
+		[VerifySync]
 		public int Ticks;
 
 		int beingInfectedToken = Actor.InvalidConditionToken;

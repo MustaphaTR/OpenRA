@@ -295,7 +295,7 @@ namespace OpenRA.Mods.TA.Projectiles
 		readonly float3 shadowColor;
 		readonly float shadowAlpha;
 
-		[Sync]
+		[VerifySync]
 		WPos pos;
 
 		WVec velocity;
@@ -308,10 +308,10 @@ namespace OpenRA.Mods.TA.Projectiles
 
 		WAngle renderFacing;
 
-		[Sync]
+		[VerifySync]
 		int hFacing;
 
-		[Sync]
+		[VerifySync]
 		int vFacing;
 
 		public MissileTA(MissileTAInfo info, ProjectileArgs args)

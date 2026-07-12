@@ -57,7 +57,7 @@ namespace OpenRA.Mods.AS.Traits
 		Production[] productionlines;
 		readonly Actor self;
 
-		[Sync]
+		[VerifySync]
 		public int Ticks { get; private set; }
 
 		public PeriodicProducer(ActorInitializer init, PeriodicProducerInfo info)

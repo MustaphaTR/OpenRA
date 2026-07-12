@@ -58,7 +58,7 @@ namespace OpenRA.Mods.AS.Traits
 		readonly Actor self;
 		readonly GrantPeriodicConditionOnEventInfo info;
 
-		[Sync]
+		[VerifySync]
 		int ticks;
 
 		int cooldown, active;

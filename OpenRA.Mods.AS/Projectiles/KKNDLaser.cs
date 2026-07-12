@@ -68,10 +68,10 @@ namespace OpenRA.Mods.AS.Projectiles
 		readonly WVec upVector;
 		readonly MersenneTwister random;
 
-		[Sync]
+		[VerifySync]
 		readonly WPos target;
 
-		[Sync]
+		[VerifySync]
 		readonly WPos source;
 
 		int ticks;

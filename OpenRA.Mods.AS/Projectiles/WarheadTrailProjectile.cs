@@ -155,14 +155,14 @@ namespace OpenRA.Mods.AS.Projectiles
 		readonly WarheadTrailProjectileInfo info;
 		readonly ProjectileArgs args;
 
-		[Sync]
+		[VerifySync]
 		readonly WDist speed;
 
 		readonly WRot offsetRotation;
 		readonly int lifespan;
 		readonly int mindelay;
 
-		[Sync]
+		[VerifySync]
 		readonly WPos projectilepos, targetpos, sourcepos, offsetTargetPos = WPos.Zero;
 
 		readonly WarheadTrailProjectileEffect[] projectiles; // offset projectiles

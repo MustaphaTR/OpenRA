@@ -49,10 +49,10 @@ namespace OpenRA.Mods.AS.Traits
 	{
 		readonly AttackPrismInfo info;
 
-		[Sync]
+		[VerifySync]
 		protected int charges;
 
-		[Sync]
+		[VerifySync]
 		protected int timeToRecharge;
 
 		public AttackPrism(Actor self, AttackPrismInfo info)

@@ -43,17 +43,30 @@ namespace OpenRA.Mods.AS.Widgets.Logic
 				onExit();
 			};
 
-			engineLines = ParseLines(File.OpenRead(Platform.ResolvePath("./AUTHORS")));
-			asEngineLines = ParseLines(File.OpenRead(Platform.ResolvePath("./AUTHORS.AS")));
-
+			var modCredits = modData.GetOrCreate<ModCredits>();
 			var tabContainer = panel.Get("TAB_CONTAINER");
-			var modTab = tabContainer.Get<ButtonWidget>("MOD_TAB");
-			modTab.IsHighlighted = () => tabState == ASCreditsState.Mod;
-			modTab.OnClick = () => ShowCredits(ASCreditsState.Mod);
 
-			var engineTab = tabContainer.Get<ButtonWidget>("ENGINE_TAB");
-			engineTab.IsHighlighted = () => tabState == ASCreditsState.Engine;
-			engineTab.OnClick = () => ShowCredits(ASCreditsState.Engine);
+			var hasModCredits = modCredits.ModCreditsFile != null;
+			if (hasModCredits)
+			{
+				modLines = ParseLines(modData.DefaultFileSystem.Open(modCredits.ModCreditsFile));
+
+				var modTab = tabContainer.Get<ButtonWidget>("MOD_TAB");
+				modTab.IsHighlighted = () => tabState == ASCreditsState.Mod;
+				modTab.OnClick = () => ShowCredits(ASCreditsState.Mod);
+				modTab.GetText = () => modCredits.ModTabTitle;
+			}
+
+			if (modCredits.EngineCreditsFile != null)
+			{
+				engineLines = ParseLines(File.OpenRead(Platform.ResolvePath(modCredits.EngineCreditsFile)));
+
+				var engineTab = tabContainer.Get<ButtonWidget>("ENGINE_TAB");
+				engineTab.IsHighlighted = () => tabState == ASCreditsState.Engine;
+				engineTab.OnClick = () => ShowCredits(ASCreditsState.Engine);
+			}
+
+			asEngineLines = ParseLines(File.OpenRead(Platform.ResolvePath("^EngineDir|AUTHORS.AS")));
 
 			var asTab = tabContainer.Get<ButtonWidget>("ASENGINE_TAB");
 			asTab.IsHighlighted = () => tabState == ASCreditsState.AS;
@@ -66,14 +79,6 @@ namespace OpenRA.Mods.AS.Widgets.Logic
 			tabContainer.IsVisible = () => true;
 			scrollPanel.Bounds.Y += tabContainer.Bounds.Height;
 			scrollPanel.Bounds.Height -= tabContainer.Bounds.Height;
-
-			var hasModCredits = modData.Manifest.Contains<ModCredits>();
-			if (hasModCredits)
-			{
-				var modCredits = modData.Manifest.Get<ModCredits>();
-				modLines = ParseLines(modData.DefaultFileSystem.Open(modCredits.ModCreditsFile));
-				modTab.GetText = () => modCredits.ModTabTitle;
-			}
 
 			if (hasModCredits)
 				ShowCredits(ASCreditsState.Mod);

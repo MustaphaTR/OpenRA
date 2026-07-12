@@ -79,7 +79,7 @@ namespace OpenRA.Mods.AS.Traits
 		ITick, ISelectionBar, IOrderVoice, ISync, IOnSuccessfulTeleportRA2
 	{
 		readonly IMove move;
-		[Sync]
+		[VerifySync]
 		int chargeTick = 0;
 
 		public RA2PortableChrono(Actor self, RA2PortableChronoInfo info)
@@ -212,11 +212,13 @@ namespace OpenRA.Mods.AS.Traits
 
 	sealed class PortableChronoOrderGenerator : OrderGenerator
 	{
+		protected override MouseActionType ActionType => MouseActionType.SupportPower;
 		readonly Actor self;
 		readonly RA2PortableChrono portableChrono;
 		readonly RA2PortableChronoInfo info;
 
 		public PortableChronoOrderGenerator(Actor self, RA2PortableChrono portableChrono)
+			: base(self.World)
 		{
 			this.self = self;
 			this.portableChrono = portableChrono;
@@ -225,12 +227,6 @@ namespace OpenRA.Mods.AS.Traits
 
 		protected override IEnumerable<Order> OrderInner(World world, CPos cell, int2 worldPixel, MouseInput mi)
 		{
-			if (mi.Button == Game.Settings.Game.MouseButtonPreference.Cancel)
-			{
-				world.CancelInputMode();
-				yield break;
-			}
-
 			if (self.IsInWorld && self.Location != cell
 				&& self.Trait<RA2PortableChrono>().CanTeleport && self.Owner.Shroud.IsExplored(cell))
 			{

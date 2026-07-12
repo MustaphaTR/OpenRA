@@ -60,7 +60,7 @@ namespace OpenRA.Mods.AS.Traits
 	{
 		readonly TintedCellsLayer tcLayer;
 
-		[Sync]
+		[VerifySync]
 		int damageTicks;
 
 		public DamagedByTintedCells(Actor self, DamagedByTintedCellsInfo info)

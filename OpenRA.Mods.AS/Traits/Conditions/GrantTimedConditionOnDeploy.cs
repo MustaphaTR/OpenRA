@@ -85,7 +85,7 @@ namespace OpenRA.Mods.AS.Traits
 		int deployedToken = Actor.InvalidConditionToken;
 		int deployingToken = Actor.InvalidConditionToken;
 
-		[Sync]
+		[VerifySync]
 		int ticks;
 
 		WithSpriteBody[] wsbs;

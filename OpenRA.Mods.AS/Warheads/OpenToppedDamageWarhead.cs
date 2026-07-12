@@ -22,8 +22,7 @@ namespace OpenRA.Mods.AS.Warheads
 
 		protected override void InflictDamage(Actor victim, Actor firedBy, HitShape shape, WarheadArgs args)
 		{
-			var validTraits = victim.TraitsImplementing<INotifyPassengersDamage>();
-			foreach (var trait in validTraits)
+			foreach (var trait in victim.TraitsImplementing<INotifyPassengersDamage>())
 			{
 				trait.DamagePassengers(Damage, firedBy, Amount, Versus, DamageTypes, args.DamageModifiers);
 			}

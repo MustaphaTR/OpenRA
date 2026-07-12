@@ -9,6 +9,7 @@
 #endregion
 
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using OpenRA.Activities;
 using OpenRA.Mods.AS.Activities;
@@ -70,7 +71,7 @@ namespace OpenRA.Mods.AS.Traits
 		public readonly string AirborneCondition = null;
 
 		[Desc("Sounds to play when the actor is taking off.")]
-		public readonly string[] LaunchSounds = [];
+		public readonly ImmutableArray<string> LaunchSounds = [];
 
 		[Desc("Do the launching sounds play under shroud or fog.")]
 		public readonly bool AudibleThroughFog = false;
@@ -110,7 +111,7 @@ namespace OpenRA.Mods.AS.Traits
 
 		IEnumerable<int> speedModifiers;
 
-		[Sync]
+		[VerifySync]
 		public WAngle Facing
 		{
 			get => Orientation.Yaw;
@@ -131,7 +132,7 @@ namespace OpenRA.Mods.AS.Traits
 
 		public WRot Orientation { get; private set; }
 
-		[Sync]
+		[VerifySync]
 		public WPos CenterPosition { get; private set; }
 
 		public CPos TopLeft { get { return self.World.Map.CellContaining(CenterPosition); } }

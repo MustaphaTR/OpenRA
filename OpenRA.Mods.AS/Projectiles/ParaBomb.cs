@@ -82,9 +82,9 @@ namespace OpenRA.Mods.AS.Projectiles
 		readonly ProjectileArgs args;
 		readonly WVec acceleration;
 
-		[Sync]
+		[VerifySync]
 		WVec velocity;
-		[Sync]
+		[VerifySync]
 		WPos pos, lastPos;
 
 		bool exploded;

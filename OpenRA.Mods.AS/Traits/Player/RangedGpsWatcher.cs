@@ -25,10 +25,10 @@ namespace OpenRA.Mods.AS.Traits
 
 	public class RangedGpsWatcher : ISync, IPreventsShroudReset
 	{
-		[Sync]
+		[VerifySync]
 		public bool GrantedAllies { get; private set; }
 
-		[Sync]
+		[VerifySync]
 		public bool Granted { get; private set; }
 
 		readonly Player owner;

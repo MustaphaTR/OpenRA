@@ -78,7 +78,7 @@ namespace OpenRA.Mods.AS.Projectiles
 		readonly bool hasLaunchEffect;
 		readonly HashSet<(Color Color, WPos[] Positions, WPos[] PosCache)> zaps;
 
-		[Sync]
+		[VerifySync]
 		readonly WPos target, source;
 
 		int ticks = 0;

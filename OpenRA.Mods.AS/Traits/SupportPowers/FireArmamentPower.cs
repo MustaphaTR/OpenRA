@@ -235,6 +235,7 @@ namespace OpenRA.Mods.AS.Traits
 
 	public class SelectArmamentPowerTarget : OrderGenerator
 	{
+		protected override MouseActionType ActionType => MouseActionType.SupportPower;
 		readonly Actor self;
 		readonly SupportPowerManager manager;
 		readonly string order;
@@ -243,11 +244,8 @@ namespace OpenRA.Mods.AS.Traits
 		readonly IEnumerable<Tuple<FireArmamentPower, WDist, WDist>> instances;
 
 		public SelectArmamentPowerTarget(Actor self, string order, SupportPowerManager manager, FireArmamentPower power)
+			: base(self.World)
 		{
-			// Clear selection if using Left-Click Orders
-			if (Game.Settings.Game.UseClassicMouseStyle)
-				manager.Self.World.Selection.Clear();
-
 			this.self = self;
 			this.manager = manager;
 			this.order = order;

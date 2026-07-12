@@ -35,7 +35,7 @@ namespace OpenRA.Mods.AS.Traits
 		Player originalOwner;
 		Player changingOwner;
 
-		[Sync]
+		[VerifySync]
 		int remaining = -1;
 		int duration;
 

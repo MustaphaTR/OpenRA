@@ -11,6 +11,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using OpenRA.Graphics;
 using OpenRA.Mods.Common.Traits;
 using OpenRA.Traits;
@@ -117,14 +118,21 @@ namespace OpenRA.Mods.Common.Commands
 		public static class Commands
 		{
 			public const string Visibility = "visibility";
+			public const string VisibilityAll = "visibility-all";
 			public const string GiveCash = "give-cash";
 			public const string GiveCashAll = "give-cash-all";
 			public const string FastBuild = "instant-build";
+			public const string FastBuildAll = "instant-build-all";
 			public const string BuildAnywhere = "build-anywhere";
+			public const string BuildAnywhereAll = "build-anywhere-all";
 			public const string UnlimitedPower = "unlimited-power";
+			public const string UnlimitedPowerAll = "unlimited-power-all";
 			public const string EnableTech = "enable-tech";
+			public const string EnableTechAll = "enable-tech-all";
 			public const string FastCharge = "fast-charge";
+			public const string FastChargeAll = "fast-charge-all";
 			public const string All = "all";
+			public const string AllForAll = "all-for-all";
 			public const string Crash = "crash";
 			public const string GrowResources = "grow-resources";
 			public const string ClearResources = "clear-resources";
@@ -140,14 +148,21 @@ namespace OpenRA.Mods.Common.Commands
 		readonly IDictionary<string, (string Description, Action<string, World> Handler)> commandHandlers = new Dictionary<string, (string, Action<string, World>)>
 		{
 			{ Commands.Visibility, (ToggleVisiblityDescription, Visibility) },
+			{ Commands.VisibilityAll, (ToggleVisiblityAllDescription, VisibilityAll) },
 			{ Commands.GiveCash, (GiveCashDescription, GiveCash) },
 			{ Commands.GiveCashAll, (GiveCashAllDescription, GiveCashAll) },
 			{ Commands.FastBuild, (InstantBuildingDescription, InstantBuild) },
+			{ Commands.FastBuildAll, (InstantBuildingAllDescription, InstantBuildAll) },
 			{ Commands.BuildAnywhere, (BuildAnywhereDescription, BuildAnywhere) },
+			{ Commands.BuildAnywhereAll, (BuildAnywhereAllDescription, BuildAnywhereAll) },
 			{ Commands.UnlimitedPower, (UnlimitedPowerDescription, UnlimitedPower) },
+			{ Commands.UnlimitedPowerAll, (UnlimitedPowerAllDescription, UnlimitedPowerAll) },
 			{ Commands.EnableTech, (EnableTechDescription, EnableTech) },
+			{ Commands.EnableTechAll, (EnableTechAllDescription, EnableTechAll) },
 			{ Commands.FastCharge, (FastChargeDescription, FastCharge) },
+			{ Commands.FastChargeAll, (FastChargeAllDescription, FastChargeAll) },
 			{ Commands.All, (DevCheatAllDescription, All) },
+			{ Commands.AllForAll, (DevCheatAllForAllDescription, AllForAll) },
 			{ Commands.Crash, (DevCrashDescription, Crash) },
 			{ Commands.GrowResources, (GrowResourcesDescription, GrowResources) },
 			{ Commands.ClearResources, (ClearResourcesDescription, ClearResources) },
@@ -230,7 +245,7 @@ namespace OpenRA.Mods.Common.Commands
 		static void VisibilityAll(string arg, World world)
 		{
 			foreach (var player in world.Players.Where(p => !p.NonCombatant))
-				world.IssueOrder(new Order("DevVisibility", player.PlayerActor, false));
+				world.IssueOrder(new Order(DeveloperMode.Orders.Visibility, player.PlayerActor, false));
 		}
 
 		static void InstantBuild(string arg, World world)
@@ -241,7 +256,7 @@ namespace OpenRA.Mods.Common.Commands
 		static void InstantBuildAll(string arg, World world)
 		{
 			foreach (var player in world.Players.Where(p => !p.NonCombatant))
-				world.IssueOrder(new Order("DevFastBuild", player.PlayerActor, false));
+				world.IssueOrder(new Order(DeveloperMode.Orders.FastBuild, player.PlayerActor, false));
 		}
 
 		static void BuildAnywhere(string arg, World world)
@@ -252,7 +267,7 @@ namespace OpenRA.Mods.Common.Commands
 		static void BuildAnywhereAll(string arg, World world)
 		{
 			foreach (var player in world.Players.Where(p => !p.NonCombatant))
-				world.IssueOrder(new Order("DevBuildAnywhere", player.PlayerActor, false));
+				world.IssueOrder(new Order(DeveloperMode.Orders.BuildAnywhere, player.PlayerActor, false));
 		}
 
 		static void UnlimitedPower(string arg, World world)
@@ -263,7 +278,7 @@ namespace OpenRA.Mods.Common.Commands
 		static void UnlimitedPowerAll(string arg, World world)
 		{
 			foreach (var player in world.Players.Where(p => !p.NonCombatant))
-				world.IssueOrder(new Order("DevUnlimitedPower", player.PlayerActor, false));
+				world.IssueOrder(new Order(DeveloperMode.Orders.UnlimitedPower, player.PlayerActor, false));
 		}
 
 		static void EnableTech(string arg, World world)
@@ -274,7 +289,7 @@ namespace OpenRA.Mods.Common.Commands
 		static void EnableTechAll(string arg, World world)
 		{
 			foreach (var player in world.Players.Where(p => !p.NonCombatant))
-				world.IssueOrder(new Order("DevEnableTech", player.PlayerActor, false));
+				world.IssueOrder(new Order(DeveloperMode.Orders.EnableTech, player.PlayerActor, false));
 		}
 
 		static void FastCharge(string arg, World world)
@@ -285,7 +300,7 @@ namespace OpenRA.Mods.Common.Commands
 		static void FastChargeAll(string arg, World world)
 		{
 			foreach (var player in world.Players.Where(p => !p.NonCombatant))
-				world.IssueOrder(new Order("DevFastCharge", player.PlayerActor, false));
+				world.IssueOrder(new Order(DeveloperMode.Orders.FastCharge, player.PlayerActor, false));
 		}
 
 		static void All(string arg, World world)
@@ -296,7 +311,7 @@ namespace OpenRA.Mods.Common.Commands
 		static void AllForAll(string arg, World world)
 		{
 			foreach (var player in world.Players.Where(p => !p.NonCombatant))
-				world.IssueOrder(new Order("DevAll", player.PlayerActor, false));
+				world.IssueOrder(new Order(DeveloperMode.Orders.All, player.PlayerActor, false));
 		}
 
 		static void Crash(string arg, World world)

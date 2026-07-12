@@ -41,7 +41,7 @@ namespace OpenRA.Mods.AS.Traits
 		int token = Actor.InvalidConditionToken;
 		IConditionTimerWatcher[] watchers;
 
-		[Sync]
+		[VerifySync]
 		public int Ticks { get; private set; }
 
 		public GrantTimedConditionOnTeleport(Actor self, GrantTimedConditionOnTeleportInfo info)

@@ -9,6 +9,7 @@
  */
 #endregion
 
+using System.Collections.Frozen;
 using System.Collections.Generic;
 using OpenRA.Primitives;
 using OpenRA.Traits;
@@ -40,7 +41,7 @@ namespace OpenRA.Mods.Common.Traits
 	public interface INotifyPassengersDamage
 	{
 		void DamagePassengers(
-			int damage, Actor attacker, int amount, Dictionary<string, int> versus, BitSet<DamageType> damageTypes, IEnumerable<int> damageModifiers);
+			int damage, Actor attacker, int amount, FrozenDictionary<string, int> versus, BitSet<DamageType> damageTypes, IEnumerable<int> damageModifiers);
 	}
 
 	[RequireExplicitImplementation]

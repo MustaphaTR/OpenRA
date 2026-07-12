@@ -167,7 +167,7 @@ namespace OpenRA.Mods.AS.Traits
 			}
 		}
 
-		public void BuildingPlaced(Actor self) { }
+		public void BuildingPlaced(Actor self, Actor building) { }
 
 		public void ResolveOrder(Actor self, Order order)
 		{

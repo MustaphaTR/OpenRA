@@ -61,7 +61,7 @@ namespace OpenRA.Mods.AS.Traits
 		int conditionToken = Actor.InvalidConditionToken;
 		readonly Actor self;
 
-		[Sync]
+		[VerifySync]
 		public int Strength;
 		int ticks;
 

@@ -160,11 +160,11 @@ namespace OpenRA.Mods.AS.Projectiles
 		readonly float3 shadowColor;
 		readonly float shadowAlpha;
 
-		[Sync]
+		[VerifySync]
 		readonly WAngle angle;
-		[Sync]
+		[VerifySync]
 		readonly WDist speed;
-		[Sync]
+		[VerifySync]
 		readonly WAngle facing;
 
 		readonly string trailPalette;
@@ -172,7 +172,7 @@ namespace OpenRA.Mods.AS.Projectiles
 
 		readonly ContrailRenderable contrail;
 
-		[Sync]
+		[VerifySync]
 		WPos pos, lastPos, target, source;
 		int length;
 		int ticks, smokeTicks;

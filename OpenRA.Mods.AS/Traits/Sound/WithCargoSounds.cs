@@ -9,6 +9,7 @@
  */
 #endregion
 
+using System.Collections.Immutable;
 using OpenRA.Mods.Common.Traits;
 
 namespace OpenRA.Mods.AS.Traits
@@ -22,10 +23,10 @@ namespace OpenRA.Mods.AS.Traits
 		public readonly string ExitNotification = null;
 
 		[Desc("List of sounds to be randomly played when an actor enters this cargo.")]
-		public readonly string[] EnterSounds = [];
+		public readonly ImmutableArray<string> EnterSounds = [];
 
 		[Desc("List of sounds to be randomly played when an actor exits this cargo.")]
-		public readonly string[] ExitSounds = [];
+		public readonly ImmutableArray<string> ExitSounds = [];
 
 		[Desc("Does the sound play under shroud or fog.")]
 		public readonly bool AudibleThroughFog = false;

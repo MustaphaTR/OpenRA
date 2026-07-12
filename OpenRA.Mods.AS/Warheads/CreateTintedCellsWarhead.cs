@@ -9,6 +9,7 @@
 #endregion
 
 using System;
+using System.Collections.Immutable;
 using System.Linq;
 using OpenRA.GameRules;
 using OpenRA.Mods.AS.Traits;
@@ -65,7 +66,7 @@ namespace OpenRA.Mods.AS.Warheads
 				var devMode = world.LocalPlayer.PlayerActor.TraitOrDefault<DebugVisualizations>();
 				if (devMode != null && devMode.CombatGeometry)
 				{
-					var rng = Exts.MakeArray(Range.Length, i => WDist.FromCells(Range[i].Length));
+					var rng = Exts.MakeArray(Range.Length, i => WDist.FromCells(Range[i].Length)).ToImmutableArray();
 					world.WorldActor.Trait<WarheadDebugOverlay>().AddImpact(pos, rng, DebugOverlayColor);
 				}
 			}
