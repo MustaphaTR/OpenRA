@@ -10,6 +10,7 @@
 #endregion
 
 using System;
+using System.Collections.Frozen;
 using System.Collections.Generic;
 using System.Linq;
 using OpenRA.FileSystem;
@@ -112,7 +113,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 		readonly Widget widget;
 		readonly DropDownButtonWidget gameModeDropdown;
 		readonly ModData modData;
-		readonly HashSet<string> remoteMapPool;
+		readonly FrozenSet<string> remoteMapPool;
 		readonly ScrollItemWidget itemTemplate;
 		readonly MapVisibility filter;
 
@@ -138,7 +139,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 		Func<MapPreview, long> orderByFunc;
 
 		[ObjectCreator.UseCtor]
-		internal MapChooserLogic(Widget widget, ModData modData, string initialMap, MapGenerationArgs initialGeneratedMap, HashSet<string> remoteMapPool,
+		internal MapChooserLogic(Widget widget, ModData modData, string initialMap, MapGenerationArgs initialGeneratedMap, FrozenSet<string> remoteMapPool,
 			MapClassification initialTab, Action onExit, Action<string> onSelect, Action<MapGenerationArgs> onSelectGenerated, MapVisibility filter)
 		{
 			this.widget = widget;
@@ -151,22 +152,30 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 
 			var approving = new Action(() =>
 			{
+				// CloseWindow will dispose this logic, so take ownership of the package.
+				var package = generatedMapPackage;
+				generatedMapPackage = null;
+
 				Ui.CloseWindow();
 				if (currentTab == MapClassification.Generated && generatedMapArgs != null)
 				{
 					// PERF: Add the map directly into the map cache to allow an instant map switch for the local player
 					var p = modData.MapCache[generatedMapArgs.Uid];
-					if (p.Status != MapStatus.Available && generatedMapPackage is ZipFileLoader.ReadWriteZipFile zipPackage)
+					if (p.Status != MapStatus.Available && package is ZipFileLoader.ReadWriteZipFile zipPackage)
 					{
-						// The original package will be disposed, so take a deep copy
-						var package = ZipFileLoader.ReadWriteZipFile.FromBase64String(zipPackage.ToBase64String());
-						p.UpdateFromMap(package, MapClassification.Generated);
+						p.UpdateFromGenerationArgs(generatedMapArgs);
+						p.UpdateFromMap(zipPackage, MapClassification.Generated);
+
+						// UpdateFromMap took ownership of the package.
+						package = null;
 					}
 
 					onSelectGenerated?.Invoke(generatedMapArgs);
 				}
 				else
 					onSelect?.Invoke(selectedUid);
+
+				package?.Dispose();
 			});
 
 			var canceling = new Action(() => { Ui.CloseWindow(); onExit(); });
@@ -271,7 +280,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			// SetupMapTab (through RefreshMap) depends on the map search having already started
 			if (remoteMapPool != null && Game.Settings.Game.AllowDownloading)
 			{
-				var services = modData.Manifest.Get<WebServices>();
+				var services = modData.GetOrCreate<WebServices>();
 				modData.MapCache.QueryRemoteMapDetails(services.MapRepository, remoteMapPool);
 			}
 
@@ -411,6 +420,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 					"onGenerate", (Action<MapGenerationArgs, IReadWritePackage>)((args, package) =>
 					{
 						generatedMapArgs = args;
+						generatedMapPackage?.Dispose();
 						generatedMapPackage = package;
 					})
 				}
@@ -640,6 +650,10 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 		protected override void Dispose(bool disposing)
 		{
 			disposed = true;
+
+			generatedMapPackage?.Dispose();
+			generatedMapPackage = null;
+
 			base.Dispose(disposing);
 		}
 	}

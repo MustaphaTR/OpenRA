@@ -10,6 +10,7 @@
 #endregion
 
 using System;
+using System.Collections.Frozen;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -34,7 +35,7 @@ namespace OpenRA.Mods.Cnc.UtilityCommands
 		public override void ValidateMapFormat(int format)
 		{
 			if (format < 2)
-				Console.WriteLine($"ERROR: Detected NewINIFormat {format}. Are you trying to import a Tiberian Dawn map?");
+				Console.Error.WriteLine($"Detected NewINIFormat {format}. Are you trying to import a Tiberian Dawn map?");
 		}
 
 		// Mapping from RA95 overlay index to type string
@@ -47,7 +48,7 @@ namespace OpenRA.Mods.Cnc.UtilityCommands
 			"fpls", "wcrate", "scrate", "fenc", "sbag",
 		];
 
-		static readonly Dictionary<string, (byte Type, byte Index)> OverlayResourceMapping = new()
+		static readonly FrozenDictionary<string, (byte Type, byte Index)> OverlayResourceMapping = new Dictionary<string, (byte Type, byte Index)>
 		{
 			// RA ore & crystals
 			{ "gold01", (1, 0) },
@@ -58,7 +59,7 @@ namespace OpenRA.Mods.Cnc.UtilityCommands
 			{ "gem02", (2, 1) },
 			{ "gem03", (2, 2) },
 			{ "gem04", (2, 3) },
-		};
+		}.ToFrozenDictionary();
 
 		void UnpackTileData(MemoryStream ms)
 		{
@@ -132,7 +133,7 @@ namespace OpenRA.Mods.Cnc.UtilityCommands
 			var newLoc = new CPos(loc % MapSize, loc / MapSize);
 			var vectorDown = new CVec(0, 1);
 
-			if (input == "tsla" || input == "agun" || input == "gap" || input == "apwr")
+			if (input == "tsla" || input == "agun" || input == "gap" || input == "apwr" || input == "stek")
 				newLoc += vectorDown;
 
 			return newLoc;

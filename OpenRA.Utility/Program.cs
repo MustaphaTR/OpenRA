@@ -11,6 +11,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 
@@ -18,7 +19,7 @@ namespace OpenRA
 {
 	using UtilityActions = Dictionary<string, KeyValuePair<Action<Utility, string[]>, Func<string[], bool>>>;
 
-	public class NoSuchCommandException : Exception
+	sealed class NoSuchCommandException : Exception
 	{
 		public readonly string Command;
 		public NoSuchCommandException(string command)
@@ -62,7 +63,7 @@ namespace OpenRA
 
 			var envModSearchPaths = Environment.GetEnvironmentVariable("MOD_SEARCH_PATHS");
 			var modSearchPaths = !string.IsNullOrWhiteSpace(envModSearchPaths) ?
-				FieldLoader.GetValue<string[]>("MOD_SEARCH_PATHS", envModSearchPaths) :
+				FieldLoader.GetValue<ImmutableArray<string>>("MOD_SEARCH_PATHS", envModSearchPaths) :
 				[Path.Combine(Platform.EngineDir, "mods")];
 
 			if (args.Length == 0)

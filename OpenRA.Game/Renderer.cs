@@ -40,14 +40,13 @@ namespace OpenRA
 		internal IPlatformWindow Window { get; }
 		internal IGraphicsContext Context { get; }
 
-		internal int SheetSize { get; }
 		internal int TempVertexBufferSize { get; }
 		internal int TempIndexBufferSize { get; }
 
 		readonly IVertexBuffer<Vertex> tempVertexBuffer;
 		readonly IIndexBuffer quadIndexBuffer;
 		readonly Stack<Rectangle> scissorState = [];
-		readonly ITexture worldBufferSnapshot;
+		readonly ITexture bufferSnapshot;
 
 		IFrameBuffer screenBuffer;
 		Sprite screenSprite;
@@ -62,12 +61,13 @@ namespace OpenRA
 		public int WorldDownscaleFactor { get; private set; } = 1;
 
 		/// <summary>
-		/// Copies and returns the currently rendered world state as a temporary texture.
+		/// Copies and returns the currently rendered state as a temporary texture.
 		/// </summary>
-		public ITexture WorldBufferSnapshot()
+		public ITexture GetRenderBufferSnapshot()
 		{
-			worldBufferSnapshot.SetDataFromReadBuffer(new Rectangle(int2.Zero, worldSheet.Size));
-			return worldBufferSnapshot;
+			var size = renderType == RenderType.World ? worldSheet.Size : Window.SurfaceSize.NextPowerOf2();
+			bufferSnapshot.SetDataFromReadBuffer(new Rectangle(int2.Zero, size));
+			return bufferSnapshot;
 		}
 
 		SheetBuilder fontSheetBuilder;
@@ -77,18 +77,19 @@ namespace OpenRA
 
 		Size lastBufferSize = new(-1, -1);
 
-		Rectangle lastWorldViewport = Rectangle.Empty;
+		Rectangle lastWorldViewport;
+		float2 lastViewportLocation;
 		ITexture currentPaletteTexture;
 		int currentPaletteHeight = 0;
 		IBatchRenderer currentBatchRenderer;
 		RenderType renderType = RenderType.None;
 
-		public Renderer(IPlatform platform, GraphicSettings graphicSettings)
+		public Renderer(IPlatform platform, GraphicSettings graphicSettings, int vertexBatchSize)
 		{
 			this.platform = platform;
 			var resolution = GetResolution(graphicSettings);
 
-			TempVertexBufferSize = graphicSettings.BatchSize - graphicSettings.BatchSize % 4;
+			TempVertexBufferSize = vertexBatchSize - vertexBatchSize % 4;
 			TempIndexBufferSize = TempVertexBufferSize / 4 * 6;
 
 			Window = platform.CreateWindow(new Size(resolution.Width, resolution.Height),
@@ -96,8 +97,6 @@ namespace OpenRA
 				graphicSettings.VideoDisplay, graphicSettings.GLProfile);
 
 			Context = Window.Context;
-
-			SheetSize = graphicSettings.SheetSize;
 
 			var combinedBindings = new CombinedShaderBindings();
 			WorldSpriteRenderer = new SpriteRenderer(this, Context.CreateShader(combinedBindings));
@@ -109,7 +108,7 @@ namespace OpenRA
 
 			tempVertexBuffer = Context.CreateEmptyVertexBuffer<Vertex>(TempVertexBufferSize);
 			quadIndexBuffer = Context.CreateIndexBuffer(Util.CreateQuadIndices(TempIndexBufferSize / 6));
-			worldBufferSnapshot = Context.CreateTexture();
+			bufferSnapshot = Context.CreateTexture();
 		}
 
 		static Size GetResolution(GraphicSettings graphicsSettings)
@@ -133,8 +132,8 @@ namespace OpenRA
 			using (new PerfTimer("SpriteFonts"))
 			{
 				fontSheetBuilder?.Dispose();
-				fontSheetBuilder = new SheetBuilder(SheetType.BGRA, modData.Manifest.FontSheetSize);
-				Fonts = modData.Manifest.Get<Fonts>().FontList.ToDictionary(x => x.Key,
+				fontSheetBuilder = new SheetBuilder(SheetType.BGRA, modData.Manifest.RendererConstants.FontSheetSize);
+				Fonts = modData.GetOrCreate<Fonts>().FontList.ToDictionary(x => x.Key,
 					x => new SpriteFont(
 						platform, x.Value.Font, modData.DefaultFileSystem.Open(x.Value.Font).ReadAllBytes(),
 						x.Value.Size, x.Value.Ascender, Window.EffectiveWindowScale, fontSheetBuilder));
@@ -233,7 +232,7 @@ namespace OpenRA
 			lastMaximumViewportSize = size;
 		}
 
-		public void BeginWorld(Rectangle worldViewport)
+		public void BeginWorld(float2 viewportLocation, Size viewportSize)
 		{
 			if (renderType != RenderType.None)
 				throw new InvalidOperationException($"BeginWorld called with renderType = {renderType}, expected RenderType.None.");
@@ -243,28 +242,34 @@ namespace OpenRA
 			if (worldSheet == null)
 				throw new InvalidOperationException("BeginWorld called before SetMaximumViewportSize has been set.");
 
-			if (worldSprite == null || worldViewport.Size != lastWorldViewportSize)
+			var centerLocation = viewportLocation.ToInt2();
+			if (worldSprite == null || viewportSize != lastWorldViewportSize || viewportLocation != lastViewportLocation)
 			{
+				lastViewportLocation = viewportLocation;
+				lastWorldViewportSize = viewportSize;
+
 				// Downscale world rendering if needed to fit within the framebuffer
-				var vw = worldViewport.Size.Width;
-				var vh = worldViewport.Size.Height;
+				var vw = viewportSize.Width;
+				var vh = viewportSize.Height;
 				var bw = worldSheet.Size.Width;
 				var bh = worldSheet.Size.Height;
 				WorldDownscaleFactor = 1;
 				while (vw / WorldDownscaleFactor > bw || vh / WorldDownscaleFactor > bh)
 					WorldDownscaleFactor++;
 
-				var s = new Size(vw / WorldDownscaleFactor, vh / WorldDownscaleFactor);
-				worldSprite = new Sprite(worldSheet, new Rectangle(int2.Zero, s), TextureChannel.RGBA);
-				lastWorldViewportSize = worldViewport.Size;
+				// We need to add 1 to scroll in order to handle interpixel 0-0.99 fractionalOffset.
+				var s = new Size(vw / WorldDownscaleFactor + 1, vh / WorldDownscaleFactor + 1);
+				var fractionalOffset = centerLocation - viewportLocation;
+				worldSprite = new Sprite(worldSheet, new Rectangle(int2.Zero, s), 0, fractionalOffset, TextureChannel.RGBA);
 			}
 
 			worldBuffer.Bind();
-
-			if (lastWorldViewport != worldViewport)
+			var rect = new Rectangle(centerLocation, viewportSize);
+			if (lastWorldViewport != rect)
 			{
-				WorldSpriteRenderer.SetViewportParams(worldSheet.Size, WorldDownscaleFactor, depthMargin, worldViewport.Location);
-				lastWorldViewport = worldViewport;
+				var topLeft = centerLocation - viewportSize.ToInt2() / 2;
+				WorldSpriteRenderer.SetViewportParams(worldSheet.Size, WorldDownscaleFactor, depthMargin, topLeft);
+				lastWorldViewport = rect;
 			}
 
 			renderType = RenderType.World;
@@ -282,9 +287,11 @@ namespace OpenRA
 				screenBuffer.Bind();
 
 				var scale = Window.EffectiveWindowScale;
+
+				// We added 1 to worldSprite now we need to subtract.
 				var bufferScale = new float3(
-					(int)(screenSprite.Bounds.Width / scale) / worldSprite.Size.X,
-					(int)(-screenSprite.Bounds.Height / scale) / worldSprite.Size.Y,
+					(int)(screenSprite.Bounds.Width / scale) / (worldSprite.Size.X - 1),
+					(int)(-screenSprite.Bounds.Height / scale) / (worldSprite.Size.Y - 1),
 					1f);
 
 				SpriteRenderer.EnablePixelArtScaling(true);
@@ -537,7 +544,7 @@ namespace OpenRA
 		{
 			worldBuffer?.Dispose();
 			screenBuffer.Dispose();
-			worldBufferSnapshot.Dispose();
+			bufferSnapshot.Dispose();
 			tempVertexBuffer.Dispose();
 			quadIndexBuffer.Dispose();
 			fontSheetBuilder?.Dispose();
@@ -560,6 +567,11 @@ namespace OpenRA
 		public bool SetClipboardText(string text)
 		{
 			return Window.SetClipboardText(text);
+		}
+
+		public bool TryOpenUrl(string url)
+		{
+			return Window.TryOpenUrl(url);
 		}
 
 		public string GLVersion => Context.GLVersion;

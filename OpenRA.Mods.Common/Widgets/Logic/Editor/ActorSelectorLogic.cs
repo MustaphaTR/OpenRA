@@ -11,6 +11,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using OpenRA.Graphics;
 using OpenRA.Mods.Common.Traits;
@@ -25,7 +26,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 		[FluentReference("actorType")]
 		const string ActorTypeTooltip = "label-actor-type";
 
-		sealed record ActorSelectorActor(ActorInfo Actor, string[] Categories, string[] SearchTerms, string Tooltip);
+		sealed record ActorSelectorActor(ActorInfo Actor, ImmutableArray<string> Categories, string[] SearchTerms, string Tooltip);
 
 		readonly DropDownButtonWidget ownersDropDown;
 		readonly Ruleset mapRules;
@@ -198,11 +199,18 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 					preview.SetPreview(actor, td);
 
 					// Scale templates to fit within the panel
-					var scale = 1f;
-					if (scale * preview.IdealPreviewSize.X > ItemTemplate.Bounds.Width)
-						scale = (ItemTemplate.Bounds.Width - Panel.ItemSpacing) / (float)preview.IdealPreviewSize.X;
+					// Preview position is assumed to be a margin
+					var maxPreviewWidth = item.Bounds.Width - 2 * preview.Bounds.X;
+					var maxPreviewHeight = item.Bounds.Height - 2 * preview.Bounds.Y;
 
-					preview.GetScale = () => scale;
+					var scale = 1f;
+					if (preview.IdealPreviewSize.X > maxPreviewWidth)
+						scale = maxPreviewWidth / (float)preview.IdealPreviewSize.X;
+
+					if (preview.IdealPreviewSize.Y * scale > maxPreviewHeight)
+						scale = maxPreviewHeight / (float)preview.IdealPreviewSize.Y;
+
+					preview.Scale = scale;
 					preview.Bounds.Width = (int)(scale * preview.IdealPreviewSize.X);
 					preview.Bounds.Height = (int)(scale * preview.IdealPreviewSize.Y);
 

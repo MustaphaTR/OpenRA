@@ -10,6 +10,7 @@
 #endregion
 
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using OpenRA.GameRules;
 using OpenRA.Graphics;
@@ -63,7 +64,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		[SequenceReference(nameof(TrailImage), allowNullImage: true)]
 		[Desc("Loop a randomly chosen sequence of TrailImage from this list while this projectile is moving.")]
-		public readonly string[] TrailSequences = [];
+		public readonly ImmutableArray<string> TrailSequences = [];
 
 		[Desc("Interval in ticks between each spawned Trail animation.")]
 		public readonly int TrailInterval = 1;
@@ -222,7 +223,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		public override void SelectTarget(Actor self, string order, SupportPowerManager manager)
 		{
-			self.World.OrderGenerator = new SelectNukePowerTarget(order, manager, this, MouseButton.Left);
+			self.World.OrderGenerator = new SelectNukePowerTarget(order, manager, this);
 		}
 	}
 
@@ -230,8 +231,8 @@ namespace OpenRA.Mods.Common.Traits
 	{
 		readonly NukePower power;
 
-		public SelectNukePowerTarget(string order, SupportPowerManager manager, NukePower power, MouseButton button)
-			: base(order, manager, power.Info, button)
+		public SelectNukePowerTarget(string order, SupportPowerManager manager, NukePower power)
+			: base(order, manager, power.Info)
 		{
 			this.power = power;
 		}

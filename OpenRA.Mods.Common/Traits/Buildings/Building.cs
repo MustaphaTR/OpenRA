@@ -10,7 +10,9 @@
 #endregion
 
 using System;
+using System.Collections.Frozen;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using OpenRA.Graphics;
 using OpenRA.Traits;
@@ -29,7 +31,7 @@ namespace OpenRA.Mods.Common.Traits
 	public class BuildingInfo : TraitInfo, IOccupySpaceInfo, IPlaceBuildingDecorationInfo
 	{
 		[Desc("Where you are allowed to place the building (Water, Clear, ...)")]
-		public readonly HashSet<string> TerrainTypes = [];
+		public readonly FrozenSet<string> TerrainTypes = FrozenSet<string>.Empty;
 
 		[Desc("Terrain that the building can be placed on, but not at the same time with ones defined under `TerrainTypes`.")]
 		public readonly HashSet<string> SecondaryTerrainTypes = [];
@@ -37,7 +39,7 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("x means cell is blocked, capital X means blocked but not counting as targetable, ",
 			"= means part of the footprint but passable, _ means completely empty.")]
 		[FieldLoader.LoadUsing(nameof(LoadFootprint))]
-		public readonly Dictionary<CVec, FootprintCellType> Footprint;
+		public readonly FrozenDictionary<CVec, FootprintCellType> Footprint;
 
 		public readonly CVec Dimensions = new(1, 1);
 
@@ -57,9 +59,9 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Clear smudges from underneath the building footprint on transform.")]
 		public readonly bool RemoveSmudgesOnTransform = true;
 
-		public readonly string[] BuildSounds = [];
+		public readonly ImmutableArray<string> BuildSounds = [];
 
-		public readonly string[] UndeploySounds = [];
+		public readonly ImmutableArray<string> UndeploySounds = [];
 
 		[Desc("Do the sounds play under shroud or fog.")]
 		public readonly bool AudibleThroughFog = false;
@@ -85,7 +87,7 @@ namespace OpenRA.Mods.Common.Traits
 			}
 
 			var index = 0;
-			var ret = new Dictionary<CVec, FootprintCellType>();
+			var ret = new Dictionary<CVec, FootprintCellType>(dim.X * dim.Y);
 			for (var y = 0; y < dim.Y; y++)
 			{
 				for (var x = 0; x < dim.X; x++)
@@ -98,7 +100,7 @@ namespace OpenRA.Mods.Common.Traits
 				}
 			}
 
-			return ret;
+			return ret.ToFrozenDictionary();
 		}
 
 		public IEnumerable<CPos> FootprintTiles(CPos location, FootprintCellType type)
@@ -275,6 +277,7 @@ namespace OpenRA.Mods.Common.Traits
 		INotifyAddedToWorld, INotifyRemovedFromWorld
 	{
 		public readonly BuildingInfo Info;
+
 		readonly Actor self;
 		readonly BuildingInfluence influence;
 
@@ -282,7 +285,7 @@ namespace OpenRA.Mods.Common.Traits
 		readonly (CPos, SubCell)[] targetableCells;
 		readonly CPos[] transitOnlyCells;
 
-		[Sync]
+		[VerifySync]
 		public CPos TopLeft { get; }
 		public WPos CenterPosition { get; }
 

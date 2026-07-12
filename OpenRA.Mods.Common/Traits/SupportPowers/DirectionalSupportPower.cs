@@ -9,7 +9,7 @@
  */
 #endregion
 
-using System.Collections.Generic;
+using System.Collections.Immutable;
 using OpenRA.Primitives;
 using OpenRA.Traits;
 
@@ -21,7 +21,7 @@ namespace OpenRA.Mods.Common.Traits
 		public readonly bool UseDirectionalTarget = false;
 
 		[SequenceReference(nameof(DirectionArrowAnimation), allowNullImage: true)]
-		public readonly string[] Arrows = ["arrow-t", "arrow-tl", "arrow-l", "arrow-bl", "arrow-b", "arrow-br", "arrow-r", "arrow-tr"];
+		public readonly ImmutableArray<string> Arrows = ["arrow-t", "arrow-tl", "arrow-l", "arrow-bl", "arrow-b", "arrow-br", "arrow-r", "arrow-tr"];
 
 		[Desc("Animation used to render the direction arrows.")]
 		public readonly string DirectionArrowAnimation = null;

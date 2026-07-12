@@ -33,15 +33,12 @@ namespace OpenRA.Mods.Common.Traits
 
 			foreach (var kv in world.Map.ActorDefinitions)
 			{
-				var actorReference = new ActorReference(kv.Value.Value, kv.Value.ToDictionary());
+				var actorReference = new ActorReference(kv.Value.Value, kv.Value);
 
 				// If an actor's doesn't have a valid owner transfer ownership to neutral
 				var ownerInit = actorReference.Get<OwnerInit>();
 				if (!world.Players.Any(p => p.InternalName == ownerInit.InternalName))
-				{
-					actorReference.Remove(ownerInit);
-					actorReference.Add(new OwnerInit(world.WorldActor.Owner));
-				}
+					actorReference.Replace(new OwnerInit(world.WorldActor.Owner));
 
 				actorReference.Add(new SkipMakeAnimsInit());
 				actorReference.Add(new SpawnedByMapInit());

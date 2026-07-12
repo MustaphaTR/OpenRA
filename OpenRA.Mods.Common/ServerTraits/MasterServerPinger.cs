@@ -10,6 +10,7 @@
 #endregion
 
 using System;
+using System.Collections.Frozen;
 using System.Collections.Generic;
 using System.Net.Http;
 using System.Text.RegularExpressions;
@@ -49,11 +50,11 @@ namespace OpenRA.Mods.Common.Server
 		const string GameOffline = "notification-game-offline";
 
 		static readonly ushort LanAdvertisePort = (ushort)new Random(DateTime.Now.Millisecond).Next(2048, 60000);
-		static readonly Dictionary<int, string> MasterServerErrors = new()
+		static readonly FrozenDictionary<int, string> MasterServerErrors = new Dictionary<int, string>
 		{
 			{ 1, NoPortForward },
 			{ 2, BlacklistedTitle }
-		};
+		}.ToFrozenDictionary();
 
 		Beacon lanGameBeacon;
 		long lastPing = 0;
@@ -63,22 +64,11 @@ namespace OpenRA.Mods.Common.Server
 		volatile bool isBusy;
 		readonly Queue<string> masterServerMessages = [];
 
-		void CreateLanGameBeacon()
-		{
-			try
-			{
-				lanGameBeacon?.Stop();
-				lanGameBeacon = new Beacon("OpenRALANGame", LanAdvertisePort);
-			}
-			catch (Exception ex)
-			{
-				lanGameBeacon = null;
-				Log.Write("server", "BeaconLib.Beacon: " + ex.Message);
-			}
-		}
-
 		public void Tick(S server)
 		{
+			if (!server.IsMultiplayer)
+				return;
+
 			// Force an update if the last one was too long ago so the advertisement doesn't time out
 			if (Game.RunTime - lastChanged > MasterPingInterval)
 				lastChanged = Game.RunTime;
@@ -118,6 +108,9 @@ namespace OpenRA.Mods.Common.Server
 
 		void INotifyServerShutdown.ServerShutdown(S server)
 		{
+			if (!server.IsMultiplayer)
+				return;
+
 			if (server.Settings.AdvertiseOnline)
 			{
 				// Announce that the game has ended to remove it from the list.
@@ -155,7 +148,7 @@ namespace OpenRA.Mods.Common.Server
 			{
 				try
 				{
-					var endpoint = server.ModData.Manifest.Get<WebServices>().ServerAdvertise;
+					var endpoint = server.ModData.GetOrCreate<WebServices>().ServerAdvertise;
 
 					var client = HttpClientFactory.Create();
 					var response = await client.PostAsync(endpoint, new StringContent(postData));
@@ -205,6 +198,20 @@ namespace OpenRA.Mods.Common.Server
 
 				isBusy = false;
 			});
+		}
+
+		void CreateLanGameBeacon()
+		{
+			try
+			{
+				lanGameBeacon?.Stop();
+				lanGameBeacon = new Beacon("OpenRALANGame", LanAdvertisePort);
+			}
+			catch (Exception ex)
+			{
+				lanGameBeacon = null;
+				Log.Write("server", "BeaconLib.Beacon: " + ex.Message);
+			}
 		}
 	}
 }

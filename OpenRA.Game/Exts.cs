@@ -11,6 +11,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Globalization;
 using System.Linq;
 using System.Reflection;
@@ -78,7 +79,7 @@ namespace OpenRA
 			return Math.Sign((v1.X - v0.X) * (p.Y - v0.Y) - (p.X - v0.X) * (v1.Y - v0.Y));
 		}
 
-		public static bool PolygonContains(this int2[] polygon, int2 p)
+		public static bool PolygonContains(this ImmutableArray<int2> polygon, int2 p)
 		{
 			var windingNumber = 0;
 
@@ -548,7 +549,7 @@ namespace OpenRA
 
 		public static bool TryParseFloatOrPercentInvariant(string s, out float f)
 		{
-			if (float.TryParse(s.Replace("%", ""), NumberStyles.Float, NumberFormatInfo.InvariantInfo, out f))
+			if (float.TryParse(s?.Replace("%", ""), NumberStyles.Float, NumberFormatInfo.InvariantInfo, out f))
 			{
 				f *= s.Contains('%') ? 0.01f : 1f;
 				return true;
@@ -568,6 +569,11 @@ namespace OpenRA
 		}
 
 		public static string ToStringInvariant(this int i)
+		{
+			return i.ToString(NumberFormatInfo.InvariantInfo);
+		}
+
+		public static string ToStringInvariant(this uint i)
 		{
 			return i.ToString(NumberFormatInfo.InvariantInfo);
 		}
@@ -670,28 +676,5 @@ namespace OpenRA
 		}
 
 		public ReadOnlySpan<char> Current { get; private set; }
-	}
-
-	public static class Enum<T>
-	{
-		public static T Parse(string s) { return (T)Enum.Parse(typeof(T), s); }
-		public static T[] GetValues() { return (T[])Enum.GetValues(typeof(T)); }
-
-		public static bool TryParse(string s, bool ignoreCase, out T value)
-		{
-			// The string may be a comma delimited list of values
-			var names = ignoreCase ? Enum.GetNames(typeof(T)).Select(x => x.ToLowerInvariant()) : Enum.GetNames(typeof(T));
-			var values = ignoreCase ? s.Split(',').Select(x => x.Trim().ToLowerInvariant()) : s.Split(',').Select(x => x.Trim());
-
-			if (values.Any(x => !names.Contains(x)))
-			{
-				value = default;
-				return false;
-			}
-
-			value = (T)Enum.Parse(typeof(T), s, ignoreCase);
-
-			return true;
-		}
 	}
 }

@@ -26,7 +26,7 @@ Container@OBSERVER_WIDGETS:
 		MenuButton@OPTIONS_BUTTON:
 			X: 5
 			Y: 5
-			Width: 160
+			Width: 130
 			Height: 25
 			Text: button-observer-widget-options
 			Font: Bold
@@ -93,14 +93,16 @@ Container@OBSERVER_WIDGETS:
 							Height: 23
 							X: 2
 							Y: 5
-						Label@LABEL:
+						LabelWithTooltip@LABEL:
 							X: 34
-							Width: PARENT_WIDTH
+							Width: PARENT_WIDTH - 36
 							Height: 25
 							Shadow: True
+							TooltipContainer: TOOLTIP_CONTAINER
+							TooltipTemplate: SIMPLE_TOOLTIP
 						Label@NOFLAG_LABEL:
 							X: 5
-							Width: PARENT_WIDTH
+							Width: PARENT_WIDTH - 7
 							Height: 25
 							Shadow: True
 				Container@REPLAY_PLAYER:
@@ -116,7 +118,7 @@ Container@OBSERVER_WIDGETS:
 							Width: 26
 							Height: 26
 							Key: Pause
-							TooltipText: button-replay-player-pause-tooltip
+							TooltipText: button-replay-pause-tooltip
 							TooltipContainer: TOOLTIP_CONTAINER
 							IgnoreChildMouseOver: true
 							Children:
@@ -131,7 +133,7 @@ Container@OBSERVER_WIDGETS:
 							Width: 26
 							Height: 26
 							Key: Pause
-							TooltipText: button-replay-player-play-tooltip
+							TooltipText: button-replay-play-tooltip
 							TooltipContainer: TOOLTIP_CONTAINER
 							IgnoreChildMouseOver: true
 							Children:
@@ -146,9 +148,9 @@ Container@OBSERVER_WIDGETS:
 							Width: 36
 							Height: 20
 							Key: ReplaySpeedSlow
-							TooltipText: button-replay-player-slow.tooltip
+							TooltipText: button-replay-slow.tooltip
 							TooltipContainer: TOOLTIP_CONTAINER
-							Text: button-replay-player-slow.label
+							Text: button-replay-slow.label
 							Font: TinyBold
 						Button@BUTTON_REGULAR:
 							X: 55 + 45
@@ -156,9 +158,9 @@ Container@OBSERVER_WIDGETS:
 							Width: 38
 							Height: 20
 							Key: ReplaySpeedRegular
-							TooltipText: button-replay-player-regular.tooltip
+							TooltipText: button-replay-regular.tooltip
 							TooltipContainer: TOOLTIP_CONTAINER
-							Text: button-replay-player-regular.label
+							Text: button-replay-regular.label
 							Font: TinyBold
 						Button@BUTTON_FAST:
 							X: 55 + 45 * 2
@@ -166,9 +168,9 @@ Container@OBSERVER_WIDGETS:
 							Width: 38
 							Height: 20
 							Key: ReplaySpeedFast
-							TooltipText: button-replay-player-fast.tooltip
+							TooltipText: button-replay-fast.tooltip
 							TooltipContainer: TOOLTIP_CONTAINER
-							Text: button-replay-player-fast.label
+							Text: button-replay-fast.label
 							Font: TinyBold
 						Button@BUTTON_MAXIMUM:
 							X: 55 + 45 * 3
@@ -176,9 +178,9 @@ Container@OBSERVER_WIDGETS:
 							Width: 38
 							Height: 20
 							Key: ReplaySpeedMax
-							TooltipText: button-replay-player-maximum.tooltip
+							TooltipText: button-replay-maximum.tooltip
 							TooltipContainer: TOOLTIP_CONTAINER
-							Text: button-replay-player-maximum.label
+							Text: button-replay-maximum.label
 							Font: TinyBold
 		Container@INGAME_OBSERVERSTATS_BG:
 			Logic: ObserverStatsLogic
@@ -197,7 +199,7 @@ Container@OBSERVER_WIDGETS:
 			Height: 240
 			Children:
 				DropDownButton@STATS_DROPDOWN:
-					X: 165
+					X: 135
 					Y: 0
 					Width: 185
 					Height: 25
@@ -635,6 +637,7 @@ Container@OBSERVER_WIDGETS:
 							Width: 705
 							Height: 24
 							Background: scrollitem-nohover
+							EnableChildMouseOver: true
 							Children:
 								ColorBlock@PLAYER_COLOR:
 									X: 0
@@ -653,13 +656,15 @@ Container@OBSERVER_WIDGETS:
 									Height: PARENT_HEIGHT - 4
 									ImageName: random
 									ImageCollection: flags
-								Label@PLAYER:
+								LabelWithTooltip@PLAYER:
 									X: 40
 									Y: 0
 									Width: 120
 									Height: PARENT_HEIGHT
 									Font: Bold
 									Shadow: True
+									TooltipContainer: TOOLTIP_CONTAINER
+									TooltipTemplate: SIMPLE_TOOLTIP
 								Label@CASH:
 									X: 160
 									Y: 0
@@ -722,6 +727,7 @@ Container@OBSERVER_WIDGETS:
 							Width: 645
 							Height: 24
 							Background: scrollitem-nohover
+							EnableChildMouseOver: true
 							Children:
 								ColorBlock@PLAYER_COLOR:
 									X: 0
@@ -740,13 +746,15 @@ Container@OBSERVER_WIDGETS:
 									Height: PARENT_HEIGHT - 4
 									ImageName: random
 									ImageCollection: flags
-								Label@PLAYER:
+								LabelWithTooltip@PLAYER:
 									X: 40
 									Y: 0
 									Width: 120
 									Height: PARENT_HEIGHT
 									Font: Bold
 									Shadow: True
+									TooltipContainer: TOOLTIP_CONTAINER
+									TooltipTemplate: SIMPLE_TOOLTIP
 								Label@CASH:
 									X: 160
 									Y: 0
@@ -795,6 +803,7 @@ Container@OBSERVER_WIDGETS:
 							Width: 400
 							Height: 24
 							Background: scrollitem-nohover
+							EnableChildMouseOver: true
 							Children:
 								ColorBlock@PLAYER_COLOR:
 									X: 0
@@ -813,13 +822,15 @@ Container@OBSERVER_WIDGETS:
 									Height: PARENT_HEIGHT - 4
 									ImageName: random
 									ImageCollection: flags
-								Label@PLAYER:
+								LabelWithTooltip@PLAYER:
 									X: 40
 									Y: 0
 									Width: 120
 									Height: PARENT_HEIGHT
 									Font: Bold
 									Shadow: True
+									TooltipContainer: TOOLTIP_CONTAINER
+									TooltipTemplate: SIMPLE_TOOLTIP
 								ObserverProductionIcons@PRODUCTION_ICONS:
 									X: 160
 									Y: 0
@@ -833,6 +844,7 @@ Container@OBSERVER_WIDGETS:
 							Width: 400
 							Height: 24
 							Background: scrollitem-nohover
+							EnableChildMouseOver: true
 							Children:
 								ColorBlock@PLAYER_COLOR:
 									X: 0
@@ -851,13 +863,15 @@ Container@OBSERVER_WIDGETS:
 									Height: PARENT_HEIGHT - 4
 									ImageName: random
 									ImageCollection: flags
-								Label@PLAYER:
+								LabelWithTooltip@PLAYER:
 									X: 40
 									Y: 0
 									Width: 120
 									Height: PARENT_HEIGHT
 									Font: Bold
 									Shadow: True
+									TooltipContainer: TOOLTIP_CONTAINER
+									TooltipTemplate: SIMPLE_TOOLTIP
 								ObserverSupportPowerIcons@SUPPORT_POWER_ICONS:
 									X: 160
 									Y: 0
@@ -871,6 +885,7 @@ Container@OBSERVER_WIDGETS:
 							Width: 400
 							Height: 24
 							Background: scrollitem-nohover
+							EnableChildMouseOver: true
 							Children:
 								ColorBlock@PLAYER_COLOR:
 									X: 0
@@ -889,13 +904,15 @@ Container@OBSERVER_WIDGETS:
 									Height: PARENT_HEIGHT - 4
 									ImageName: random
 									ImageCollection: flags
-								Label@PLAYER:
+								LabelWithTooltip@PLAYER:
 									X: 40
 									Y: 0
 									Width: 120
 									Height: PARENT_HEIGHT
 									Font: Bold
 									Shadow: True
+									TooltipContainer: TOOLTIP_CONTAINER
+									TooltipTemplate: SIMPLE_TOOLTIP
 								ObserverArmyIcons@ARMY_ICONS:
 									X: 160
 									Y: 0
@@ -908,6 +925,7 @@ Container@OBSERVER_WIDGETS:
 							Width: 760
 							Height: 24
 							Background: scrollitem-nohover
+							EnableChildMouseOver: true
 							Children:
 								ColorBlock@PLAYER_COLOR:
 									X: 0
@@ -926,13 +944,15 @@ Container@OBSERVER_WIDGETS:
 									Height: PARENT_HEIGHT - 4
 									ImageName: random
 									ImageCollection: flags
-								Label@PLAYER:
+								LabelWithTooltip@PLAYER:
 									X: 40
 									Y: 0
 									Width: 120
 									Height: PARENT_HEIGHT
 									Font: Bold
 									Shadow: True
+									TooltipContainer: TOOLTIP_CONTAINER
+									TooltipTemplate: SIMPLE_TOOLTIP
 								Label@ASSETS_DESTROYED:
 									X: 160
 									Y: 0

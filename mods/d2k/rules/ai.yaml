@@ -17,7 +17,7 @@ Player:
 	GrantConditionOnBotOwner@gladius:
 		Condition: enable-gladius-ai
 		Bots: gladius
-	ProvidesPrerequisite@autoConreteForBots:
+	ProvidesPrerequisite@autoConcreteForBots:
 		Prerequisite: global-auto-concrete
 		RequiresCondition: enable-omnius-ai || enable-vidious-ai || enable-gladius-ai
 	SupportPowerBotModule:
@@ -25,7 +25,7 @@ Player:
 		Decisions:
 			Airstrike:
 				OrderName: AirstrikePowerInfoOrder
-				MinimumAttractiveness: 2000
+				MinimumAttractiveness: 2500
 				Consideration@1:
 					Against: Enemy
 					Types: Vehicle, Tank, Infantry
@@ -34,25 +34,37 @@ Player:
 					CheckRadius: 3c0
 				Consideration@2:
 					Against: Enemy
-					Types: Structure
+					Types: Structure, Defense
 					Attractiveness: 1
 					TargetMetric: Value
-					CheckRadius: 2c0
+					CheckRadius: 5c0
 				Consideration@3:
 					Against: Ally
 					Types: Ground
 					Attractiveness: -10
 					TargetMetric: Value
 					CheckRadius: 4c0
+				Consideration@4:
+					Against: Enemy
+					Types: Defense
+					Attractiveness: 6
+					TargetMetric: Value
+					CheckRadius: 4c0
 			NukePower:
 				OrderName: NukePowerInfoOrder
-				MinimumAttractiveness: 3000
+				MinimumAttractiveness: 3500
 				Consideration@1:
 					Against: Enemy
-					Types: Structure
-					Attractiveness: 1
+					Types: Structure, Defense
+					Attractiveness: 10
 					TargetMetric: Value
 					CheckRadius: 5c0
+				Consideration@3:
+					Against: Enemy
+					Types: Infantry, Vehicle, Tank, Defense
+					Attractiveness: 5
+					TargetMetric: Value
+					CheckRadius: 4c0
 				Consideration@2:
 					Against: Ally
 					Types: Air, Ground
@@ -67,21 +79,27 @@ Player:
 		RequiresCondition: enable-omnius-ai || enable-vidious-ai || enable-gladius-ai
 		HarvesterTypes: harvester
 		RefineryTypes: refinery
+	ResourceMapBotModule:
+		RequiresCondition: enable-omnius-ai || enable-vidious-ai || enable-gladius-ai
+		ValuableResourceTypes: spice
+		ResourceCreatorTypes: spicebloom.spawnpoint, spicebloom
+		HarvesterTypes: harvester
+		EnemyBaseBuildingTypes: construction_yard, refinery, barracks, wind_trap, light_factory, heavy_factory, outpost, starport, medium_gun_turret, large_gun_turret
 	BaseBuilderBotModule@omnius:
 		RequiresCondition: enable-omnius-ai
 		BuildingQueues: Building, Upgrade
-		MinimumExcessPower: 50
-		MaximumExcessPower: 200
+		MinimumExcessPower: 60
+		MaximumExcessPower: 250
 		ExcessPowerIncrement: 50
 		ExcessPowerIncreaseThreshold: 4
 		MaxBaseRadius: 40
 		ConstructionYardTypes: construction_yard
 		RefineryTypes: refinery
 		PowerTypes: wind_trap
-		VehiclesFactoryTypes: light_factory, heavy_factory, starport
 		ProductionTypes: light_factory, heavy_factory, barracks, starport
 		SiloTypes: silo
 		DefenseTypes: medium_gun_turret,large_gun_turret
+		SellRefineryInterval: -1
 		BuildingLimits:
 			barracks: 3
 			refinery: 4
@@ -129,18 +147,18 @@ Player:
 	BaseBuilderBotModule@vidious:
 		RequiresCondition: enable-vidious-ai
 		BuildingQueues: Building, Upgrade
-		MinimumExcessPower: 50
-		MaximumExcessPower: 200
+		MinimumExcessPower: 60
+		MaximumExcessPower: 250
 		ExcessPowerIncrement: 50
 		ExcessPowerIncreaseThreshold: 4
 		MaxBaseRadius: 40
 		ConstructionYardTypes: construction_yard
 		RefineryTypes: refinery
 		PowerTypes: wind_trap
-		VehiclesFactoryTypes: light_factory, heavy_factory, starport
 		ProductionTypes: light_factory, heavy_factory, barracks, starport
 		SiloTypes: silo
 		DefenseTypes: medium_gun_turret,large_gun_turret
+		SellRefineryInterval: -1
 		BuildingLimits:
 			barracks: 3
 			refinery: 4
@@ -186,18 +204,18 @@ Player:
 	BaseBuilderBotModule@gladius:
 		RequiresCondition: enable-gladius-ai
 		BuildingQueues: Building, Upgrade
-		MinimumExcessPower: 50
-		MaximumExcessPower: 200
+		MinimumExcessPower: 60
+		MaximumExcessPower: 250
 		ExcessPowerIncrement: 50
 		ExcessPowerIncreaseThreshold: 4
 		MaxBaseRadius: 40
 		ConstructionYardTypes: construction_yard
 		RefineryTypes: refinery
 		PowerTypes: wind_trap
-		VehiclesFactoryTypes: light_factory, heavy_factory, starport
 		ProductionTypes: light_factory, heavy_factory, barracks, starport
 		SiloTypes: silo
 		DefenseTypes: medium_gun_turret,large_gun_turret
+		SellRefineryInterval: -1
 		BuildingLimits:
 			barracks: 3
 			refinery: 4
@@ -243,6 +261,7 @@ Player:
 			medium_gun_turret: 5000
 	BuildingRepairBotModule:
 		RequiresCondition: enable-omnius-ai || enable-vidious-ai || enable-gladius-ai
+		RepairAllBuildingsCoolDown: -1
 	SquadManagerBotModule@omnius:
 		RequiresCondition: enable-omnius-ai
 		SquadSize: 8

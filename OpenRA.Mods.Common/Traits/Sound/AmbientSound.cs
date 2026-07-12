@@ -10,6 +10,7 @@
 #endregion
 
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.Traits.Sound
@@ -18,15 +19,15 @@ namespace OpenRA.Mods.Common.Traits.Sound
 	sealed class AmbientSoundInfo : ConditionalTraitInfo
 	{
 		[FieldLoader.Require]
-		public readonly string[] SoundFiles = null;
+		public readonly ImmutableArray<string> SoundFiles = default;
 
 		[Desc("Initial delay (in ticks) before playing the sound for the first time.",
 			"Two values indicate a random delay range.")]
-		public readonly int[] Delay = [0];
+		public readonly ImmutableArray<int> Delay = [0];
 
 		[Desc("Interval between playing the sound (in ticks).",
 			"Two values indicate a random delay range.")]
-		public readonly int[] Interval = [0];
+		public readonly ImmutableArray<int> Interval = [0];
 
 		[Desc("Do the sounds play under shroud or fog.")]
 		public readonly bool AudibleThroughFog = false;

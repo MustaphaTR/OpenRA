@@ -17,7 +17,13 @@ using OpenRA.Widgets;
 
 namespace OpenRA.Mods.Common.Widgets.Logic
 {
-	public class SettingsLogic : ChromeLogic
+	public interface ISettingsLogic
+	{
+		void RegisterSettingsPanel(string panelID, string label, Func<Widget, Func<bool>> init, Func<Widget, Action> reset);
+	}
+
+	[IncludeChromeLogicArgsFluentReferences(nameof(DynamicFluentReferences))]
+	public class SettingsLogic : ChromeLogic, ISettingsLogic
 	{
 		[FluentReference]
 		const string SettingsSaveTitle = "dialog-settings-save.title";
@@ -52,6 +58,13 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 		[FluentReference]
 		const string ResetCancel = "dialog-settings-reset.cancel";
 
+		public static IEnumerable<(string Key, FluentReferenceAttribute Reference)> DynamicFluentReferences(Dictionary<string, MiniYaml> logicArgs)
+		{
+			if (logicArgs.TryGetValue("Panels", out var settingsPanels))
+				foreach (var node in settingsPanels.Nodes)
+					yield return (node.Value.Value, new FluentReferenceAttribute());
+		}
+
 		readonly Dictionary<string, Func<bool>> leavePanelActions = [];
 		readonly Dictionary<string, Action> resetPanelActions = [];
 
@@ -63,8 +76,6 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 		string activePanel;
 
 		bool needsRestart = false;
-
-		static SettingsLogic() { }
 
 		[ObjectCreator.UseCtor]
 		public SettingsLogic(Widget widget, Action onExit, WorldRenderer worldRenderer, Dictionary<string, MiniYaml> logicArgs, ModData modData)
@@ -92,9 +103,9 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 
 					Game.LoadWidget(worldRenderer.World, panel.Key, container, new WidgetArgs()
 					{
-						{ "registerPanel", (Action<string, string, Func<Widget, Func<bool>>, Func<Widget, Action>>)RegisterSettingsPanel },
+						{ "settingsLogic", this },
 						{ "panelID", panel.Key },
-						{ "label", panel.Value }
+						{ "label", FluentProvider.GetMessage(panel.Value) }
 					});
 				}
 			}
@@ -102,8 +113,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			widget.Get<ButtonWidget>("BACK_BUTTON").OnClick = () =>
 			{
 				needsRestart |= leavePanelActions[activePanel]();
-				var current = Game.Settings;
-				current.Save();
+				Game.Settings.Save();
 
 				void CloseAndExit() { Ui.CloseWindow(); onExit(); }
 				if (needsRestart)
@@ -162,11 +172,6 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			leavePanelActions.Add(panelID, init(panel));
 			resetPanelActions.Add(panelID, reset(panel));
 
-			AddSettingsTab(panelID, label);
-		}
-
-		ButtonWidget AddSettingsTab(string id, string label)
-		{
 			var tab = tabTemplate.Clone();
 			var lastButton = buttons.LastOrDefault();
 			if (lastButton != null)
@@ -175,20 +180,18 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				tab.Bounds.Y = lastButton.Bounds.Y + buttonStride.Y;
 			}
 
-			tab.Id = id;
+			tab.Id = panelID;
 			tab.GetText = () => label;
-			tab.IsHighlighted = () => activePanel == id;
+			tab.IsHighlighted = () => activePanel == panelID;
 			tab.OnClick = () =>
 			{
 				needsRestart |= leavePanelActions[activePanel]();
 				Game.Settings.Save();
-				activePanel = id;
+				activePanel = panelID;
 			};
 
 			tabContainer.AddChild(tab);
 			buttons.Add(tab);
-
-			return tab;
 		}
 	}
 }

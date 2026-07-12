@@ -4,7 +4,7 @@ World:
 	MissionData:
 		WinVideo: battle.vqa
 		LossVideo: slntsrvc.vqa
-		Briefing: The Soviets are constructing a new class of submarine capable of launching sea-to-ground missiles. We don't need to tell you the devastation these could cause.\n\nTake a small squad of troops and infiltrate their power grid. Once it's down, reinforcements will follow. Then, head north to destroy the sub pen and prevent further construction of these submarines.\n\nIf any are built, they must not escape!
+		Briefing: briefing
 	StartGameNotification:
 		Notification: MissionTimerInitialised
 	ScriptLobbyDropdown@difficulty:
@@ -18,7 +18,6 @@ World:
 		Default: normal
 
 powerproxy.chronoshift:
-	AlwaysVisible:
 	ChronoshiftPower:
 		Dimensions: 1, 1
 		Footprint: x
@@ -31,20 +30,17 @@ CHALK1:
 	ParatroopersPower:
 		DisplayBeacon: False
 		DropItems: E1, E1, E1, E1, E1
-	AlwaysVisible:
 
 CHALK2:
 	ParatroopersPower:
 		DisplayBeacon: False
 		DropItems: E3, E3, E3, E3, MEDI
-	AlwaysVisible:
 
 CHALK3:
 	ParatroopersPower:
 		DisplayBeacon: False
 		DropItems: E1, E1, E1, E1, E1, E1, E1, E1, E1, E1, E1, E1, E1, E1, E1, E1, E1, E1, E1, E1
 		SquadSize: 4
-	AlwaysVisible:
 
 CTNK:
 	Chronoshiftable:

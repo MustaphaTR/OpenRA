@@ -81,7 +81,7 @@ namespace OpenRA.Mods.Cnc.Traits
 	sealed class PortableChrono : PausableConditionalTrait<PortableChronoInfo>, IIssueOrder, IResolveOrder, ITick, ISelectionBar, IOrderVoice, ISync
 	{
 		readonly IMove move;
-		[Sync]
+		[VerifySync]
 		int chargeTick = 0;
 
 		public PortableChrono(Actor self, PortableChronoInfo info)
@@ -210,13 +210,18 @@ namespace OpenRA.Mods.Cnc.Traits
 		}
 	}
 
-	sealed class PortableChronoOrderGenerator : OrderGenerator
+	sealed class PortableChronoOrderGenerator : UnitOrderGenerator
 	{
 		readonly Actor self;
 		readonly PortableChrono portableChrono;
 		readonly PortableChronoInfo info;
 
+		protected override MouseActionType ActionType => MouseActionType.ConfirmOrder;
+
+		public override bool ClearSelectionOnLeftClick => false;
+
 		public PortableChronoOrderGenerator(Actor self, PortableChrono portableChrono)
+			: base(self.World)
 		{
 			this.self = self;
 			this.portableChrono = portableChrono;
@@ -225,12 +230,6 @@ namespace OpenRA.Mods.Cnc.Traits
 
 		protected override IEnumerable<Order> OrderInner(World world, CPos cell, int2 worldPixel, MouseInput mi)
 		{
-			if (mi.Button == Game.Settings.Game.MouseButtonPreference.Cancel)
-			{
-				world.CancelInputMode();
-				yield break;
-			}
-
 			if (self.IsInWorld && self.Location != cell
 				&& self.Trait<PortableChrono>().CanTeleport && self.Owner.Shroud.IsExplored(cell))
 			{
@@ -239,13 +238,13 @@ namespace OpenRA.Mods.Cnc.Traits
 			}
 		}
 
-		protected override void SelectionChanged(World world, IEnumerable<Actor> selected)
+		public override void SelectionChanged(World world, IEnumerable<Actor> selected)
 		{
 			if (!selected.Contains(self))
 				world.CancelInputMode();
 		}
 
-		protected override void Tick(World world)
+		public override void Tick(World world)
 		{
 			if (portableChrono.IsTraitDisabled || portableChrono.IsTraitPaused)
 			{
@@ -253,11 +252,11 @@ namespace OpenRA.Mods.Cnc.Traits
 			}
 		}
 
-		protected override IEnumerable<IRenderable> Render(WorldRenderer wr, World world) { yield break; }
+		public override IEnumerable<IRenderable> Render(WorldRenderer wr, World world) { yield break; }
 
-		protected override IEnumerable<IRenderable> RenderAboveShroud(WorldRenderer wr, World world) { yield break; }
+		public override IEnumerable<IRenderable> RenderAboveShroud(WorldRenderer wr, World world) { yield break; }
 
-		protected override IEnumerable<IRenderable> RenderAnnotations(WorldRenderer wr, World world)
+		public override IEnumerable<IRenderable> RenderAnnotations(WorldRenderer wr, World world)
 		{
 			if (!self.IsInWorld || self.Owner != self.World.LocalPlayer)
 				yield break;
@@ -275,7 +274,7 @@ namespace OpenRA.Mods.Cnc.Traits
 				info.CircleBorderWidth);
 		}
 
-		protected override string GetCursor(World world, CPos cell, int2 worldPixel, MouseInput mi)
+		public override string GetCursor(World world, CPos cell, int2 worldPixel, MouseInput mi)
 		{
 			if (self.IsInWorld && self.Location != cell
 				&& portableChrono.CanTeleport && self.Owner.Shroud.IsExplored(cell))

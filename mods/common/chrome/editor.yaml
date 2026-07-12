@@ -188,7 +188,7 @@ Container@EDITOR_ROOT:
 	Logic: LoadMapEditorLogic
 	Children:
 		LogicKeyListener@GLOBAL_KEYHANDLER:
-			Logic: MusicHotkeyLogic, ScreenshotHotkeyLogic, MuteHotkeyLogic, EditorQuickSaveHotkeyLogic
+			Logic: MusicHotkeyLogic, ScreenshotHotkeyLogic, MuteHotkeyLogic, EditorQuickSaveHotkeyLogic, DisableUIKeyLogic, DisableAllUIKeyLogic
 				StopMusicKey: StopMusic
 				PauseMusicKey: PauseMusic
 				PrevMusicKey: PrevMusic
@@ -196,6 +196,8 @@ Container@EDITOR_ROOT:
 				TakeScreenshotKey: TakeScreenshot
 				MuteAudioKey: ToggleMute
 				QuickSaveKey: EditorQuickSave
+				DisableUIKey: DisableUserInterface
+				DisableAllUIKey: DisableAllUserInterface
 		LogicKeyListener@WORLD_KEYHANDLER:
 			Logic: ResetZoomHotkeyLogic
 				ResetZoomKey: ResetZoom
@@ -249,6 +251,18 @@ Container@EDITOR_WORLD_ROOT:
 			Y: 330
 			Width: 310
 			Height: WINDOW_HEIGHT - 422
+		MenuButton@OPTIONS_BUTTON:
+			Logic: MenuButtonsChromeLogic
+			MenuContainer: INGAME_MENU
+			HideIngameUI: true
+			Pause: true
+			Width: 60
+			Height: 25
+			Text: button-editor-world-root-options.label
+			TooltipText: button-editor-world-root-options.tooltip
+			TooltipContainer: TOOLTIP_CONTAINER
+			Font: Bold
+			Key: escape
 		Container@TILE_WIDGETS:
 			X: WINDOW_WIDTH - 320
 			Y: 354
@@ -291,7 +305,8 @@ Container@EDITOR_WORLD_ROOT:
 					Children:
 						ScrollItem@TILEPREVIEW_TEMPLATE:
 							Visible: false
-							Width: PARENT_WIDTH - 35
+							Width: (PARENT_WIDTH - 24) / 2 - 6
+							Height: PARENT_WIDTH / 2
 							TooltipContainer: TOOLTIP_CONTAINER
 							Children:
 								TerrainTemplatePreview@TILE_PREVIEW:
@@ -315,13 +330,14 @@ Container@EDITOR_WORLD_ROOT:
 					Children:
 						ScrollItem@LAYERPREVIEW_TEMPLATE:
 							Visible: false
+							Width: (PARENT_WIDTH - 24) / 2 - 6
+							Height: PARENT_WIDTH / 2
 							IgnoreChildMouseOver: true
 							TooltipContainer: TOOLTIP_CONTAINER
 							Children:
 								ResourcePreview@LAYER_PREVIEW:
 									X: 4
 									Y: 4
-									Visible: false
 		Container@ACTOR_WIDGETS:
 			X: WINDOW_WIDTH - 320
 			Y: 354
@@ -378,7 +394,8 @@ Container@EDITOR_WORLD_ROOT:
 					Children:
 						ScrollItem@ACTORPREVIEW_TEMPLATE:
 							Visible: false
-							Width: PARENT_WIDTH - 35
+							Width: (PARENT_WIDTH - 24) / 2 - 6
+							Height: PARENT_WIDTH / 2
 							TooltipContainer: TOOLTIP_CONTAINER
 							TooltipTemplate: SIMPLE_TOOLTIP
 							IgnoreChildMouseOver: true
@@ -386,7 +403,6 @@ Container@EDITOR_WORLD_ROOT:
 								ActorPreview@ACTOR_PREVIEW:
 									X: 4
 									Y: 4
-									Visible: true
 		Container@TOOLS_WIDGETS:
 			X: WINDOW_WIDTH - 320
 			Y: 354
@@ -539,6 +555,7 @@ Container@EDITOR_WORLD_ROOT:
 							Height: 25
 							Text: button-cancel
 							Font: Bold
+							Key: escape
 				Background@ACTOR_EDIT_PANEL:
 					X: 10
 					Y: 10
@@ -565,7 +582,7 @@ Container@EDITOR_WORLD_ROOT:
 							Height: 25
 						Label@ACTOR_ID_ERROR_LABEL:
 							X: 69
-							Y: 45
+							Y: 71
 							Width: 213
 							Height: 25
 							Font: TinyBold
@@ -651,12 +668,14 @@ Container@EDITOR_WORLD_ROOT:
 									Height: 25
 									Text: button-cancel
 									Font: Bold
+									Key: escape
 								Button@OK_BUTTON:
 									X: 208
 									Width: 75
 									Height: 25
 									Text: button-container-ok
 									Font: Bold
+									Key: return
 		Container@MAP_EDITOR_TAB_CONTAINER:
 			Logic: MapEditorTabsLogic
 			X: WINDOW_WIDTH - 311
@@ -748,74 +767,78 @@ Container@EDITOR_WORLD_ROOT:
 							Y: 5
 							ImageCollection: editor
 							ImageName: history
-		MenuButton@OPTIONS_BUTTON:
-			Logic: MenuButtonsChromeLogic
-			MenuContainer: INGAME_MENU
-			HideIngameUI: true
-			Pause: true
-			Width: 60
-			Height: 25
-			Text: button-editor-world-root-options.label
-			TooltipText: button-editor-world-root-options.tooltip
-			TooltipContainer: TOOLTIP_CONTAINER
-			Font: Bold
-			Key: escape
-		Button@UNDO_BUTTON:
-			X: 70
-			Height: 25
-			Width: 70
-			Text: button-editor-world-root-undo.label
-			Font: Bold
-			Key: EditorUndo
-			TooltipTemplate: BUTTON_TOOLTIP
-			TooltipText: button-editor-world-root-undo.tooltip
-			TooltipContainer: TOOLTIP_CONTAINER
-		Button@REDO_BUTTON:
-			X: 150
-			Height: 25
-			Width: 70
-			Text: button-editor-world-root-redo.label
-			Font: Bold
-			Key: EditorRedo
-			TooltipTemplate: BUTTON_TOOLTIP
-			TooltipText: button-editor-world-root-redo.tooltip
-			TooltipContainer: TOOLTIP_CONTAINER
 		Button@COPY_BUTTON:
-			X: 230
+			X: 60
+			Width: 50
 			Height: 25
-			Text: button-editor-world-root-copy.label
-			Width: 70
-			Font: Bold
 			Key: EditorCopy
 			TooltipTemplate: BUTTON_TOOLTIP
-			TooltipText: button-editor-world-root-copy.tooltip
+			TooltipText: button-editor-world-root-copy-tooltip
 			TooltipContainer: TOOLTIP_CONTAINER
+			Children:
+				Image@ICON:
+					X: 17
+					Y: 5
+					ImageCollection: editor
+					ImageName: copy
 		Button@PASTE_BUTTON:
-			X: 310
-			Width: 70
+			X: 110
+			Width: 50
 			Height: 25
-			Text: button-editor-world-root-paste.label
-			Font: Bold
 			Key: EditorPaste
 			TooltipTemplate: BUTTON_TOOLTIP
-			TooltipText: button-editor-world-root-paste.tooltip
+			TooltipText: button-editor-world-root-paste-tooltip
 			TooltipContainer: TOOLTIP_CONTAINER
+			Children:
+				Image@ICON:
+					X: 17
+					Y: 4
+					ImageCollection: editor
+					ImageName: paste
+		Button@UNDO_BUTTON:
+			X: 160
+			Width: 50
+			Height: 25
+			Key: EditorUndo
+			TooltipTemplate: BUTTON_TOOLTIP
+			TooltipText: button-editor-world-root-undo-tooltip
+			TooltipContainer: TOOLTIP_CONTAINER
+			Children:
+				Image@ICON:
+					X: 17
+					Y: 4
+					ImageCollection: editor
+					ImageName: undo
+		Button@REDO_BUTTON:
+			X: 210
+			Width: 50
+			Height: 25
+			Key: EditorRedo
+			TooltipTemplate: BUTTON_TOOLTIP
+			TooltipText: button-editor-world-root-redo-tooltip
+			TooltipContainer: TOOLTIP_CONTAINER
+			Children:
+				Image@ICON:
+					X: 17
+					Y: 4
+					ImageCollection: editor
+					ImageName: redo
 		DropDownButton@OVERLAY_BUTTON:
-			X: 390
+			X: 260
 			Width: 140
 			Height: 25
 			Text: dropdownbutton-editor-world-root-overlay-button
 			Font: Bold
 		Label@COORDINATE_LABEL:
-			X: 540
-			Width: 50
+			X: 410
+			Width: 100
 			Height: 25
 			Align: Left
 			Font: Bold
 			Contrast: true
 		Label@CASH_LABEL:
-			X: 655
-			Width: 50
+			X: 515
+			Width: 100
 			Height: 25
 			Align: Left
 			Font: Bold
@@ -1140,6 +1163,11 @@ ScrollPanel@TILING_PATH_TOOL_PANEL:
 					MinimumValue: 0
 					MaximumValue: 10
 					Ticks: 11
+		Checkbox@ALLOW_END_DEVIATION:
+			X: 5
+			Width: PARENT_WIDTH - 35
+			Height: 25
+			Text: checkbox-tiling-path-allow-end-deviation
 		Checkbox@CLOSED_LOOPS:
 			X: 5
 			Width: PARENT_WIDTH - 35

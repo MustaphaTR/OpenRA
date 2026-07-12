@@ -133,6 +133,13 @@ namespace OpenRA.Mods.Common.Traits
 						foreach (var s in buildingInfo.BuildSounds)
 							Game.Sound.Play(SoundType.World, s, pos, buildingInfo.SoundVolume);
 
+					if (producer.Actor != null)
+						foreach (var nbp in producer.Actor.TraitsImplementing<INotifyBuildingPlaced>())
+							nbp.BuildingPlaced(producer.Actor, placed);
+
+					foreach (var nbp in self.TraitsImplementing<INotifyBuildingPlaced>())
+						nbp.BuildingPlaced(self, placed);
+
 					// Build the connection segments
 					var segmentType = actorInfo.TraitInfo<LineBuildInfo>().SegmentType;
 					if (string.IsNullOrEmpty(segmentType))
@@ -143,8 +150,8 @@ namespace OpenRA.Mods.Common.Traits
 						if (t.Cell == targetLocation)
 							continue;
 
-						var segment = self.World.Map.Rules.Actors[segmentType];
-						var replaceableSegments = segment.TraitInfos<ReplacementInfo>()
+						var segmentInfo = self.World.Map.Rules.Actors[segmentType];
+						var replaceableSegments = segmentInfo.TraitInfos<ReplacementInfo>()
 							.SelectMany(r => r.ReplaceableTypes)
 							.ToHashSet();
 
@@ -153,7 +160,7 @@ namespace OpenRA.Mods.Common.Traits
 								if (a.TraitsImplementing<Replaceable>().Any(r => !r.IsTraitDisabled && r.Info.Types.Overlaps(replaceableSegments)))
 									self.World.Remove(a);
 
-						w.CreateActor(segmentType,
+						var segment = w.CreateActor(segmentType,
 						[
 							new LocationInit(t.Cell),
 							new OwnerInit(order.Player),
@@ -162,6 +169,13 @@ namespace OpenRA.Mods.Common.Traits
 							new LineBuildParentInit([t.Actor, placed]),
 							new PlaceBuildingInit()
 						]);
+
+						if (producer.Actor != null)
+							foreach (var nbp in producer.Actor.TraitsImplementing<INotifyBuildingPlaced>())
+								nbp.BuildingPlaced(producer.Actor, segment);
+
+						foreach (var nbp in self.TraitsImplementing<INotifyBuildingPlaced>())
+							nbp.BuildingPlaced(self, segment);
 					}
 				}
 				else if (os == "PlacePlug")
@@ -207,11 +221,14 @@ namespace OpenRA.Mods.Common.Traits
 					if (buildingInfo.AudibleThroughFog || (!w.ShroudObscures(pos) && !w.FogObscures(pos)))
 						foreach (var s in buildingInfo.BuildSounds)
 							Game.Sound.Play(SoundType.World, s, pos, buildingInfo.SoundVolume);
-				}
 
-				if (producer.Actor != null)
-					foreach (var nbp in producer.Actor.TraitsImplementing<INotifyBuildingPlaced>())
-						nbp.BuildingPlaced(producer.Actor);
+					if (producer.Actor != null)
+						foreach (var nbp in producer.Actor.TraitsImplementing<INotifyBuildingPlaced>())
+							nbp.BuildingPlaced(producer.Actor, building);
+
+					foreach (var nbp in self.TraitsImplementing<INotifyBuildingPlaced>())
+						nbp.BuildingPlaced(self, building);
+				}
 
 				queue.EndProduction(item);
 

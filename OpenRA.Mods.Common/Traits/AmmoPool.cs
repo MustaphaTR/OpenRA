@@ -10,7 +10,7 @@
 #endregion
 
 using System.Collections.Generic;
-using System.Linq;
+using System.Collections.Immutable;
 using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.Traits
@@ -22,7 +22,7 @@ namespace OpenRA.Mods.Common.Traits
 		public readonly string Name = "primary";
 
 		[Desc("Name(s) of armament(s) that use this pool.")]
-		public readonly string[] Armaments = ["primary", "secondary"];
+		public readonly ImmutableArray<string> Armaments = ["primary", "secondary"];
 
 		[Desc("How much ammo does this pool contain when fully loaded.")]
 		public readonly int Ammo = 1;
@@ -53,10 +53,10 @@ namespace OpenRA.Mods.Common.Traits
 		readonly Stack<int> tokens = [];
 
 		// HACK: Temporarily needed until Rearm activity is gone for good
-		[Sync]
+		[VerifySync]
 		public int RemainingTicks;
 
-		[Sync]
+		[VerifySync]
 		public int CurrentAmmoCount { get; private set; }
 
 		public bool HasAmmo => CurrentAmmoCount > 0;

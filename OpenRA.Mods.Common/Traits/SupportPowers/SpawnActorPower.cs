@@ -10,7 +10,7 @@
 #endregion
 
 using System.Collections.Generic;
-using System.Linq;
+using System.Collections.Immutable;
 using OpenRA.Graphics;
 using OpenRA.Mods.Common.Activities;
 using OpenRA.Mods.Common.Effects;
@@ -32,7 +32,7 @@ namespace OpenRA.Mods.Common.Traits
 		public readonly int LifeTime = 250;
 
 		[Desc("Only allow this to be spawned on this terrain.")]
-		public readonly string[] Terrain = null;
+		public readonly ImmutableArray<string> Terrain = default;
 
 		public readonly bool AllowUnderShroud = true;
 
@@ -118,7 +118,7 @@ namespace OpenRA.Mods.Common.Traits
 
 			TextNotificationsManager.AddTransientLine(manager.Self.Owner, Info.SelectTargetTextNotification);
 
-			self.World.OrderGenerator = new SelectSpawnActorPowerTarget(order, manager, this, MouseButton.Left);
+			self.World.OrderGenerator = new SelectSpawnActorPowerTarget(order, manager, this);
 		}
 
 		public bool Validate(World world, SpawnActorPowerInfo info, CPos cell)
@@ -138,23 +138,19 @@ namespace OpenRA.Mods.Common.Traits
 
 	public class SelectSpawnActorPowerTarget : OrderGenerator
 	{
+		protected override MouseActionType ActionType => MouseActionType.SupportPower;
 		readonly SpawnActorPower power;
 		readonly SpawnActorPowerInfo info;
 		readonly SupportPowerManager manager;
-		readonly MouseButton expectedButton;
 
 		public string OrderKey { get; }
 
-		public SelectSpawnActorPowerTarget(string order, SupportPowerManager manager, SpawnActorPower power, MouseButton button)
+		public SelectSpawnActorPowerTarget(string order, SupportPowerManager manager, SpawnActorPower power)
+			: base(manager.Self.World)
 		{
-			// Clear selection if using Left-Click Orders
-			if (Game.Settings.Game.UseClassicMouseStyle)
-				manager.Self.World.Selection.Clear();
-
 			this.manager = manager;
 			this.power = power;
 			OrderKey = order;
-			expectedButton = button;
 
 			info = power.Info;
 		}
@@ -162,11 +158,7 @@ namespace OpenRA.Mods.Common.Traits
 		protected override IEnumerable<Order> OrderInner(World world, CPos cell, int2 worldPixel, MouseInput mi)
 		{
 			world.CancelInputMode();
-
-			if (!power.Validate(world, info, cell))
-				yield break;
-
-			if (mi.Button == expectedButton)
+			if (power.Validate(world, info, cell))
 				yield return new Order(OrderKey, manager.Self, Target.FromCell(world, cell), false) { SuppressVisualFeedback = true };
 		}
 

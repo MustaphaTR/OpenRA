@@ -345,11 +345,12 @@ namespace OpenRA.Mods.Common.MapGenerator
 			Func<int2, P, P?> filler,
 			ImmutableArray<int2> spread) where P : struct
 		{
+			var current = new List<(int2 XY, P Prop)>();
 			var next = seeds.ToList();
 			while (next.Count != 0)
 			{
-				var current = next;
-				next = [];
+				(next, current) = (current, next);
+				next.Clear();
 				foreach (var (source, prop) in current)
 				{
 					var newProp = filler(source, prop);
@@ -636,18 +637,44 @@ namespace OpenRA.Mods.Common.MapGenerator
 				for (var cx = 0; cx < input.Size.X; cx++)
 				{
 					long total = 0;
-					var samples = 0;
 					for (var ky = 0; ky < kernel.Size.Y; ky++)
 						for (var kx = 0; kx < kernel.Size.X; kx++)
 						{
 							var x = cx + kx - kernelCenter.X;
 							var y = cy + ky - kernelCenter.Y;
 							total += input[input.ClampXY(new int2(x, y))] * kernel[kx, ky];
-							samples++;
 						}
 
 					output[cx, cy] = total;
 				}
+
+			return output;
+		}
+
+		/// <summary>
+		/// Apply an aggregator over submatrices of input with a given size and store it to an
+		/// output, returning the output. Sampling a coordinate outside of the input matrix uses
+		/// the closest coordinate inside the matrix.
+		/// </summary>
+		public static Matrix<R> KernelAggregate<T, R>(
+			Matrix<T> input,
+			Matrix<R> output,
+			int2 kernelSize,
+			int2 kernelCenter,
+			Func<Matrix<T>, R> aggregator)
+		{
+			var submatrix = new Matrix<T>(kernelSize);
+			for (var y = 0; y < output.Size.Y; y++)
+			{
+				for (var x = 0; x < output.Size.X; x++)
+				{
+					for (var oy = 0; oy < kernelSize.Y; oy++)
+						for (var ox = 0; ox < kernelSize.X; ox++)
+							submatrix[ox, oy] = input[input.ClampXY(new int2(x + ox, y + oy) - kernelCenter)];
+
+					output[x, y] = aggregator(submatrix);
+				}
+			}
 
 			return output;
 		}
@@ -1078,7 +1105,7 @@ namespace OpenRA.Mods.Common.MapGenerator
 				if (prop == FirstPassSentinel)
 					return chirality[point];
 
-				if (chirality[point] != 0)
+				if (chirality[point] != 0 || prop == 0)
 					return null;
 				chirality[point] = prop;
 				return prop;

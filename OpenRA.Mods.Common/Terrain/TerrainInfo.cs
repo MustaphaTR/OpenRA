@@ -9,16 +9,18 @@
  */
 #endregion
 
-using System.Collections.Generic;
+using System.Collections.Frozen;
+using System.Collections.Immutable;
 using OpenRA.Mods.Common.MapGenerator;
 
 namespace OpenRA.Mods.Common.Terrain
 {
 	public interface ITemplatedTerrainInfo : ITerrainInfo
 	{
-		string[] EditorTemplateOrder { get; }
-		IReadOnlyDictionary<ushort, TerrainTemplateInfo> Templates { get; }
-		IReadOnlyDictionary<string, IEnumerable<MultiBrushInfo>> MultiBrushCollections { get; }
+		ImmutableArray<string> EditorTemplateOrder { get; }
+		FrozenDictionary<ushort, TerrainTemplateInfo> Templates { get; }
+		ImmutableArray<TerrainTemplateInfo> TemplatesInDefinitionOrder { get; }
+		FrozenDictionary<string, ImmutableArray<MultiBrushInfo>> MultiBrushCollections { get; }
 	}
 
 	public interface ITerrainInfoNotifyMapCreated : ITerrainInfo
@@ -31,7 +33,7 @@ namespace OpenRA.Mods.Common.Terrain
 		public readonly ushort Id;
 		public readonly int2 Size;
 		public readonly bool PickAny;
-		public readonly string[] Categories;
+		public readonly ImmutableArray<string> Categories;
 
 		readonly TerrainTileInfo[] tileInfo;
 

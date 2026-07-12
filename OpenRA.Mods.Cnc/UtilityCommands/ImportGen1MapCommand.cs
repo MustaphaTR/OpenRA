@@ -10,7 +10,9 @@
 #endregion
 
 using System;
+using System.Collections.Frozen;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -363,7 +365,7 @@ namespace OpenRA.Mods.Cnc.UtilityCommands
 		}
 
 		// TODO: fix this -- will have bitrotted pretty badly.
-		static readonly Dictionary<string, Color> NamedColorMapping = new()
+		static readonly FrozenDictionary<string, Color> NamedColorMapping = new Dictionary<string, Color>
 		{
 			{ "gold", Color.FromArgb(246, 214, 121) },
 			{ "blue", Color.FromArgb(226, 230, 246) },
@@ -375,7 +377,7 @@ namespace OpenRA.Mods.Cnc.UtilityCommands
 			{ "green", Color.FromArgb(160, 240, 140) },
 			{ "white", Color.FromArgb(255, 255, 255) },
 			{ "black", Color.FromArgb(80, 80, 80) },
-		};
+		}.ToFrozenDictionary();
 
 		public static void SetMapPlayers(string section, string faction, string color, IniFile file, List<string> players, MapPlayers mapPlayers)
 		{
@@ -394,8 +396,8 @@ namespace OpenRA.Mods.Cnc.UtilityCommands
 				switch (s.Key)
 				{
 					case "Allies":
-						pr.Allies = s.Value.Split(',').Intersect(players).Except(neutral).ToArray();
-						pr.Enemies = s.Value.Split(',').SymmetricDifference(players).Except(neutral).ToArray();
+						pr.Allies = s.Value.Split(',').Intersect(players).Except(neutral).ToImmutableArray();
+						pr.Enemies = s.Value.Split(',').SymmetricDifference(players).Except(neutral).ToImmutableArray();
 						break;
 					default:
 						Console.WriteLine("Ignoring unknown {0}={1} for player {2}", s.Key, s.Value, pr.Name);

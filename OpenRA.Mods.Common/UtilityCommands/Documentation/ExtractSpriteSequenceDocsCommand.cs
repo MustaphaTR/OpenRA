@@ -47,7 +47,7 @@ namespace OpenRA.Mods.Common.UtilityCommands.Documentation
 		static string GenerateJson(string version, IEnumerable<Type> sequenceTypes)
 		{
 			var relatedEnumTypes = new HashSet<Type>();
-			var pdbReaderCache = Utilities.CreatePdbReaderCache();
+			var pdbTypesCache = DocumentationHelpers.CreatePdbTypesCache();
 
 			var sequenceTypesInfo = sequenceTypes
 				.Where(x => !x.ContainsGenericParameters && !x.IsAbstract)
@@ -55,7 +55,7 @@ namespace OpenRA.Mods.Common.UtilityCommands.Documentation
 				{
 					Namespace = type.Namespace,
 					Name = type.Name,
-					Filename = Utilities.GetSourceFilenameFromPdb(type, pdbReaderCache),
+					Filename = DocumentationHelpers.GetSourceFilenameForType(type, pdbTypesCache),
 					Description = string.Join(" ", type.GetCustomAttributes<DescAttribute>(false).SelectMany(d => d.Lines)),
 					InheritedTypes = type.BaseTypes()
 						.Select(y => y.Name)
@@ -70,14 +70,14 @@ namespace OpenRA.Mods.Common.UtilityCommands.Documentation
 							var valueType = fi.FieldType.GetGenericArguments()[0];
 
 							var key = (string)fi.FieldType
-								.GetField(nameof(SpriteSequenceField<bool>.Key))?
+								.GetProperty(nameof(SpriteSequenceField<bool>.Key))?
 								.GetValue(fi.GetValue(null));
 
-							var defaultValueField = fi.FieldType.GetField(nameof(SpriteSequenceField<bool>.DefaultValue));
-							var defaultValue = defaultValueField?.GetValue(fi.GetValue(null));
+							var defaultValueProperty = fi.FieldType.GetProperty(nameof(SpriteSequenceField<bool>.DefaultValue));
+							var defaultValue = defaultValueProperty?.GetValue(fi.GetValue(null));
 
-							if (defaultValueField != null && defaultValueField.FieldType.IsEnum)
-								relatedEnumTypes.Add(defaultValueField.FieldType);
+							if (defaultValueProperty != null && defaultValueProperty.PropertyType.IsEnum)
+								relatedEnumTypes.Add(defaultValueProperty.PropertyType);
 
 							return new ExtractedClassFieldInfo
 							{
@@ -94,7 +94,7 @@ namespace OpenRA.Mods.Common.UtilityCommands.Documentation
 			{
 				Version = version,
 				SpriteSequenceTypes = sequenceTypesInfo,
-				RelatedEnums = DocumentationHelpers.GetRelatedEnumInfos(relatedEnumTypes)
+				RelatedEnums = DocumentationHelpers.GetRelatedEnumInfos(relatedEnumTypes, pdbTypesCache)
 			};
 
 			return JsonSerializer.Serialize(result);

@@ -164,6 +164,7 @@ World:
 	DebugVisualizationCommands:
 	PathFinderOverlay:
 	HierarchicalPathFinderOverlay:
+	ActorMapOverlay:
 	PlayerCommands:
 	HelpCommand:
 	ScreenShaker:
@@ -270,6 +271,7 @@ World:
 	DebugPauseState:
 	RadarPings:
 	StartGameNotification:
+		SavedTextNotification: notification-game-saved
 	ObjectivesPanel:
 		PanelName: SKIRMISH_STATS
 	LoadWidgetAtGameStart:

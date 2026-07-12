@@ -10,7 +10,9 @@
 #endregion
 
 using System;
+using System.Collections.Frozen;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.ComponentModel;
 using System.Globalization;
 using System.Linq;
@@ -22,12 +24,11 @@ namespace OpenRA
 {
 	public static class FieldSaver
 	{
-		public static MiniYaml Save(object o, bool includePrivateByDefault = false)
+		public static MiniYaml Save(object o)
 		{
 			var nodes = new List<MiniYamlNode>();
-			string root = null;
 
-			foreach (var fieldInfo in FieldLoader.GetTypeLoadInfo(o.GetType(), includePrivateByDefault))
+			foreach (var fieldInfo in FieldLoader.GetTypeLoadInfo(o.GetType()))
 			{
 				if (fieldInfo.Field.FieldType.IsGenericType && fieldInfo.Field.FieldType.IsAssignableTo(typeof(System.Collections.IDictionary)))
 				{
@@ -42,21 +43,19 @@ namespace OpenRA
 
 					nodes.Add(new MiniYamlNode(fieldInfo.YamlName, "", dictNodes));
 				}
-				else if (fieldInfo.Attribute.FromYamlKey)
-					root = FormatValue(o, fieldInfo.Field);
 				else
 					nodes.Add(new MiniYamlNode(fieldInfo.YamlName, FormatValue(o, fieldInfo.Field)));
 			}
 
-			return new MiniYaml(root, nodes);
+			return new MiniYaml(null, nodes);
 		}
 
-		public static MiniYaml SaveDifferences(object o, object from, bool includePrivateByDefault = false)
+		public static MiniYaml SaveDifferences(object o, object from)
 		{
 			if (o.GetType() != from.GetType())
-				throw new InvalidOperationException("FieldLoader: can't diff objects of different types");
+				throw new InvalidOperationException("FieldSaver: can't diff objects of different types");
 
-			var fields = FieldLoader.GetTypeLoadInfo(o.GetType(), includePrivateByDefault)
+			var fields = FieldLoader.GetTypeLoadInfo(o.GetType())
 				.Where(info => FormatValue(o, info.Field) != FormatValue(from, info.Field));
 
 			return new MiniYaml(
@@ -81,11 +80,36 @@ namespace OpenRA
 			if (t.IsArray && t.GetArrayRank() == 1)
 				return ((Array)v).Cast<object>().Select(FormatValue).JoinWith(", ");
 
-			if (t.IsGenericType && (t.GetGenericTypeDefinition() == typeof(HashSet<>) || t.GetGenericTypeDefinition() == typeof(List<>)))
+			if (t.IsGenericType &&
+				t.GetGenericTypeDefinition() == typeof(ImmutableArray<>))
+			{
+				try
+				{
+					return ((System.Collections.IEnumerable)v).Cast<object>().Select(FormatValue).JoinWith(", ");
+				}
+				catch (InvalidOperationException)
+				{
+					return "";
+				}
+			}
+
+			if (t.IsGenericType &&
+				(t.GetGenericTypeDefinition() == typeof(List<>) || t.GetGenericTypeDefinition() == typeof(HashSet<>)))
+				return ((System.Collections.IEnumerable)v).Cast<object>().Select(FormatValue).JoinWith(", ");
+
+			// FrozenSet may be optimized by the runtime to a non-generic internal type
+			if (t.BaseTypes()
+				.Select(bt => bt.IsGenericType ? bt.GetGenericTypeDefinition() : null)
+				.Any(bt => bt == typeof(FrozenSet<>)))
 				return ((System.Collections.IEnumerable)v).Cast<object>().Select(FormatValue).JoinWith(", ");
 
 			// This is only for documentation generation
-			if (t.IsGenericType && t.GetGenericTypeDefinition() == typeof(Dictionary<,>))
+			if (t.IsGenericType &&
+				(t.GetGenericTypeDefinition() == typeof(Dictionary<,>) ||
+				t.GetGenericTypeDefinition()
+					.BaseTypes()
+					.Select(bt => bt.IsGenericType ? bt.GetGenericTypeDefinition() : null)
+					.Any(bt => bt == typeof(FrozenDictionary<,>))))
 			{
 				var result = new StringBuilder();
 				var dict = (System.Collections.IDictionary)v;
@@ -104,7 +128,13 @@ namespace OpenRA
 			}
 
 			if (v is DateTime d)
+			{
+				// Assume DateTimeKind.Unspecified is already UTC
+				if (d.Kind == DateTimeKind.Local)
+					d = d.ToUniversalTime();
+
 				return d.ToString("yyyy-MM-dd HH-mm-ss", CultureInfo.InvariantCulture);
+			}
 
 			// Try the TypeConverter
 			var conv = TypeDescriptor.GetConverter(t);

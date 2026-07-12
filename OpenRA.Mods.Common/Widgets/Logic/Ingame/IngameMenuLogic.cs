@@ -11,6 +11,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using OpenRA.Graphics;
 using OpenRA.Mods.Common.Scripting;
@@ -200,7 +201,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 
 			if (logicArgs.TryGetValue("Buttons", out var buttonsNode))
 			{
-				var buttonIds = FieldLoader.GetValue<string[]>("Buttons", buttonsNode.Value);
+				var buttonIds = FieldLoader.GetValue<ImmutableArray<string>>("Buttons", buttonsNode.Value);
 				foreach (var button in buttonIds)
 					if (buttonHandlers.TryGetValue(button, out var createHandler))
 						createHandler();
@@ -229,6 +230,9 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 
 				gameInfoPanel.IsVisible = () => !hideMenu;
 			}
+
+			Ui.WidgetsVisible = true;
+			Game.HideCursor = false;
 		}
 
 		public static void OnQuit(World world)
@@ -400,27 +404,25 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 
 		void CreateLoadGameButton()
 		{
-			if (world.Type != WorldType.Regular || !world.LobbyInfo.GlobalSettings.GameSavesEnabled || world.IsReplay)
+			if (world.Type != WorldType.Regular || !world.LobbyInfo.GlobalSettings.EnableGameSaves || world.IsReplay)
 				return;
 
 			var button = AddButton("LOAD_GAME", LoadGameButton);
-			button.IsDisabled = () => leaving || !GameSaveBrowserLogic.IsLoadPanelEnabled(modData.Manifest);
+			button.IsDisabled = () => leaving || !LoadGameBrowserLogic.IsLoadPanelEnabled(modData.Manifest);
 			button.OnClick = () =>
 			{
 				hideMenu = true;
-				Ui.OpenWindow("GAMESAVE_BROWSER_PANEL", new WidgetArgs
+				Ui.OpenWindow("LOAD_GAME_BROWSER_PANEL", new WidgetArgs
 				{
 					{ "onExit", () => hideMenu = false },
 					{ "onStart", CloseMenu },
-					{ "isSavePanel", false },
-					{ "world", null }
 				});
 			};
 		}
 
 		void CreateSaveGameButton()
 		{
-			if (world.Type != WorldType.Regular || !world.LobbyInfo.GlobalSettings.GameSavesEnabled || world.IsReplay)
+			if (world.Type != WorldType.Regular || !world.LobbyInfo.GlobalSettings.EnableGameSaves || world.IsReplay)
 				return;
 
 			var button = AddButton("SAVE_GAME", SaveGameButton);
@@ -432,7 +434,6 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				{
 					{ "onExit", () => hideMenu = false },
 					{ "onStart", () => { } },
-					{ "isSavePanel", true },
 					{ "world", world }
 				});
 			};

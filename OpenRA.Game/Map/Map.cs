@@ -11,6 +11,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -111,7 +112,7 @@ namespace OpenRA
 				else if (type == Type.MiniYaml)
 					field.SetValue(map, node.Value);
 				else
-					FieldLoader.LoadField(map, fieldName, node.Value.Value);
+					FieldLoader.LoadFieldOrProperty(map, fieldName, node.Value.Value);
 			}
 
 			if (property != null)
@@ -121,7 +122,7 @@ namespace OpenRA
 				else if (type == Type.MiniYaml)
 					property.SetValue(map, node.Value, null);
 				else
-					FieldLoader.LoadField(map, fieldName, node.Value.Value);
+					FieldLoader.LoadFieldOrProperty(map, fieldName, node.Value.Value);
 			}
 		}
 
@@ -192,7 +193,7 @@ namespace OpenRA
 		public bool LockPreview;
 		public Rectangle Bounds;
 		public MapVisibility Visibility = MapVisibility.Lobby;
-		public string[] Categories = ["Conquest"];
+		public ImmutableArray<string> Categories = ["Conquest"];
 
 		public Size MapSize { get; private set; }
 
@@ -324,7 +325,7 @@ namespace OpenRA
 		{
 			this.modData = modData;
 			MapSize = size;
-			Grid = modData.Manifest.Get<MapGrid>();
+			Grid = modData.GetOrCreate<MapGrid>();
 
 			Title = "Name your map here";
 			Author = "Your name here";
@@ -369,7 +370,7 @@ namespace OpenRA
 			PlayerDefinitions = yaml.NodeWithKeyOrDefault("Players")?.Value.Nodes ?? [];
 			ActorDefinitions = yaml.NodeWithKeyOrDefault("Actors")?.Value.Nodes ?? [];
 
-			Grid = modData.Manifest.Get<MapGrid>();
+			Grid = modData.GetOrCreate<MapGrid>();
 
 			Tiles = new CellLayer<TerrainTile>(Grid.Type, MapSize);
 			Resources = new CellLayer<ResourceTile>(Grid.Type, MapSize);
@@ -755,7 +756,7 @@ namespace OpenRA
 			var positions = new List<(MPos Uv, Color Color)>();
 			foreach (var actor in actors)
 			{
-				var s = new ActorReference(actor.Value.Value, actor.Value.ToDictionary());
+				var s = new ActorReference(actor.Value.Value, actor.Value);
 
 				var ai = Rules.Actors[actor.Value.Value];
 				var impsis = ai.TraitInfos<IMapPreviewSignatureInfo>();

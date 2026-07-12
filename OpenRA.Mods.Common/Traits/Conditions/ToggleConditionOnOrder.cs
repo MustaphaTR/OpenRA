@@ -46,12 +46,12 @@ namespace OpenRA.Mods.Common.Traits
 		public override object Create(ActorInitializer init) { return new ToggleConditionOnOrder(this); }
 	}
 
-	public class ToggleConditionOnOrder : PausableConditionalTrait<ToggleConditionOnOrderInfo>, IResolveOrder
+	public class ToggleConditionOnOrder : PausableConditionalTrait<ToggleConditionOnOrderInfo>, IResolveOrder, ISync
 	{
 		int conditionToken = Actor.InvalidConditionToken;
 
 		// If the trait is paused this may be true with no condition granted
-		[Sync]
+		[VerifySync]
 		bool enabled = false;
 
 		public ToggleConditionOnOrder(ToggleConditionOnOrderInfo info)

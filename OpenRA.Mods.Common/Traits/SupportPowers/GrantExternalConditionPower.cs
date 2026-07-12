@@ -133,6 +133,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		sealed class SelectConditionTarget : OrderGenerator
 		{
+			protected override MouseActionType ActionType => MouseActionType.SupportPower;
 			readonly GrantExternalConditionPower power;
 			readonly Dictionary<int, char[]> footprints = [];
 			readonly Dictionary<int, CVec> dimensions;
@@ -142,11 +143,8 @@ namespace OpenRA.Mods.Common.Traits
 			readonly string order;
 
 			public SelectConditionTarget(World world, string order, SupportPowerManager manager, GrantExternalConditionPower power)
+				: base(world)
 			{
-				// Clear selection if using Left-Click Orders
-				if (Game.Settings.Game.UseClassicMouseStyle)
-					manager.Self.World.Selection.Clear();
-
 				this.manager = manager;
 				this.order = order;
 				this.power = power;
@@ -163,7 +161,7 @@ namespace OpenRA.Mods.Common.Traits
 			protected override IEnumerable<Order> OrderInner(World world, CPos cell, int2 worldPixel, MouseInput mi)
 			{
 				world.CancelInputMode();
-				if (mi.Button == MouseButton.Left && power.UnitsInRange(cell).Any())
+				if (power.UnitsInRange(cell).Any())
 					yield return new Order(order, manager.Self, Target.FromCell(world, cell), false) { SuppressVisualFeedback = true };
 			}
 

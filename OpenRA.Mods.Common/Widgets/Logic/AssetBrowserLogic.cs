@@ -58,7 +58,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 		readonly ScrollPanelWidget assetList;
 		readonly ScrollItemWidget template;
 
-		readonly Cache<SheetType, SheetBuilder> sheetBuilders;
+		readonly Dictionary<SheetType, SheetBuilder> sheetBuilders;
 		readonly Cache<string, Sprite[]> spriteCache;
 
 		IReadOnlyPackage assetSource = null;
@@ -86,7 +86,13 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 		[ObjectCreator.UseCtor]
 		public AssetBrowserLogic(Widget widget, Action onExit, ModData modData, WorldRenderer worldRenderer)
 		{
-			sheetBuilders = new Cache<SheetType, SheetBuilder>(t => new SheetBuilder(t));
+			var rc = modData.Manifest.RendererConstants;
+			sheetBuilders = new Dictionary<SheetType, SheetBuilder>
+			{
+				{ SheetType.Indexed, new SheetBuilder(SheetType.Indexed, rc.SequenceIndexedSheetSize) },
+				{ SheetType.BGRA, new SheetBuilder(SheetType.BGRA, rc.SequenceBgraSheetSize) }
+			};
+
 			spriteCache = new Cache<string, Sprite[]>(
 				filename => FrameLoader.GetFrames(modData.DefaultFileSystem, filename, modData.SpriteLoaders, out _)
 						.Select(f => sheetBuilders[SheetBuilder.FrameTypeToSheetType(f.Type)].Add(f))
@@ -389,7 +395,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				panel.GetOrNull<LabelWidget>("MODEL_SCALE").IsVisible = () => currentVoxel != null;
 			}
 
-			var assetBrowserModData = modData.Manifest.Get<AssetBrowser>();
+			var assetBrowserModData = modData.GetOrCreate<AssetBrowser>();
 			allowedSpriteExtensions = assetBrowserModData.SpriteExtensions.Select(x => x.ToLowerInvariant()).ToArray();
 			allowedModelExtensions = assetBrowserModData.ModelExtensions.Select(x => x.ToLowerInvariant()).ToArray();
 			allowedAudioExtensions = assetBrowserModData.AudioExtensions.Select(x => x.ToLowerInvariant()).ToArray();

@@ -25,11 +25,16 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 	public class MapGeneratorToolLogic : ChromeLogic
 	{
 		[FluentReference("name")]
-		const string StrGenerated = "notification-map-generator-generated";
+		const string MapGenerated = "notification-map-generator-generated";
+
 		[FluentReference]
-		const string StrFailed = "notification-map-generator-failed";
+		const string MapGeneratorFailedTitle = "dialog-notification-map-generator-failed.title";
+
 		[FluentReference]
-		const string StrFailedCancel = "label-map-generator-failed-cancel";
+		const string MapGeneratorFailedPrompt = "dialog-notification-map-generator-failed.prompt";
+
+		[FluentReference]
+		const string MapGeneratorFailedCancel = "dialog-notification-map-generator-failed.cancel";
 
 		readonly EditorActionManager editorActionManager;
 		readonly World world;
@@ -175,7 +180,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 								return item;
 							}
 
-							dropDownWidget.ShowDropDown("LABEL_DROPDOWN_WITH_TOOLTIP_TEMPLATE", mio.Choices.Length * 30, mio.Choices, SetupItem);
+							dropDownWidget.ShowDropDown("LABEL_DROPDOWN_WITH_TOOLTIP_TEMPLATE", 250, mio.Choices, SetupItem);
 						};
 						break;
 					}
@@ -184,7 +189,11 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 					{
 						var validChoices = mo.ValidChoices(world.Map.Rules.TerrainInfo, playerCount);
 						if (!validChoices.Contains(mo.Value))
-							mo.Value = mo.Default?.FirstOrDefault(validChoices.Contains) ?? validChoices.FirstOrDefault();
+						{
+							if (mo.Default != null)
+								mo.Value = mo.Default.FirstOrDefault(validChoices.Contains);
+							mo.Value ??= validChoices.FirstOrDefault();
+						}
 
 						if (mo.Value != null && mo.Label != null && validChoices.Count > 0)
 						{
@@ -214,7 +223,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 									return item;
 								}
 
-								dropDownWidget.ShowDropDown("LABEL_DROPDOWN_WITH_TOOLTIP_TEMPLATE", validChoices.Count * 30, validChoices, SetupItem);
+								dropDownWidget.ShowDropDown("LABEL_DROPDOWN_WITH_TOOLTIP_TEMPLATE", 250, validChoices, SetupItem);
 							};
 						}
 
@@ -235,14 +244,13 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 
 		void DisplayError(Exception e)
 		{
-			// For any non-MapGenerationException, include more information for debugging purposes.
-			var message = e is MapGenerationException ? e.Message : e.ToString();
+			var message = e is MapGenerationException ? e.Message : MapGeneratorFailedPrompt;
 			Log.Write("debug", e);
 			ConfirmationDialogs.ButtonPrompt(modData,
-				title: StrFailed,
+				title: MapGeneratorFailedTitle,
 				text: message,
 				onCancel: () => { },
-				cancelText: StrFailedCancel);
+				cancelText: MapGeneratorFailedCancel);
 		}
 
 		void GenerateMap()
@@ -261,8 +269,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 		{
 			var map = world.Map;
 			var terrainInfo = modData.DefaultTerrainInfo[map.Tileset];
-			var size = new Size(map.Bounds.Width + 2, map.Bounds.Height + 2);
-			var args = settings.Compile(terrainInfo, size);
+			var args = settings.Compile(terrainInfo, map.MapSize);
 
 			// Run main generator logic. May throw.
 			var generateStopwatch = Stopwatch.StartNew();
@@ -292,7 +299,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				.ToDictionary(player => player.Name);
 			foreach (var kv in generatedMap.ActorDefinitions)
 			{
-				var actorReference = new ActorReference(kv.Value.Value, kv.Value.ToDictionary());
+				var actorReference = new ActorReference(kv.Value.Value, kv.Value);
 				var ownerInit = actorReference.Get<OwnerInit>();
 				if (!players.TryGetValue(ownerInit.InternalName, out var owner))
 					throw new MapGenerationException("Generator produced mismatching player and actor definitions.");
@@ -301,18 +308,21 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				previews.Add(kv.Key, preview);
 			}
 
-			var offset = map.CellContaining(map.ProjectedTopLeft) - generatedMap.CellContaining(generatedMap.ProjectedTopLeft);
-			var blitSource = new EditorBlitSource(generatedMap.AllCells, previews, tiles);
+			var cellBounds = CellLayerUtils.CellBounds(map);
+			var topLeft = new CPos(cellBounds.TopLeft.X, cellBounds.TopLeft.Y);
+			var bottomRight = new CPos(cellBounds.BottomRight.X, cellBounds.BottomRight.Y);
+			var cellRegion = new CellCoordsRegion(topLeft, bottomRight);
+			var blitSource = new EditorBlitSource(cellRegion, previews, tiles);
 			var editorBlit = new EditorBlit(
 				MapBlitFilters.All,
 				resourceLayer,
-				new CPos(offset.X, offset.Y),
+				topLeft,
 				map,
 				blitSource,
 				editorActorLayer,
 				false);
 
-			var description = FluentProvider.GetMessage(StrGenerated,
+			var description = FluentProvider.GetMessage(MapGenerated,
 				"name", FluentProvider.GetMessage(generator.Name));
 			var action = new RandomMapEditorAction(editorBlit, description);
 			editorActionManager.Add(action);

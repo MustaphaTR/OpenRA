@@ -11,6 +11,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using OpenRA.Network;
 using OpenRA.Primitives;
@@ -49,6 +50,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			Incompatible,
 			Validating,
 			Generating,
+			GenerationError,
 			DownloadAvailable,
 			Searching,
 			Downloading,
@@ -67,7 +69,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 		[ObjectCreator.UseCtor]
 		internal MapPreviewLogic(Widget widget, ModData modData, Func<(MapPreview Map, Session.MapStatus Status)> getMap,
 			Action<MapPreviewWidget, MapPreview, MouseInput> onMouseDown, Func<Dictionary<int, SpawnOccupant>> getSpawnOccupants,
-			bool mapUpdatesEnabled, Action<string> onMapUpdate, Func<HashSet<int>> getDisabledSpawnPoints, bool showUnoccupiedSpawnpoints)
+			bool mapUpdatesEnabled, Action<string> onMapUpdate, Func<IReadOnlySet<int>> getDisabledSpawnPoints, bool showUnoccupiedSpawnpoints)
 		{
 			this.getMap = getMap;
 
@@ -112,7 +114,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			Widget SetupAuthorAndMapType(Widget parent)
 			{
 				var typeLabel = parent.Get<LabelWidget>("MAP_TYPE");
-				var typeCache = new CachedTransform<string[], string>(c => c.FirstOrDefault() ?? "");
+				var typeCache = new CachedTransform<ImmutableArray<string>, string>(c => c.FirstOrDefault() ?? "");
 
 				typeLabel.GetText = () => typeCache.Update(getMap().Map.Categories);
 
@@ -126,7 +128,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				return parent;
 			}
 
-			var mapRepository = modData.Manifest.Get<WebServices>().MapRepository;
+			var mapRepository = modData.GetOrCreate<WebServices>().MapRepository;
 
 			Widget SetUpInstallButton(Widget parent)
 			{
@@ -202,6 +204,8 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				[previewSmall, widget.Get("MAP_VALIDATING")];
 			previewWidgets[PreviewStatus.Generating] =
 				[previewSmall, widget.Get("MAP_GENERATING")];
+			previewWidgets[PreviewStatus.GenerationError] =
+				[previewSmall, widget.Get("MAP_GENERATION_ERROR")];
 			previewWidgets[PreviewStatus.UpdateAvailable] =
 				[previewSmall, widget.Get("MAP_UPDATE_AVAILABLE"), updateButton];
 			previewWidgets[PreviewStatus.DownloadAvailable] =
@@ -217,10 +221,12 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			previewWidgets[PreviewStatus.DownloadError] =
 				[previewSmall, widget.Get("MAP_ERROR"), retryButton];
 
-			// Hide all widgets.
+			// Hide all widgets, then show the correct ones for the initial state.
 			foreach (var preview in previewWidgets)
 				foreach (var p in preview.Value)
 					p.IsVisible = () => false;
+
+			UpdateVisibility();
 		}
 
 		Widget[] visibleWidgets = [];
@@ -280,6 +286,8 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 					case MapStatus.Unavailable:
 						if (mapUpdateAvailable)
 							status = PreviewStatus.UpdateAvailable;
+						else if (map.Class == MapClassification.Generated)
+							status = PreviewStatus.GenerationError;
 						else
 							status = PreviewStatus.Unavailable;
 						break;

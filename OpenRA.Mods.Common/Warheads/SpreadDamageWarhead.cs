@@ -9,6 +9,7 @@
  */
 #endregion
 
+using System.Collections.Immutable;
 using System.Linq;
 using OpenRA.GameRules;
 using OpenRA.Mods.Common.Traits;
@@ -26,10 +27,10 @@ namespace OpenRA.Mods.Common.Warheads
 		public readonly WDist Spread = new(43);
 
 		[Desc("Damage percentage at each range step")]
-		public readonly int[] Falloff = [100, 37, 14, 5, 0];
+		public readonly ImmutableArray<int> Falloff = [100, 37, 14, 5, 0];
 
 		[Desc("Ranges at which each Falloff step is defined. Overrides Spread.")]
-		public readonly WDist[] Range = null;
+		public readonly ImmutableArray<WDist> Range = default;
 
 		[Desc("Controls the way damage is calculated. Possible values are 'HitShape', 'ClosestTargetablePosition' and 'CenterPosition'.")]
 		public readonly DamageCalculationType DamageCalculationType = DamageCalculationType.HitShape;
@@ -37,7 +38,7 @@ namespace OpenRA.Mods.Common.Warheads
 		[Desc("If attacker doesn't intent, this warhead won't hurt friendly actor.")]
 		public readonly UnintendedFriendlyFireType NoUnintendedFriendlyFire = UnintendedFriendlyFireType.None;
 
-		WDist[] effectiveRange;
+		ImmutableArray<WDist> effectiveRange;
 
 		bool noFriendlyFire = false;
 
@@ -55,7 +56,7 @@ namespace OpenRA.Mods.Common.Warheads
 				effectiveRange = Range;
 			}
 			else
-				effectiveRange = Exts.MakeArray(Falloff.Length, i => i * Spread);
+				effectiveRange = Exts.MakeArray(Falloff.Length, i => i * Spread).ToImmutableArray();
 		}
 
 		protected override void DoImpact(WPos pos, Actor firedBy, WarheadArgs args)

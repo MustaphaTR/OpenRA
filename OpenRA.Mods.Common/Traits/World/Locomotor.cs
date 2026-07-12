@@ -10,6 +10,7 @@
 #endregion
 
 using System;
+using System.Collections.Frozen;
 using System.Collections.Generic;
 using System.Linq;
 using OpenRA.Graphics;
@@ -88,7 +89,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		[FieldLoader.LoadUsing(nameof(LoadSpeeds), true)]
 		[Desc("Lower the value on rough terrain. Leave out entries for impassable terrain.")]
-		public readonly Dictionary<string, TerrainInfo> TerrainSpeeds;
+		public readonly FrozenDictionary<string, TerrainInfo> TerrainSpeeds;
 
 		protected static object LoadSpeeds(MiniYaml y)
 		{
@@ -107,8 +108,7 @@ namespace OpenRA.Mods.Common.Traits
 				}
 			}
 
-			ret.TrimExcess();
-			return ret;
+			return ret.ToFrozenDictionary();
 		}
 
 		public class TerrainInfo

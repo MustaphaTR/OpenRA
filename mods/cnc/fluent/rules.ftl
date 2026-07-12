@@ -21,6 +21,8 @@ notification-ally-under-attack = Our ally is under attack.
 notification-silos-needed = Silos needed.
 
 ## world.yaml
+notification-game-saved = Game saved.
+
 options-starting-units =
     .mcv-only = MCV Only
     .light-support = Light Support
@@ -51,7 +53,7 @@ faction-nod =
      and the alien substance Tiberium. They use stealth technology
      and guerilla tactics to defeat those who oppose them.
 
-map-generator-experimental = Experimental RMG
+map-generator-classic = Map Generator
 map-generator-clear = Clear Terrain
 
 ## defaults.yaml
@@ -799,7 +801,10 @@ label-cnc-map-generator-choice-terrain-type-puddles =
    .description = Open spaces with small ponds
 label-cnc-map-generator-choice-terrain-type-gardens =
    .label = Gardens
-   .description = Featureful terrain with ponds, cliffs, and forests
+   .description = Densely-packed terrain with ponds, cliffs, and forests
+label-cnc-map-generator-choice-terrain-type-plots =
+   .label = Plots
+   .description = Loosely-packed terrain with ponds, cliffs, and forests
 label-cnc-map-generator-choice-terrain-type-plains =
    .label = Plains
    .description = Open spaces with sparse trees and cliffs

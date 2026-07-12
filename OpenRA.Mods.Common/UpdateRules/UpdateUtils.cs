@@ -11,6 +11,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Text;
 using OpenRA.FileSystem;
@@ -52,7 +53,7 @@ namespace OpenRA.Mods.Common.UpdateRules
 		/// </summary>
 		public static YamlFileSet LoadExternalMapYaml(ModData modData, MiniYamlBuilder yaml, HashSet<string> externalFilenames)
 		{
-			return FieldLoader.GetValue<string[]>("value", yaml.Value)
+			return FieldLoader.GetValue<ImmutableArray<string>>("value", yaml.Value)
 				.Where(f => f.Contains('|'))
 				.SelectMany(f => LoadModYaml(modData, FilterExternalFiles(modData, [f], externalFilenames)))
 				.ToList();
@@ -69,7 +70,7 @@ namespace OpenRA.Mods.Common.UpdateRules
 				(null, "map.yaml", yaml.Nodes)
 			};
 
-			var files = FieldLoader.GetValue<string[]>("value", yaml.Value);
+			var files = FieldLoader.GetValue<ImmutableArray<string>>("value", yaml.Value);
 			foreach (var filename in files)
 			{
 				// Ignore any files that aren't in the map bundle
@@ -178,7 +179,7 @@ namespace OpenRA.Mods.Common.UpdateRules
 
 			if (mapNode != null && mapNode.Value != null)
 			{
-				var mapFiles = FieldLoader.GetValue<string[]>("value", mapNode.Value);
+				var mapFiles = FieldLoader.GetValue<ImmutableArray<string>>("value", mapNode.Value);
 				yaml.AddRange(mapFiles.Select(filename =>
 				{
 					// Explicit package paths never refer to a map
@@ -469,6 +470,13 @@ namespace OpenRA.Mods.Common.UpdateRules
 			this MiniYamlNodeBuilder node, string match, bool ignoreSuffix = true, bool includeRemovals = true)
 		{
 			return node.Value.Nodes.Where(n => n.KeyMatches(match, ignoreSuffix, includeRemovals));
+		}
+
+		/// <summary>Returns true if node exists and is not being removed.</summary>
+		public static bool HasChild(
+			this MiniYamlNodeBuilder node, string match, bool ignoreSuffix = true)
+		{
+			return ChildrenMatching(node, match, ignoreSuffix).LastOrDefault()?.IsRemoval() == false;
 		}
 
 		/// <summary>Returns children whose keys contain 'match' (optionally in the suffix).</summary>

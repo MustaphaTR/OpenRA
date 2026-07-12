@@ -319,7 +319,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 
 			AddPlayerFlagAndName(template, player);
 
-			var playerName = template.Get<LabelWidget>("PLAYER");
+			var playerName = template.Get<LabelWithTooltipWidget>("PLAYER");
 			playerName.GetColor = () => Color.White;
 
 			var playerColor = template.Get<ColorBlockWidget>("PLAYER_COLOR");
@@ -365,7 +365,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 
 			AddPlayerFlagAndName(template, player);
 
-			var playerName = template.Get<LabelWidget>("PLAYER");
+			var playerName = template.Get<LabelWithTooltipWidget>("PLAYER");
 			playerName.GetColor = () => Color.White;
 
 			var playerColor = template.Get<ColorBlockWidget>("PLAYER_COLOR");
@@ -386,7 +386,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 
 			AddPlayerFlagAndName(template, player);
 
-			var playerName = template.Get<LabelWidget>("PLAYER");
+			var playerName = template.Get<LabelWithTooltipWidget>("PLAYER");
 			playerName.GetColor = () => Color.White;
 
 			var playerColor = template.Get<ColorBlockWidget>("PLAYER_COLOR");
@@ -407,7 +407,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 
 			AddPlayerFlagAndName(template, player);
 
-			var playerName = template.Get<LabelWidget>("PLAYER");
+			var playerName = template.Get<LabelWithTooltipWidget>("PLAYER");
 			playerName.GetColor = () => Color.White;
 
 			var playerColor = template.Get<ColorBlockWidget>("PLAYER_COLOR");
@@ -428,7 +428,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 
 			AddPlayerFlagAndName(template, player);
 
-			var playerName = template.Get<LabelWidget>("PLAYER");
+			var playerName = template.Get<LabelWithTooltipWidget>("PLAYER");
 			playerName.GetColor = () => Color.White;
 
 			var playerColor = template.Get<ColorBlockWidget>("PLAYER_COLOR");
@@ -480,7 +480,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 
 			AddPlayerFlagAndName(template, player);
 
-			var playerName = template.Get<LabelWidget>("PLAYER");
+			var playerName = template.Get<LabelWithTooltipWidget>("PLAYER");
 			playerName.GetColor = () => Color.White;
 
 			var playerColor = template.Get<ColorBlockWidget>("PLAYER_COLOR");
@@ -546,10 +546,30 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 		{
 			return ScrollItemWidget.Setup(template, () => false, () =>
 			{
-				var playerBase = world.ActorsHavingTrait<BaseBuilding>().FirstOrDefault(a => !a.IsDead && a.Owner == player);
-				if (playerBase != null)
-					worldRenderer.Viewport.Center(playerBase.CenterPosition);
+				var targetActor = FindPlayerBaseActor(player);
+				if (targetActor != null)
+					worldRenderer.Viewport.Center(targetActor.CenterPosition);
 			});
+		}
+
+		Actor FindPlayerBaseActor(Player player)
+		{
+			// Priority 1: Primary BaseBuilding (Construction Yard or MCV), closest to viewport
+			var primaryBase = world.ActorsHavingTrait<BaseBuilding>()
+				.Where(a => a.Owner == player)
+				.OrderByDescending(a => a.IsPrimaryBuilding())
+				.ThenBy(a => (worldRenderer.Viewport.CenterPosition - a.CenterPosition).LengthSquared)
+				.FirstOrDefault();
+
+			if (primaryBase != null)
+				return primaryBase;
+
+			// Priority 2: Any selectable Building (fallback), closest to viewport
+			var building = world.ActorsHavingTrait<Building>()
+				.OrderBy(a => (worldRenderer.Viewport.CenterPosition - a.CenterPosition).LengthSquared)
+				.FirstOrDefault(a => a.Owner == player && a.Info.HasTraitInfo<SelectableInfo>());
+
+			return building;
 		}
 
 		void AdjustStatisticsPanel(Widget itemTemplate)
@@ -580,7 +600,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			flag.GetImageCollection = () => "flags";
 			flag.GetImageName = () => player.Faction.InternalName;
 
-			var playerName = template.Get<LabelWidget>("PLAYER");
+			var playerName = template.Get<LabelWithTooltipWidget>("PLAYER");
 			WidgetUtils.BindPlayerNameAndStatus(playerName, player);
 
 			playerName.GetColor = () => player.Color;

@@ -10,6 +10,7 @@
 #endregion
 
 using System;
+using System.Collections.Generic;
 using OpenRA.Graphics;
 using OpenRA.Mods.Common.Traits;
 using OpenRA.Primitives;
@@ -20,7 +21,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 	public class IntroductionPromptLogic : ChromeLogic
 	{
 		// Increment the version number when adding new stats
-		const int IntroductionVersion = 1;
+		const int IntroductionVersion = 2;
 
 		[FluentReference]
 		const string Classic = "options-control-scheme.classic";
@@ -28,8 +29,8 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 		[FluentReference]
 		const string Modern = "options-control-scheme.modern";
 
-		readonly string classic;
-		readonly string modern;
+		[FluentReference]
+		const string OtherRTS = "options-control-scheme.otherrts";
 
 		public static bool ShouldShowPrompt()
 		{
@@ -39,19 +40,34 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 		[ObjectCreator.UseCtor]
 		public IntroductionPromptLogic(Widget widget, ModData modData, WorldRenderer worldRenderer, Action onComplete)
 		{
-			var ps = Game.Settings.Player;
-			var ds = Game.Settings.Graphics;
-			var gs = Game.Settings.Game;
+			var playerSettings = modData.GetSettings<PlayerSettings>();
+			var graphicSettings = modData.GetSettings<GraphicSettings>();
+			var gameSettings = modData.GetSettings<GameSettings>();
 
-			classic = FluentProvider.GetMessage(Classic);
-			modern = FluentProvider.GetMessage(Modern);
+			var controlTypes = new Dictionary<MouseControlStyle, string>
+			{
+				{ MouseControlStyle.Classic, FluentProvider.GetMessage(Classic) },
+				{ MouseControlStyle.Modern, FluentProvider.GetMessage(Modern) },
+				{ MouseControlStyle.OtherRTS, FluentProvider.GetMessage(OtherRTS) },
+			};
+
+			if (gameSettings.IntroductionPromptVersion < 2)
+			{
+				// UseClassicMouseStyle boolean was replaced by MouseControlStyle enum to support additional control styles
+				var classicMouseStyleNode = gameSettings.Yaml.NodeWithKeyOrDefault("UseClassicMouseStyle");
+				if (classicMouseStyleNode != null)
+				{
+					var useClassicMouseStyle = FieldLoader.GetValue<bool>("UseClassicMouseStyle", classicMouseStyleNode.Value.Value);
+					gameSettings.MouseControlStyle = useClassicMouseStyle ? MouseControlStyle.Classic : MouseControlStyle.Modern;
+				}
+			}
 
 			var escPressed = false;
 			var nameTextfield = widget.Get<TextFieldWidget>("PLAYERNAME");
 			nameTextfield.IsDisabled = () => worldRenderer.World.Type != WorldType.Shellmap;
-			nameTextfield.Text = Settings.SanitizedPlayerName(ps.Name);
+			nameTextfield.Text = Settings.SanitizedPlayerName(playerSettings.Name);
 
-			var itchIntegration = modData.Manifest.Get<ItchIntegration>();
+			var itchIntegration = modData.GetOrCreate<ItchIntegration>();
 			itchIntegration.GetPlayerName(name => nameTextfield.Text = Settings.SanitizedPlayerName(name));
 
 			nameTextfield.OnLoseFocus = () =>
@@ -64,93 +80,97 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 
 				nameTextfield.Text = nameTextfield.Text.Trim();
 				if (nameTextfield.Text.Length == 0)
-					nameTextfield.Text = Settings.SanitizedPlayerName(ps.Name);
+					nameTextfield.Text = Settings.SanitizedPlayerName(playerSettings.Name);
 				else
 				{
 					nameTextfield.Text = Settings.SanitizedPlayerName(nameTextfield.Text);
-					ps.Name = nameTextfield.Text;
+					playerSettings.Name = nameTextfield.Text;
 				}
 			};
 
 			nameTextfield.OnEnterKey = _ => { nameTextfield.YieldKeyboardFocus(); return true; };
 			nameTextfield.OnEscKey = _ =>
 			{
-				nameTextfield.Text = Settings.SanitizedPlayerName(ps.Name);
+				nameTextfield.Text = Settings.SanitizedPlayerName(playerSettings.Name);
 				escPressed = true;
 				nameTextfield.YieldKeyboardFocus();
 				return true;
 			};
 
 			var mouseControlDescClassic = widget.Get("MOUSE_CONTROL_DESC_CLASSIC");
-			mouseControlDescClassic.IsVisible = () => gs.UseClassicMouseStyle;
+			mouseControlDescClassic.IsVisible = () => gameSettings.MouseControlStyle == MouseControlStyle.Classic;
 
 			var mouseControlDescModern = widget.Get("MOUSE_CONTROL_DESC_MODERN");
-			mouseControlDescModern.IsVisible = () => !gs.UseClassicMouseStyle;
+			mouseControlDescModern.IsVisible = () => gameSettings.MouseControlStyle == MouseControlStyle.Modern;
+
+			var mouseControlDescOtherRTS = widget.Get("MOUSE_CONTROL_DESC_OTHERRTS");
+			mouseControlDescOtherRTS.IsVisible = () => gameSettings.MouseControlStyle == MouseControlStyle.OtherRTS;
 
 			var mouseControlDropdown = widget.Get<DropDownButtonWidget>("MOUSE_CONTROL_DROPDOWN");
-			mouseControlDropdown.OnMouseDown = _ => InputSettingsLogic.ShowMouseControlDropdown(mouseControlDropdown, gs);
-			mouseControlDropdown.GetText = () => gs.UseClassicMouseStyle ? classic : modern;
+			mouseControlDropdown.OnMouseDown = _ => InputSettingsLogic.ShowMouseControlDropdown(mouseControlDropdown, controlTypes, gameSettings);
+			mouseControlDropdown.GetText = () => controlTypes[gameSettings.MouseControlStyle];
 
-			foreach (var container in new[] { mouseControlDescClassic, mouseControlDescModern })
+			foreach (var container in new[] { mouseControlDescClassic, mouseControlDescModern, mouseControlDescOtherRTS })
 			{
 				var classicScrollRight = container.Get("DESC_SCROLL_RIGHT");
-				classicScrollRight.IsVisible = () => gs.UseClassicMouseStyle ^ gs.UseAlternateScrollButton;
+				classicScrollRight.IsVisible = () => (gameSettings.MouseControlStyle == MouseControlStyle.Classic) ^ gameSettings.UseAlternateScrollButton;
 
 				var classicScrollMiddle = container.Get("DESC_SCROLL_MIDDLE");
-				classicScrollMiddle.IsVisible = () => !gs.UseClassicMouseStyle ^ gs.UseAlternateScrollButton;
+				classicScrollMiddle.IsVisible = () => (gameSettings.MouseControlStyle != MouseControlStyle.Classic) ^ gameSettings.UseAlternateScrollButton;
 
 				var zoomDesc = container.Get("DESC_ZOOM");
-				zoomDesc.IsVisible = () => gs.ZoomModifier == Modifiers.None;
+				zoomDesc.IsVisible = () => gameSettings.ZoomModifier == Modifiers.None;
 
 				var zoomDescModifier = container.Get<LabelWidget>("DESC_ZOOM_MODIFIER");
-				zoomDescModifier.IsVisible = () => gs.ZoomModifier != Modifiers.None;
+				zoomDescModifier.IsVisible = () => gameSettings.ZoomModifier != Modifiers.None;
 
 				var zoomDescModifierTemplate = zoomDescModifier.GetText();
 				var zoomDescModifierLabel = new CachedTransform<Modifiers, string>(
 					mod => zoomDescModifierTemplate.Replace("MODIFIER", mod.ToString()));
-				zoomDescModifier.GetText = () => zoomDescModifierLabel.Update(gs.ZoomModifier);
+				zoomDescModifier.GetText = () => zoomDescModifierLabel.Update(gameSettings.ZoomModifier);
 
 				var edgescrollDesc = container.Get<LabelWidget>("DESC_EDGESCROLL");
-				edgescrollDesc.IsVisible = () => gs.ViewportEdgeScroll;
+				edgescrollDesc.IsVisible = () => gameSettings.ViewportEdgeScroll;
 			}
 
-			SettingsUtils.BindCheckboxPref(widget, "EDGESCROLL_CHECKBOX", gs, "ViewportEdgeScroll");
+			SettingsUtils.BindCheckboxPref(widget, "EDGESCROLL_CHECKBOX", gameSettings, "ViewportEdgeScroll");
 
 			var colorManager = modData.DefaultRules.Actors[SystemActors.World].TraitInfo<IColorPickerManagerInfo>();
 
 			var colorDropdown = widget.Get<DropDownButtonWidget>("PLAYERCOLOR");
 			colorDropdown.IsDisabled = () => worldRenderer.World.Type != WorldType.Shellmap;
-			colorDropdown.OnMouseDown = _ => colorManager.ShowColorDropDown(colorDropdown, ps.Color, null, worldRenderer, color =>
+			colorDropdown.OnMouseDown = _ => colorManager.ShowColorDropDown(colorDropdown, playerSettings.Color, null, worldRenderer, color =>
 			{
-				ps.Color = color;
+				playerSettings.Color = color;
 				Game.Settings.Save();
 			});
-			colorDropdown.Get<ColorBlockWidget>("COLORBLOCK").GetColor = () => ps.Color;
+			colorDropdown.Get<ColorBlockWidget>("COLORBLOCK").GetColor = () => playerSettings.Color;
 
-			var viewportSizes = modData.Manifest.Get<WorldViewportSizes>();
+			var viewportSizes = modData.GetOrCreate<WorldViewportSizes>();
 			var battlefieldCameraDropDown = widget.Get<DropDownButtonWidget>("BATTLEFIELD_CAMERA_DROPDOWN");
 			var battlefieldCameraLabel = new CachedTransform<WorldViewport, string>(vs => DisplaySettingsLogic.GetViewportSizeName(modData, vs));
-			battlefieldCameraDropDown.OnMouseDown = _ => DisplaySettingsLogic.ShowBattlefieldCameraDropdown(modData, battlefieldCameraDropDown, viewportSizes, ds);
-			battlefieldCameraDropDown.GetText = () => battlefieldCameraLabel.Update(ds.ViewportDistance);
+			battlefieldCameraDropDown.OnMouseDown = _ => DisplaySettingsLogic.ShowBattlefieldCameraDropdown(
+				modData, battlefieldCameraDropDown, viewportSizes, graphicSettings);
+			battlefieldCameraDropDown.GetText = () => battlefieldCameraLabel.Update(graphicSettings.ViewportDistance);
 
 			var uiScaleDropdown = widget.Get<DropDownButtonWidget>("UI_SCALE_DROPDOWN");
 			var uiScaleLabel = new CachedTransform<float, string>(s => $"{(int)(100 * s)}%");
-			uiScaleDropdown.OnMouseDown = _ => DisplaySettingsLogic.ShowUIScaleDropdown(uiScaleDropdown, ds);
-			uiScaleDropdown.GetText = () => uiScaleLabel.Update(ds.UIScale);
+			uiScaleDropdown.OnMouseDown = _ => DisplaySettingsLogic.ShowUIScaleDropdown(uiScaleDropdown, graphicSettings);
+			uiScaleDropdown.GetText = () => uiScaleLabel.Update(graphicSettings.UIScale);
 
 			var minResolution = viewportSizes.MinEffectiveResolution;
 			var resolution = Game.Renderer.Resolution;
 			var disableUIScale = worldRenderer.World.Type != WorldType.Shellmap ||
-				resolution.Width * ds.UIScale < 1.25f * minResolution.Width ||
-				resolution.Height * ds.UIScale < 1.25f * minResolution.Height;
+				resolution.Width * graphicSettings.UIScale < 1.25f * minResolution.Width ||
+				resolution.Height * graphicSettings.UIScale < 1.25f * minResolution.Height;
 
 			uiScaleDropdown.IsDisabled = () => disableUIScale;
 
-			SettingsUtils.BindCheckboxPref(widget, "CURSORDOUBLE_CHECKBOX", ds, "CursorDouble");
+			SettingsUtils.BindCheckboxPref(widget, "CURSORDOUBLE_CHECKBOX", graphicSettings, "CursorDouble");
 
 			widget.Get<ButtonWidget>("CONTINUE_BUTTON").OnClick = () =>
 			{
-				Game.Settings.Game.IntroductionPromptVersion = IntroductionVersion;
+				gameSettings.IntroductionPromptVersion = IntroductionVersion;
 				Game.Settings.Save();
 				Ui.CloseWindow();
 				onComplete();

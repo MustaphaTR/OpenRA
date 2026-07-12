@@ -9,6 +9,7 @@
  */
 #endregion
 
+using System.Collections.Frozen;
 using System.Collections.Generic;
 using System.Linq;
 using OpenRA.Server;
@@ -28,9 +29,6 @@ namespace OpenRA.Network
 
 		[FluentReference]
 		const string GameStarted = "notification-game-has-started";
-
-		[FluentReference]
-		const string GameSaved = "notification-game-saved";
 
 		[FluentReference("player")]
 		const string GamePaused = "notification-game-paused";
@@ -67,11 +65,11 @@ namespace OpenRA.Network
 					{
 						var message = new FluentMessage(node.Value);
 						if (message.Key == Joined)
-							TextNotificationsManager.AddPlayerJoinedLine(message.Key, message.Arguments);
+							TextNotificationsManager.AddPlayerJoinedLine(message.Key, message.Arguments.ToArray());
 						else if (message.Key == Left)
-							TextNotificationsManager.AddPlayerLeftLine(message.Key, message.Arguments);
+							TextNotificationsManager.AddPlayerLeftLine(message.Key, message.Arguments.ToArray());
 						else
-							TextNotificationsManager.AddSystemLine(message.Key, message.Arguments);
+							TextNotificationsManager.AddSystemLine(message.Key, message.Arguments.ToArray());
 					}
 
 					break;
@@ -212,11 +210,8 @@ namespace OpenRA.Network
 				}
 
 				case "GameSaved":
-					if (!orderManager.World.IsReplay)
-						TextNotificationsManager.AddSystemLine(GameSaved);
-
 					foreach (var nsr in orderManager.World.WorldActor.TraitsImplementing<INotifyGameSaved>())
-						nsr.GameSaved(orderManager.World);
+						nsr.GameSaved(orderManager.World, order.ExtraData != 0);
 					break;
 
 				case "PauseGame":
@@ -385,14 +380,21 @@ namespace OpenRA.Network
 
 				case "SyncMapPool":
 				{
-					orderManager.ServerMapPool = FieldLoader.GetValue<HashSet<string>>("SyncMapPool", order.TargetString);
+					orderManager.ServerMapPool = FieldLoader.GetValue<FrozenSet<string>>("SyncMapPool", order.TargetString);
 					break;
 				}
 
 				case "GenerateMap":
 				{
 					var yaml = new MiniYaml(order.OrderString, MiniYaml.FromString(order.TargetString, order.OrderString));
-					Game.ModData.MapCache.GenerateMap(FieldLoader.Load<MapGenerationArgs>(yaml));
+					var args = FieldLoader.Load<MapGenerationArgs>(yaml);
+					var preview = Game.ModData.MapCache[args.Uid];
+					if (preview.Status != MapStatus.Available && preview.Class != MapClassification.Generated)
+					{
+						preview.UpdateFromGenerationArgs(args);
+						preview.Generate();
+					}
+
 					break;
 				}
 

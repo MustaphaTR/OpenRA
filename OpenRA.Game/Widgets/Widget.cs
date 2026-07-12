@@ -11,6 +11,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Collections.ObjectModel;
 using System.Linq;
 using OpenRA.Graphics;
@@ -35,6 +36,12 @@ namespace OpenRA.Widgets
 		public static Widget MouseOverWidget;
 
 		static readonly Mediator Mediator = new();
+		static ModData modData;
+
+		public static void Initialize(ModData modData)
+		{
+			Ui.modData = modData;
+		}
 
 		public static void CloseWindow()
 		{
@@ -65,6 +72,9 @@ namespace OpenRA.Widgets
 
 		public static Widget OpenWindow(string id, WidgetArgs args)
 		{
+			if (!args.ContainsKey("modData"))
+				args = new WidgetArgs(args) { { "modData", modData } };
+
 			var window = Game.ModData.WidgetLoader.LoadWidget(args, Root, id);
 			if (WindowList.Count > 0)
 				Root.HideChild(WindowList.Peek());
@@ -87,6 +97,9 @@ namespace OpenRA.Widgets
 
 		public static Widget LoadWidget(string id, Widget parent, WidgetArgs args)
 		{
+			if (!args.ContainsKey("modData"))
+				args = new WidgetArgs(args) { { "modData", modData } };
+
 			return Game.ModData.WidgetLoader.LoadWidget(args, parent, id);
 		}
 
@@ -94,7 +107,14 @@ namespace OpenRA.Widgets
 
 		public static void PrepareRenderables() { Root.PrepareRenderablesOuter(); }
 
-		public static void Draw() { Root.DrawOuter(); }
+		public static bool WidgetsVisible = true;
+		public static void Draw()
+		{
+			if (!WidgetsVisible)
+				return;
+
+			Root.DrawOuter();
+		}
 
 		public static bool HandleInput(MouseInput mi)
 		{
@@ -208,8 +228,8 @@ namespace OpenRA.Widgets
 		public IntegerExpression Y;
 		public IntegerExpression Width;
 		public IntegerExpression Height;
-		public string[] Logic = [];
-		public ChromeLogic[] LogicObjects { get; private set; }
+		public ImmutableArray<string> Logic = [];
+		public ImmutableArray<ChromeLogic> LogicObjects { get; private set; }
 		public bool Visible = true;
 		public bool IgnoreMouseOver;
 		public bool IgnoreChildMouseOver;
@@ -307,7 +327,7 @@ namespace OpenRA.Widgets
 			args["widget"] = this;
 
 			LogicObjects = Logic.Select(l => Game.ModData.ObjectCreator.CreateObject<ChromeLogic>(l, args))
-				.ToArray();
+				.ToImmutableArray();
 
 			foreach (var logicObject in LogicObjects)
 				Ui.Subscribe(logicObject);

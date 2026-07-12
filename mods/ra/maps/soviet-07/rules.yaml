@@ -2,7 +2,7 @@ World:
 	LuaScript:
 		Scripts: campaign.lua, utils.lua, soviet07.lua
 	MissionData:
-		Briefing: The Allies have infiltrated one of our nuclear reactors! They have tampered with the core so that a meltdown is imminent within 30 minutes. They must not succeed!\n\nEnter the base and find any remaining technicians. Guide them to the 4 coolant stations so they can activate them, then activate the main computer. The security systems have been armed so beware.\n\nKill any Allies you find.
+		Briefing: briefing
 		BriefingVideo: soviet7.vqa
 		StartVideo: countdwn.vqa
 		WinVideo: averted.vqa
@@ -16,6 +16,8 @@ World:
 			normal: options-difficulty.normal
 			hard: options-difficulty.hard
 		Default: normal
+	TimeLimitManager:
+		SkipTimerExpiredNotification: true
 
 Player:
 	LobbyPrerequisiteCheckbox@GLOBALBOUNTY:
@@ -25,6 +27,31 @@ Player:
 CAMERA:
 	RevealsShroud:
 		Range: 6c0
+	ScriptTags:
+
+FLARE:
+	RevealsShroud:
+		Range: 2c512
+		ValidRelationships: Ally, Neutral, Enemy
+	Tooltip:
+		Name: actor-gas-name
+
+BIO:
+	ExternalCondition@UNSTABLE:
+		Condition: unstable
+	RevealsShroud:
+		RequiresCondition: unstable
+	RevealOnDeath:
+		Duration: 75
+	ShakeOnDeath:
+		Intensity: 3
+	KillsSelf:
+		RequiresCondition: unstable
+		Delay: 40,60
+		DamageTypes: ExplosionDeath
+	# The purpose of these structures isn't fully clear, so show a generic.
+	Tooltip:
+		GenericVisibility: Ally
 
 FTUR:
 	Valued:

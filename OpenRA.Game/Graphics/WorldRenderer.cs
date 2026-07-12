@@ -12,6 +12,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices;
 using OpenRA.Effects;
 using OpenRA.Primitives;
 using OpenRA.Traits;
@@ -46,6 +47,7 @@ namespace OpenRA.Graphics
 		readonly List<IRenderable> renderablesBuffer = [];
 		readonly IRenderer[] renderers;
 		readonly IRenderPostProcessPass[] postProcessPasses;
+		long[] renderablesKeysBuffer = [];
 
 		internal WorldRenderer(ModData modData, World world)
 		{
@@ -56,7 +58,7 @@ namespace OpenRA.Graphics
 
 			createPaletteReference = CreatePaletteReference;
 
-			var mapGrid = modData.Manifest.Get<MapGrid>();
+			var mapGrid = modData.GetOrCreate<MapGrid>();
 			enableDepthBuffer = mapGrid.EnableDepthBuffer;
 
 			foreach (var pal in world.TraitDict.ActorsWithTrait<ILoadsPalettes>())
@@ -157,7 +159,14 @@ namespace OpenRA.Graphics
 				renderablesBuffer.AddRange(e.Render(this));
 
 			// Renderables must be ordered using a stable sorting algorithm to avoid flickering artefacts
-			foreach (var renderable in renderablesBuffer.OrderBy(RenderableZPositionComparisonKey))
+			if (renderablesKeysBuffer.Length < renderablesBuffer.Count)
+				renderablesKeysBuffer = new long[Exts.NextPowerOf2(renderablesBuffer.Count)];
+			for (var i = 0; i < renderablesBuffer.Count; i++)
+				renderablesKeysBuffer[i] = ((long)RenderableZPositionComparisonKey(renderablesBuffer[i]) << 32) + i;
+			var keys = renderablesKeysBuffer.AsSpan(0, renderablesBuffer.Count);
+			keys.Sort(CollectionsMarshal.AsSpan(renderablesBuffer));
+
+			foreach (var renderable in renderablesBuffer)
 				preparedRenderables.Add(renderable.PrepareRender(this));
 
 			// PERF: Reuse collection to avoid allocations.
@@ -371,6 +380,8 @@ namespace OpenRA.Graphics
 				}
 			}
 
+			ApplyPostProcessing(PostProcessPassType.AfterAnnotations);
+
 			Game.Renderer.Flush();
 
 			preparedRenderables.Clear();
@@ -384,10 +395,20 @@ namespace OpenRA.Graphics
 			Game.Renderer.SetPalette(palette);
 		}
 
-		// Conversion between world and screen coordinates
+		/// <summary>
+		/// Converts a world position to a screen position.
+		/// </summary>
 		public float2 ScreenPosition(WPos pos)
 		{
 			return new float2((float)TileSize.Width * pos.X / TileScale, (float)TileSize.Height * (pos.Y - pos.Z) / TileScale);
+		}
+
+		/// <summary>
+		/// Converts a world position to a screen position.
+		/// </summary>
+		public float2 ScreenPosition(float2 pos)
+		{
+			return new float2(TileSize.Width * pos.X / TileScale, TileSize.Height * pos.Y / TileScale);
 		}
 
 		public float3 Screen3DPosition(WPos pos)

@@ -73,6 +73,7 @@ Rules:
 	ts|rules/shared-vehicles.yaml
 	ts|rules/trees.yaml
 	ts|rules/bridges.yaml
+	ts|rules/map-generators.yaml
 
 Weapons:
 	ts|weapons/ballisticweapons.yaml
@@ -164,6 +165,7 @@ ChromeLayout:
 	common|chrome/connection.yaml
 	common|chrome/replaybrowser.yaml
 	common|chrome/gamesave-browser.yaml
+	common|chrome/load-game-browser.yaml
 	common|chrome/gamesave-loading.yaml
 	ts|chrome/dropdowns.yaml
 	common|chrome/musicplayer.yaml
@@ -177,6 +179,7 @@ ChromeLayout:
 FluentMessages:
 	common|fluent/common.ftl
 	common|fluent/chrome.ftl
+	common|fluent/ingame-debug.ftl
 	common|fluent/hotkeys.ftl
 	common|fluent/rules.ftl
 	ts|fluent/ts.ftl
@@ -216,7 +219,6 @@ ServerTraits:
 	SkirmishLogic
 	PlayerPinger
 	MasterServerPinger
-	LobbySettingsNotification
 
 ChromeMetrics:
 	common|metrics.yaml

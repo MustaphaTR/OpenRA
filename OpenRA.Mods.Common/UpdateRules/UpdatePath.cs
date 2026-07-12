@@ -48,7 +48,8 @@ namespace OpenRA.Mods.Common.UpdateRules
 				new RemoveNegativeSequenceLength(),
 			]),
 
-			new("release-20231010", "release-20250303", [
+			new("release-20231010", "release-20250303",
+			[
 				new RemoveValidRelationsFromCapturable(),
 				new ExtractResourceStorageFromHarvester(),
 				new ReplacePaletteModifiers(),
@@ -71,6 +72,13 @@ namespace OpenRA.Mods.Common.UpdateRules
 				// bleed only changes here.
 				new ReplaceBaseAttackNotifier(),
 				new RemoveBuildingInfoAllowPlacementOnResources(),
+				new EditorMarkerTileLabels(),
+				new RemoveBarracksTypesAndVehiclesTypesInBaseBuilderBotModule(),
+				new RemoveAlwaysVisible(),
+				new RemoveAndRenameDefenseRadiusInBaseBuilderBotModule(),
+
+				// Execute these rules last to avoid premature yaml merge crashes.
+				new WithDamageOverlayPropertyRename(),
 			]),
 		];
 

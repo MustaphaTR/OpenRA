@@ -239,6 +239,7 @@ World:
 	DebugVisualizationCommands:
 	PathFinderOverlay:
 	HierarchicalPathFinderOverlay:
+	ActorMapOverlay:
 	PlayerCommands:
 	HelpCommand:
 	BuildingInfluence:
@@ -380,6 +381,7 @@ World:
 	ScreenShaker:
 	RadarPings:
 	StartGameNotification:
+		SavedTextNotification: notification-game-saved
 	ObjectivesPanel:
 		PanelName: SKIRMISH_STATS
 	LoadWidgetAtGameStart:
@@ -429,3 +431,8 @@ EditorWorld:
 		Palette: ra
 		Alpha: 0.35
 	MarkerLayerOverlay:
+	TilingPathTool:
+		DefaultStart: Clear
+		DefaultInner: Beach
+		DefaultEnd: Clear
+	Inherits@MapGenerators: ^MapGenerators

@@ -10,6 +10,7 @@
 #endregion
 
 using System;
+using System.Collections.Immutable;
 using OpenRA.Mods.Common.Activities;
 using OpenRA.Mods.Common.Effects;
 using OpenRA.Mods.Common.Orders;
@@ -25,7 +26,7 @@ namespace OpenRA.Mods.Common.Traits
 		public readonly int RefundPercent = 50;
 
 		[Desc("List of audio clips to play when the actor is being sold.")]
-		public readonly string[] SellSounds = [];
+		public readonly ImmutableArray<string> SellSounds = [];
 
 		[NotificationReference("Speech")]
 		[Desc("Speech notification to play.")]

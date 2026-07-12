@@ -10,6 +10,7 @@
 #endregion
 
 using System;
+using System.Collections.Frozen;
 using System.Collections.Generic;
 using System.Linq;
 using OpenRA.Activities;
@@ -50,7 +51,7 @@ namespace OpenRA.Mods.Common.Traits
 		[CursorReference(dictionaryReference: LintDictionaryReference.Values)]
 		[Desc("Cursor overrides to display for specific terrain types.",
 			"A dictionary of [terrain type]: [cursor name].")]
-		public readonly Dictionary<string, string> TerrainCursors = [];
+		public readonly FrozenDictionary<string, string> TerrainCursors = FrozenDictionary<string, string>.Empty;
 
 		[CursorReference]
 		[Desc("Cursor to display when a move order cannot be issued at target location.")]
@@ -173,7 +174,7 @@ namespace OpenRA.Mods.Common.Traits
 	}
 
 	public class Mobile : PausableConditionalTrait<MobileInfo>, IIssueOrder, IResolveOrder, IOrderVoice, IPositionable, IMove, ITick, ICreationActivity,
-		IFacing, IDeathActorInitModifier, INotifyAddedToWorld, INotifyRemovedFromWorld, INotifyBlockingMove, IActorPreviewInitModifier, INotifyBecomingIdle
+		IFacing, IDeathActorInitModifier, INotifyAddedToWorld, INotifyRemovedFromWorld, INotifyBlockingMove, IActorPreviewInitModifier, INotifyBecomingIdle, ISync
 	{
 		readonly Actor self;
 		readonly Lazy<IEnumerable<int>> speedModifiers;
@@ -226,7 +227,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		#region IFacing
 
-		[Sync]
+		[VerifySync]
 		public WAngle Facing
 		{
 			get => orientation.Yaw;
@@ -239,10 +240,10 @@ namespace OpenRA.Mods.Common.Traits
 
 		#endregion
 
-		[Sync]
+		[VerifySync]
 		public CPos FromCell { get; private set; }
 
-		[Sync]
+		[VerifySync]
 		public CPos ToCell { get; private set; }
 
 		public Locomotor Locomotor { get; private set; }
@@ -251,7 +252,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		#region IOccupySpace
 
-		[Sync]
+		[VerifySync]
 		public WPos CenterPosition { get; private set; }
 
 		public CPos TopLeft => ToCell;

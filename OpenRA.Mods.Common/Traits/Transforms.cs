@@ -10,6 +10,7 @@
 #endregion
 
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using OpenRA.Activities;
 using OpenRA.Mods.Common.Activities;
@@ -33,10 +34,10 @@ namespace OpenRA.Mods.Common.Traits
 		public readonly WAngle? Facing = null;
 
 		[Desc("Sounds to play when transforming.")]
-		public readonly string[] TransformSounds = [];
+		public readonly ImmutableArray<string> TransformSounds = [];
 
 		[Desc("Sounds to play when the transformation is blocked.")]
-		public readonly string[] NoTransformSounds = [];
+		public readonly ImmutableArray<string> NoTransformSounds = [];
 
 		[Desc("Do the sounds play under shroud or fog.")]
 		public readonly bool AudibleThroughFog = false;

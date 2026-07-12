@@ -11,6 +11,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using OpenRA.Traits;
 
@@ -42,7 +43,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		[NotificationReference("Speech")]
 		[Desc("Notifications to play when the delivery actor is on its way. Last notification is played when the actors to deliver are spawned on the map.")]
-		public readonly string[] DeliveryProgressNotifications = [];
+		public readonly ImmutableArray<string> DeliveryProgressNotifications = [];
 
 		public override object Create(ActorInitializer init) { return new BulkProductionQueue(init, this); }
 	}
@@ -96,8 +97,13 @@ namespace OpenRA.Mods.Common.Traits
 			{
 				if (HasDeliveryStarted() && DeliveryDelay > 0)
 				{
-					DeliveryDelay--;
-					PlayDeliveryProgressNotifications();
+					if (developerMode.FastBuild)
+						DeliveryDelay = 0;
+					else
+					{
+						DeliveryDelay--;
+						PlayDeliveryProgressNotifications();
+					}
 				}
 				else if (HasDeliveryStarted() && DeliveryDelay == 0)
 				{
@@ -291,8 +297,8 @@ namespace OpenRA.Mods.Common.Traits
 			{
 				foreach (var actorData in ActorsReadyForDelivery)
 				{
-					playerResources.GiveResources(actorData.Resources);
-					playerResources.GiveCash(actorData.Cash);
+					playerResources.RefundResources(actorData.Resources);
+					playerResources.RefundCash(actorData.Cash);
 				}
 
 				ActorsReadyForDelivery.Clear();
@@ -304,8 +310,8 @@ namespace OpenRA.Mods.Common.Traits
 				var actor = ActorsReadyForDelivery.LastOrDefault(actor => actor.Actor.Name == itemName);
 				if (actor.Actor == null)
 					break;
-				playerResources.GiveResources(actor.Resources);
-				playerResources.GiveCash(actor.Cash);
+				playerResources.RefundResources(actor.Resources);
+				playerResources.RefundCash(actor.Cash);
 				ActorsReadyForDelivery.Remove(actor);
 			}
 		}

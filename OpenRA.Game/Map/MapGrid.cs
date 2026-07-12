@@ -10,6 +10,7 @@
 #endregion
 
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using OpenRA.Traits;
@@ -24,8 +25,8 @@ namespace OpenRA
 	public readonly struct CellRamp
 	{
 		public readonly int CenterHeightOffset;
-		public readonly WVec[] Corners;
-		public readonly WVec[][] Polygons;
+		public readonly ImmutableArray<WVec> Corners;
+		public readonly ImmutableArray<ImmutableArray<WVec>> Polygons;
 		public readonly WRot Orientation;
 
 		public CellRamp(MapGridType type, WRot orientation,
@@ -83,10 +84,11 @@ namespace OpenRA
 		{
 			// Enumerate over the polygons, assuming that they are triangles
 			// If the ramp is not split we will take the first three vertices of the corners as a valid triangle
-			WVec[] p = null;
-			var u = 0;
-			var v = 0;
-			for (var i = 0; i < Polygons.Length; i++)
+			int u;
+			int v;
+			ImmutableArray<WVec> p;
+			var i = 0;
+			do
 			{
 				p = Polygons[i];
 				u = ((p[1].Y - p[2].Y) * (dX - p[2].X) - (p[1].X - p[2].X) * (dY - p[2].Y)) / 1024;
@@ -95,7 +97,10 @@ namespace OpenRA
 				// Point is within the triangle if 0 <= u,v <= 1024
 				if (u >= 0 && u <= 1024 && v >= 0 && v <= 1024)
 					break;
+
+				i++;
 			}
+			while (i < Polygons.Length);
 
 			// Calculate w from u,v and interpolate height
 			return (u * p[0].Z + v * p[1].Z + (1024 - u - v) * p[2].Z) / 1024;
@@ -112,7 +117,7 @@ namespace OpenRA
 
 		public readonly bool EnableDepthBuffer = false;
 
-		public readonly WVec[] SubCellOffsets =
+		public readonly ImmutableArray<WVec> SubCellOffsets =
 		[
 			new(0, 0, 0),       // full cell - index 0
 			new(-299, -256, 0), // top left - index 1
@@ -122,9 +127,9 @@ namespace OpenRA
 			new(256, 256, 0),   // bottom right - index 5
 		];
 
-		public CellRamp[] Ramps { get; }
+		public ImmutableArray<CellRamp> Ramps { get; }
 
-		internal readonly CVec[][] TilesByDistance;
+		internal readonly ImmutableArray<ImmutableArray<CVec>> TilesByDistance;
 
 		public int TileScale { get; }
 
@@ -197,7 +202,7 @@ namespace OpenRA
 			TilesByDistance = CreateTilesByDistance();
 		}
 
-		CVec[][] CreateTilesByDistance()
+		ImmutableArray<ImmutableArray<CVec>> CreateTilesByDistance()
 		{
 			var ts = new List<CVec>[MaximumTileSearchRange + 1];
 			for (var i = 0; i < MaximumTileSearchRange + 1; i++)
@@ -233,7 +238,7 @@ namespace OpenRA
 				});
 			}
 
-			return ts.Select(list => list.ToArray()).ToArray();
+			return ts.Select(list => list.ToImmutableArray()).ToImmutableArray();
 		}
 
 		public WVec OffsetOfSubCell(SubCell subCell)

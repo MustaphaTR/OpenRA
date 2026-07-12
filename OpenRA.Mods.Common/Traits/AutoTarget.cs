@@ -9,6 +9,8 @@
  */
 #endregion
 
+using System;
+using System.Collections.Frozen;
 using System.Collections.Generic;
 using System.Linq;
 using OpenRA.Primitives;
@@ -69,7 +71,7 @@ namespace OpenRA.Mods.Common.Traits
 		public readonly string AttackAnythingCondition = null;
 
 		[FieldLoader.Ignore]
-		public readonly Dictionary<UnitStance, string> ConditionByStance = [];
+		public FrozenDictionary<UnitStance, string> ConditionByStance = FrozenDictionary<UnitStance, string>.Empty;
 
 		[Desc("Allow the player to change the unit stance.")]
 		public readonly bool EnableStances = true;
@@ -89,17 +91,20 @@ namespace OpenRA.Mods.Common.Traits
 		{
 			base.RulesetLoaded(rules, info);
 
+			var conditionByStance = new Dictionary<UnitStance, string>();
 			if (HoldFireCondition != null)
-				ConditionByStance[UnitStance.HoldFire] = HoldFireCondition;
+				conditionByStance[UnitStance.HoldFire] = HoldFireCondition;
 
 			if (ReturnFireCondition != null)
-				ConditionByStance[UnitStance.ReturnFire] = ReturnFireCondition;
+				conditionByStance[UnitStance.ReturnFire] = ReturnFireCondition;
 
 			if (DefendCondition != null)
-				ConditionByStance[UnitStance.Defend] = DefendCondition;
+				conditionByStance[UnitStance.Defend] = DefendCondition;
 
 			if (AttackAnythingCondition != null)
-				ConditionByStance[UnitStance.AttackAnything] = AttackAnythingCondition;
+				conditionByStance[UnitStance.AttackAnything] = AttackAnythingCondition;
+
+			ConditionByStance = conditionByStance.ToFrozenDictionary();
 		}
 
 		IEnumerable<EditorActorOption> IEditorActorOptions.ActorOptions(ActorInfo ai, World world)
@@ -132,13 +137,13 @@ namespace OpenRA.Mods.Common.Traits
 
 		readonly bool allowMovement;
 
-		[Sync]
+		[VerifySync]
 		int nextScanTime = 0;
 
 		public UnitStance Stance { get; private set; }
 		public bool AllowMove => allowMovement && Stance > UnitStance.Defend;
 
-		[Sync]
+		[VerifySync]
 		public Actor Aggressor;
 
 		// NOT SYNCED: do not refer to this anywhere other than UI code
@@ -404,6 +409,7 @@ namespace OpenRA.Mods.Common.Traits
 				else
 					continue;
 
+				validPriorities.Clear();
 				foreach (var ati in activePriorities)
 				{
 					// Already have a higher priority target
@@ -427,9 +433,16 @@ namespace OpenRA.Mods.Common.Traits
 				// Make sure that we can actually fire on the actor
 				var armaments = ab.ChooseArmamentsForTarget(target, false);
 				if (!allowMove)
-					armaments = armaments.Where(arm =>
-						target.IsInRange(self.CenterPosition, arm.MaxRange()) &&
-						!target.IsInRange(self.CenterPosition, arm.Weapon.MinRange));
+				{
+					// PERF: This lambda captures, contain it within a local function to prevent
+					// the compiler allocating the helper class at the top of the loop.
+					static Func<Armament, bool> IsInRange(Actor self, Target target) =>
+						arm =>
+							target.IsInRange(self.CenterPosition, arm.MaxRange()) &&
+							!target.IsInRange(self.CenterPosition, arm.Weapon.MinRange);
+
+					armaments = armaments.Where(IsInRange(self, target));
+				}
 
 				if (!armaments.Any())
 					continue;
@@ -449,8 +462,6 @@ namespace OpenRA.Mods.Common.Traits
 						chosenTargetRange = targetRange;
 					}
 				}
-
-				validPriorities.Clear();
 			}
 
 			return chosenTarget;

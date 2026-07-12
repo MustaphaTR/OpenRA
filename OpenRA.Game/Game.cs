@@ -11,6 +11,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
@@ -167,6 +168,7 @@ namespace OpenRA
 		{
 			return ModData.WidgetLoader.LoadWidget(new WidgetArgs(args)
 			{
+				{ "modData", ModData },
 				{ "world", world },
 				{ "orderManager", OrderManager },
 				{ "worldRenderer", worldRenderer },
@@ -385,37 +387,11 @@ namespace OpenRA
 			Log.AddChannel("nat", "nat.log");
 			Log.AddChannel("client", "client.log");
 
-			var platforms = new[] { Settings.Game.Platform, "Default", null };
-			foreach (var p in platforms)
-			{
-				if (p == null)
-					throw new InvalidOperationException("Failed to initialize platform-integration library. Check graphics.log for details.");
-
-				Settings.Game.Platform = p;
-				try
-				{
-					var platform = CreatePlatform(p);
-					Renderer = new Renderer(platform, Settings.Graphics);
-					Sound = new Sound(platform, Settings.Sound);
-
-					break;
-				}
-				catch (Exception e)
-				{
-					Log.Write("graphics", $"{e}");
-					Console.WriteLine("Renderer initialization failed. Check graphics.log for details.");
-
-					Renderer?.Dispose();
-
-					Sound?.Dispose();
-				}
-			}
-
 			Nat.Initialize();
 
 			var modSearchArg = args.GetValue("Engine.ModSearchPaths", null);
 			var modSearchPaths = modSearchArg != null ?
-				FieldLoader.GetValue<string[]>("Engine.ModsPath", modSearchArg) :
+				FieldLoader.GetValue<ImmutableArray<string>>("Engine.ModsPath", modSearchArg) :
 				[Path.Combine(Platform.EngineDir, "mods")];
 
 			Mods = new InstalledMods(modSearchPaths, explicitModPaths);
@@ -427,7 +403,10 @@ namespace OpenRA
 
 			ExternalMods = new ExternalMods();
 
-			if (modID != null && Mods.TryGetValue(modID, out _))
+			if (modID == null)
+				throw new InvalidOperationException("Game.Mod argument missing.");
+
+			if (Mods.TryGetValue(modID, out var manifest))
 			{
 				var launchPath = args.GetValue("Engine.LaunchPath", null);
 				var launchArgs = new List<string>();
@@ -443,12 +422,40 @@ namespace OpenRA
 
 				ExternalMods.ClearInvalidRegistrations(ModRegistration.User);
 			}
+			else
+				throw new InvalidOperationException($"Unknown or invalid mod '{modID}'.");
 
 			Console.WriteLine("External mods:");
 			foreach (var mod in ExternalMods)
 				Console.WriteLine($"\t{mod.Key} ({mod.Value.Version})");
 
-			InitializeMod(modID, args);
+			var platforms = new[] { Settings.Game.Platform, "Default", null };
+			foreach (var p in platforms)
+			{
+				if (p == null)
+					throw new InvalidOperationException("Failed to initialize platform-integration library. Check graphics.log for details.");
+
+				Settings.Game.Platform = p;
+				try
+				{
+					var platform = CreatePlatform(p);
+					Renderer = new Renderer(platform, Settings.Graphics, manifest.RendererConstants.VertexBatchSize);
+					Sound = new Sound(platform, Settings.Sound);
+
+					break;
+				}
+				catch (Exception e)
+				{
+					Log.Write("graphics", $"{e}");
+					Console.WriteLine("Renderer initialization failed. Check graphics.log for details.");
+
+					Renderer?.Dispose();
+
+					Sound?.Dispose();
+				}
+			}
+
+			InitializeMod(manifest, args);
 		}
 
 		public static IPlatform CreatePlatform(string platformName)
@@ -464,7 +471,7 @@ namespace OpenRA
 			return (IPlatform)platformType.GetConstructor(Type.EmptyTypes).Invoke(null);
 		}
 
-		public static void InitializeMod(string mod, Arguments args)
+		public static void InitializeMod(Manifest manifest, Arguments args)
 		{
 			// Clear static state if we have switched mods
 			LobbyInfoChanged = () => { };
@@ -488,31 +495,25 @@ namespace OpenRA
 
 			ModData = null;
 
-			if (mod == null)
-				throw new InvalidOperationException("Game.Mod argument missing.");
-
-			if (!Mods.ContainsKey(mod))
-				throw new InvalidOperationException($"Unknown or invalid mod '{mod}'.");
-
-			Console.WriteLine($"Loading mod: {mod}");
+			Console.WriteLine($"Loading mod: {manifest.Id}");
 
 			Sound.StopVideo();
 
-			ModData = new ModData(Mods[mod], Mods, true);
+			ModData = new ModData(manifest, Mods, true);
 
-			LocalPlayerProfile = new LocalPlayerProfile(Path.Combine(Platform.SupportDir, Settings.Game.AuthProfile), ModData.Manifest.Get<PlayerDatabase>());
+			LocalPlayerProfile = new LocalPlayerProfile(Path.Combine(Platform.SupportDir, Settings.Game.AuthProfile), ModData.GetOrCreate<PlayerDatabase>());
 
-			if (!ModData.LoadScreen.BeforeLoad())
+			if (!ModData.LoadScreen.BeforeLoad(ModData))
 				return;
 
 			ModData.InitializeLoaders(ModData.DefaultFileSystem);
 			Renderer.InitializeFonts(ModData);
 
 			using (new PerfTimer("LoadMaps"))
-				ModData.MapCache.LoadMaps();
+				ModData.MapCache.LoadMaps(ModData);
 
 			Cursor?.Dispose();
-			Cursor = new CursorManager(ModData.CursorProvider, ModData.Manifest.CursorSheetSize);
+			Cursor = new CursorManager(ModData);
 
 			var metadata = ModData.Manifest.Metadata;
 			if (!string.IsNullOrEmpty(metadata.WindowTitleTranslated))
@@ -660,7 +661,7 @@ namespace OpenRA
 
 						world.Tick();
 
-						PerfHistory.Tick();
+						PerfHistory.Tick(!world.Paused);
 					}
 
 					// Wait until we have done our first world Tick before TickRendering
@@ -724,7 +725,7 @@ namespace OpenRA
 				// Use worldRenderer.World instead of OrderManager.World to avoid a rendering mismatch while processing orders
 				if (worldRenderer != null && !worldRenderer.World.IsLoadingGameSave)
 				{
-					Renderer.BeginWorld(worldRenderer.Viewport.Rectangle);
+					Renderer.BeginWorld(worldRenderer.Viewport.CenterLocation, worldRenderer.Viewport.ViewportSize);
 					Sound.SetListenerPosition(worldRenderer.Viewport.CenterPosition);
 					using (new PerfSample("render_world"))
 						worldRenderer.Draw();
@@ -739,15 +740,12 @@ namespace OpenRA
 
 					Ui.Draw();
 
-					if (ModData != null && ModData.CursorProvider != null)
+					if (HideCursor)
+						Cursor?.SetCursor(null);
+					else
 					{
-						if (HideCursor)
-							Cursor.SetCursor(null);
-						else
-						{
-							Cursor.SetCursor(Ui.Root.GetCursorOuter(Viewport.LastMousePos) ?? "default");
-							Cursor.Render(Renderer);
-						}
+						Cursor?.SetCursor(Ui.Root.GetCursorOuter(Viewport.LastMousePos) ?? "default");
+						Cursor?.Render(Renderer);
 					}
 				}
 
@@ -761,12 +759,13 @@ namespace OpenRA
 				}
 			}
 
-			PerfHistory.Items["render"].Tick();
-			PerfHistory.Items["batches"].Tick();
-			PerfHistory.Items["render_world"].Tick();
-			PerfHistory.Items["render_widgets"].Tick();
-			PerfHistory.Items["render_flip"].Tick();
-			PerfHistory.Items["terrain_lighting"].Tick();
+			var isActive = !(worldRenderer?.World.Paused ?? true);
+			PerfHistory.Items["render"].Tick(isActive);
+			PerfHistory.Items["batches"].Tick(isActive);
+			PerfHistory.Items["render_world"].Tick(isActive);
+			PerfHistory.Items["render_widgets"].Tick(isActive);
+			PerfHistory.Items["render_flip"].Tick(isActive);
+			PerfHistory.Items["terrain_lighting"].Tick(isActive);
 		}
 
 		static void Loop()
@@ -863,33 +862,45 @@ namespace OpenRA
 
 					var haveSomeTimeUntilNextLogic = now < nextLogic;
 					var isTimeToRender = now >= nextRender;
-					if (!Renderer.WindowIsSuspended && ((isTimeToRender && haveSomeTimeUntilNextLogic) || forceRender))
+					if (!Renderer.WindowIsSuspended)
 					{
-						nextRender = now + renderInterval;
+						if (isTimeToRender || forceRender)
+						{
+							if (haveSomeTimeUntilNextLogic || forceRender)
+								RenderTick();
 
-						// Pick the minimum allowed FPS (the lower between 'minReplayFPS'
-						// and the user's max frame rate) and convert it to maximum time
-						// allowed between screen updates.
-						// We do this before rendering to include the time rendering takes
-						// in this interval.
-						var maxRenderInterval = Math.Max(1000 / MinReplayFps, renderInterval);
-						forcedNextRender = now + maxRenderInterval;
+							nextRender = now + renderInterval;
 
-						RenderTick();
-						renderBeforeNextTick = false;
+							// Pick the minimum allowed FPS (the lower between 'minReplayFPS'
+							// and the user's max frame rate) and convert it to maximum time
+							// allowed between screen updates.
+							// We do this before rendering to include the time rendering takes
+							// in this interval.
+							var maxRenderInterval = Math.Max(1000 / MinReplayFps, renderInterval);
+							forcedNextRender = now + maxRenderInterval;
+
+							renderBeforeNextTick = false;
+						}
 					}
-
-					// Simulate a render tick if it was time to render but we skip actually rendering
-					if (Renderer.WindowIsSuspended && isTimeToRender)
+					else
 					{
-						// Make sure that nextUpdate is set to a proper minimum interval
-						nextRender = now + renderInterval;
+						// Simulate a render tick if it was time to render but we skip actually rendering
+						if (isTimeToRender || forceRender)
+						{
+							// Make sure that nextUpdate is set to a proper minimum interval
+							nextRender = now + renderInterval;
 
-						// Still process SDL events to allow a restore to come through
-						Renderer.Window.PumpInput(new NullInputHandler());
+							// Still process SDL events to allow a restore to come through
+							Renderer.Window.PumpInput(new NullInputHandler());
 
-						// Ensure that we still logic tick despite not rendering
-						renderBeforeNextTick = false;
+							// Ensure that we still logic tick despite not rendering
+							renderBeforeNextTick = false;
+						}
+						else
+						{
+							// Avoid busy wait.
+							Thread.Sleep((int)(nextRender - now));
+						}
 					}
 				}
 				else

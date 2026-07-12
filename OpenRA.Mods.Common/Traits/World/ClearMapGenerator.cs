@@ -10,6 +10,7 @@
 #endregion
 
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using OpenRA.Mods.Common.MapGenerator;
 using OpenRA.Support;
@@ -32,7 +33,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		[FieldLoader.Require]
 		[Desc("Tilesets that are compatible with this map generator.")]
-		public readonly string[] Tilesets = null;
+		public readonly ImmutableArray<string> Tilesets = default;
 
 		[FluentReference]
 		[Desc("The title to use for generated maps.")]
@@ -44,7 +45,7 @@ namespace OpenRA.Mods.Common.Traits
 		// This is purely of interest to the linter.
 		[FieldLoader.LoadUsing(nameof(FluentReferencesLoader))]
 		[FluentReference]
-		public readonly List<string> FluentReferences = null;
+		public readonly ImmutableArray<string> FluentReferences = default;
 
 		[FieldLoader.LoadUsing(nameof(SettingsLoader))]
 		public readonly MiniYaml Settings;
@@ -58,10 +59,10 @@ namespace OpenRA.Mods.Common.Traits
 			return my.NodeWithKey("Settings").Value;
 		}
 
-		static List<string> FluentReferencesLoader(MiniYaml my)
+		static object FluentReferencesLoader(MiniYaml my)
 		{
 			return new MapGeneratorSettings(null, my.NodeWithKey("Settings").Value)
-				.Options.SelectMany(o => o.GetFluentReferences()).ToList();
+				.Options.SelectMany(o => o.GetFluentReferences()).ToImmutableArray();
 		}
 
 		public IMapGeneratorSettings GetSettings()
@@ -93,12 +94,20 @@ namespace OpenRA.Mods.Common.Traits
 			return map;
 		}
 
+		public bool TryGenerateMetadata(ModData modData, MapGenerationArgs args, out MapPlayers players, out Dictionary<string, MiniYaml> ruleDefinitions)
+		{
+			ruleDefinitions = [];
+			players = new MapPlayers(modData.DefaultRules, 0);
+
+			return true;
+		}
+
 		public override object Create(ActorInitializer init)
 		{
 			return new ClearMapGenerator(this);
 		}
 
-		string[] IEditorMapGeneratorInfo.Tilesets => Tilesets;
+		ImmutableArray<string> IEditorMapGeneratorInfo.Tilesets => Tilesets;
 	}
 
 	public class ClearMapGenerator : IEditorTool

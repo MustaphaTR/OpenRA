@@ -25,6 +25,15 @@ namespace OpenRA.Mods.Common.Commands
 	public class DebugVisualizationCommands : IChatCommand, IWorldLoaded
 	{
 		[FluentReference]
+		const string CheatsDisabled = "notification-cheats-disabled";
+
+		[FluentReference("cheat", "player")]
+		const string CheatEnabled = "notification-cheat-enabled";
+
+		[FluentReference("cheat", "player")]
+		const string CheatDisabled = "notification-cheat-disabled";
+
+		[FluentReference]
 		const string CombatGeometryDescription = "description-combat-geometry";
 
 		[FluentReference]
@@ -39,28 +48,46 @@ namespace OpenRA.Mods.Common.Commands
 		[FluentReference]
 		const string ActorTagsOverlayDescripition = "description-actor-tags-overlay";
 
-		readonly IDictionary<string, (string Description, Action<DebugVisualizations, DeveloperMode> Handler)> commandHandlers =
-			new Dictionary<string, (string Description, Action<DebugVisualizations, DeveloperMode> Handler)>
+		public static class Commands
+		{
+			public const string CombatGeometry = "combat-geometry";
+			public const string RenderGeometry = "render-geometry";
+			public const string ScreenMap = "screen-map";
+			public const string DepthBuffer = "depth-buffer";
+			public const string ActorTags = "actor-tags";
+		}
+
+		public static class Orders
+		{
+			public const string CombatGeometry = "DevCombatGeometry";
+			public const string RenderGeometry = "DevRenderGeometry";
+			public const string ScreenMap = "DevScreenMap";
+			public const string DepthBuffer = "DevDepthBuffer";
+			public const string ActorTags = "DevActorTags";
+		}
+
+		readonly Dictionary<string,
+			(string Description, Action<DebugVisualizations> Handler, string CheatName, Func<DebugVisualizations, bool> GetState)>
+			commandHandlers = new()
 			{
-				{ "combat-geometry", (CombatGeometryDescription, CombatGeometry) },
-				{ "render-geometry", (RenderGeometryDescription, RenderGeometry) },
-				{ "screen-map", (ScreenMapOverlayDescription, ScreenMap) },
-				{ "depth-buffer", (DepthBufferDescription, DepthBuffer) },
-				{ "actor-tags", (ActorTagsOverlayDescripition, ActorTags) },
+				{ Commands.CombatGeometry, (CombatGeometryDescription, CombatGeometry, Orders.CombatGeometry, d => d.CombatGeometry) },
+				{ Commands.RenderGeometry, (RenderGeometryDescription, RenderGeometry, Orders.RenderGeometry, d => d.RenderGeometry) },
+				{ Commands.ScreenMap, (ScreenMapOverlayDescription, ScreenMap, Orders.ScreenMap, d => d.ScreenMap) },
+				{ Commands.DepthBuffer, (DepthBufferDescription, DepthBuffer, Orders.DepthBuffer, d => d.DepthBuffer) },
+				{ Commands.ActorTags, (ActorTagsOverlayDescripition, ActorTags, Orders.ActorTags, d => d.ActorTags) },
 			};
 
 		DebugVisualizations debugVis;
 		DeveloperMode devMode;
+		World world;
 
 		public void WorldLoaded(World w, WorldRenderer wr)
 		{
-			var world = w;
+			world = w;
 			debugVis = world.WorldActor.TraitOrDefault<DebugVisualizations>();
+			devMode = world.LocalPlayer?.PlayerActor.Trait<DeveloperMode>();
 
-			if (world.LocalPlayer != null)
-				devMode = world.LocalPlayer.PlayerActor.Trait<DeveloperMode>();
-
-			if (debugVis == null)
+			if (debugVis == null || devMode == null)
 				return;
 
 			var console = world.WorldActor.Trait<ChatCommands>();
@@ -68,7 +95,7 @@ namespace OpenRA.Mods.Common.Commands
 
 			foreach (var command in commandHandlers)
 			{
-				if (command.Key == "depth-buffer" && !w.Map.Grid.EnableDepthBuffer)
+				if (command.Key == Commands.DepthBuffer && !w.Map.Grid.EnableDepthBuffer)
 					continue;
 
 				console.RegisterCommand(command.Key, this);
@@ -76,36 +103,53 @@ namespace OpenRA.Mods.Common.Commands
 			}
 		}
 
-		static void CombatGeometry(DebugVisualizations debugVis, DeveloperMode devMode)
+		static void CombatGeometry(DebugVisualizations debugVis)
 		{
 			debugVis.CombatGeometry ^= true;
 		}
 
-		static void RenderGeometry(DebugVisualizations debugVis, DeveloperMode devMode)
+		static void RenderGeometry(DebugVisualizations debugVis)
 		{
 			debugVis.RenderGeometry ^= true;
 		}
 
-		static void ScreenMap(DebugVisualizations debugVis, DeveloperMode devMode)
+		static void ScreenMap(DebugVisualizations debugVis)
 		{
-			if (devMode == null || devMode.Enabled)
-				debugVis.ScreenMap ^= true;
+			debugVis.ScreenMap ^= true;
 		}
 
-		static void DepthBuffer(DebugVisualizations debugVis, DeveloperMode devMode)
+		static void DepthBuffer(DebugVisualizations debugVis)
 		{
 			debugVis.DepthBuffer ^= true;
 		}
 
-		static void ActorTags(DebugVisualizations debugVis, DeveloperMode devMode)
+		static void ActorTags(DebugVisualizations debugVis)
 		{
 			debugVis.ActorTags ^= true;
 		}
 
-		public void InvokeCommand(string name, string arg)
+		public void InvokeCommand(string name, string _)
 		{
-			if (commandHandlers.TryGetValue(name, out var command))
-				command.Handler(debugVis, devMode);
+			if (!commandHandlers.TryGetValue(name, out var command))
+				return;
+
+			if (devMode == null || !devMode.Enabled)
+			{
+				TextNotificationsManager.Debug(FluentProvider.GetMessage(CheatsDisabled));
+				return;
+			}
+
+			command.Handler(debugVis);
+			SendNotification(command.GetState(debugVis), command.CheatName);
+		}
+
+		void SendNotification(bool enabled, string cheatName)
+		{
+			var notification = enabled ? CheatEnabled : CheatDisabled;
+			var playerName = world.LocalPlayer != null ? world.LocalPlayer.ResolvedPlayerName : "";
+			TextNotificationsManager.Debug(FluentProvider.GetMessage(notification,
+				"cheat", cheatName,
+				"player", playerName));
 		}
 	}
 }

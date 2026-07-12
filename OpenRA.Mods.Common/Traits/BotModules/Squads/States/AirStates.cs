@@ -95,15 +95,22 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 
 		public void Activate(Squad owner)
 		{
-			dangerRadius = owner.SquadManager.Info.DangerScanRadius;
 			map = owner.World.Map;
-			columnCount = (map.MapSize.Width + dangerRadius - 1) / dangerRadius;
-			rowCount = (map.MapSize.Height + dangerRadius - 1) / dangerRadius;
+			dangerRadius = owner.SquadManager.Info.DangerScanRadius;
+			var dangerIndiceSideLength = dangerRadius * 141 / 100; // ¡Ö DangerScanRadius * sqrt(2)
+
+			columnCount = (map.Bounds.Width + dangerIndiceSideLength - 1) / dangerIndiceSideLength;
+			rowCount = (map.Bounds.Height + dangerIndiceSideLength - 1) / dangerIndiceSideLength;
+			var xoffset = map.Bounds.X;
+			var yoffset = map.Bounds.Y;
+
 			airStrikeCheckIndices ??= Exts.MakeArray(columnCount * rowCount, i => i).Shuffle(owner.World.LocalRandom).ToArray();
 		}
 
 		Actor FindDefenselessTarget(Squad owner)
 		{
+			var position = owner.CenterPosition();
+
 			for (var checktime = 0; checktime <= MaxCheckTimesPerTick; checkedIndex++, checktime++)
 			{
 				if (checkedIndex >= airStrikeCheckIndices.Length)
@@ -112,7 +119,13 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 				var pos = new MPos(airStrikeCheckIndices[checkedIndex] % columnCount * dangerRadius + dangerRadius / 2,
 					airStrikeCheckIndices[checkedIndex] / columnCount * dangerRadius + dangerRadius / 2).ToCPos(map);
 
-				if (NearToPosSafely(owner, map.CenterOfCell(pos), out var detectedEnemyTarget))
+				var wpos = map.CenterOfCell(pos);
+
+				if (CountAntiAirUnits(owner, owner.World.FindActorsOnLine(position, wpos, WDist.FromCells(dangerRadius)).ToList()) * MissileUnitMultiplier
+					< owner.Units.Count)
+					continue;
+
+				if (NearToPosSafely(owner, wpos, out var detectedEnemyTarget))
 				{
 					if (detectedEnemyTarget == null)
 						continue;
@@ -260,7 +273,6 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 				return;
 
 			Retreat(owner, flee: true, rearm: true, repair: true);
-
 			owner.FuzzyStateMachine.ChangeState(owner, new AirIdleState());
 		}
 

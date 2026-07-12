@@ -6,7 +6,7 @@ World:
 	LuaScript:
 		Scripts: campaign.lua, utils.lua, allies07.lua, allies07-AI.lua
 	MissionData:
-		Briefing: LANDCOM 16 HQS.\nTOP SECRET.\nTO: FIELD COMMANDER A9\n\nINTERCEPTION OF SOVIET COMMUNIQUE INDICATES THAT THEIR IRON CURTAIN RESEARCH WAS SET BACK BY ESPIONAGE. EXCELLENT WORK, COMMANDER!\n\nCOMMUNIQUE WAS TRACED BACK TO A SECRET SOVIET BASE IN BORNHOLM. INVESTIGATE POSSIBLE CONNECTION WITH IRON CURTAIN RESEARCH. CAPTURE RADAR CENTER AND DESTROY SUB PRODUCTION CAPABILITY.\n\nCONFIRMATION CODE 1138.\n\nTRANSMISSION ENDS.\n
+		Briefing: briefing
 		StartVideo: shorbom1.vqa
 		WinVideo: shorbom2.vqa
 		LossVideo: shipsink.vqa
@@ -32,6 +32,16 @@ LST.Reinforcement:
 powerproxy.paratroopers:
 	ParatroopersPower:
 		DropItems: E1,E1,E1,E2,E2
+
+powerproxy.badguydrop:
+	ParatroopersPower:
+		DropItems: E1,E1,E2,E4,E4
+
+BARR:
+	ProvidesPrerequisite@FTUR:
+		Prerequisite: ftur
+		Factions: soviet
+		ResetOnOwnerChange: true
 
 FTRK:
 	Buildable:

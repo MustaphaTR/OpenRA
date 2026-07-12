@@ -10,6 +10,7 @@
 #endregion
 
 using System;
+using System.Collections.Frozen;
 using System.Collections.Generic;
 using System.Linq;
 using OpenRA.Primitives;
@@ -33,7 +34,7 @@ namespace OpenRA.Mods.Common.Traits
 		public readonly string Group = null;
 
 		[Desc("Only enable this queue for certain factions.")]
-		public readonly HashSet<string> Factions = [];
+		public readonly FrozenSet<string> Factions = FrozenSet<string>.Empty;
 
 		[Desc("Show the queue for these factions, even if it doesn't have any buildable unit in it.")]
 		public readonly HashSet<string> AlwaysShowForFactions = [];
@@ -159,7 +160,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		public Actor Actor { get; }
 
-		[Sync]
+		[VerifySync]
 		public bool Enabled { get; protected set; }
 
 		public string Faction { get; private set; }
@@ -168,7 +169,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		public bool AlwaysVisible { get; private set; }
 
-		[Sync]
+		[VerifySync]
 		public bool IsValidFaction { get; private set; }
 
 		public ProductionQueue(ActorInitializer init, ProductionQueueInfo info)
@@ -204,11 +205,11 @@ namespace OpenRA.Mods.Common.Traits
 			{
 				if (item.ResourcesPaid > 0)
 				{
-					playerResources.GiveResources(item.ResourcesPaid);
+					playerResources.RefundResources(item.ResourcesPaid);
 					item.RemainingCost += item.ResourcesPaid;
 				}
 
-				playerResources.GiveCash(item.TotalCost - item.RemainingCost);
+				playerResources.RefundCash(item.TotalCost - item.RemainingCost);
 			}
 
 			Queue.Clear();
@@ -415,12 +416,12 @@ namespace OpenRA.Mods.Common.Traits
 				// Refund spent resources
 				if (Queue[i].ResourcesPaid > 0)
 				{
-					playerResources.GiveResources(Queue[i].ResourcesPaid);
+					playerResources.RefundResources(Queue[i].ResourcesPaid);
 					Queue[i].RemainingCost += Queue[i].ResourcesPaid;
 				}
 
 				// Refund what's been paid so far
-				playerResources.GiveCash(Queue[i].TotalCost - Queue[i].RemainingCost);
+				playerResources.RefundCash(Queue[i].TotalCost - Queue[i].RemainingCost);
 				EndProduction(Queue[i]);
 				cancelledAnItem = true;
 			}
@@ -525,23 +526,24 @@ namespace OpenRA.Mods.Common.Traits
 						if (Info.PayUpFront && cost > playerResources.GetCashAndResources())
 							return;
 
-						var hasPlayedSound = false;
+						var notified = false;
 						BeginProduction(new ProductionItem(this, order.TargetString, cost, playerPower, () => self.World.AddFrameEndTask(_ =>
 						{
 							// Make sure the item hasn't been invalidated between the ProductionItem ticking and this FrameEndTask running
 							if (!Queue.Any(i => i.Done && i.Item == unit.Name))
 							{
-								hasPlayedSound = false;
+								notified = false;
 								return;
 							}
 
 							var isBuilding = unit.HasTraitInfo<BuildingInfo>();
 							var readyAudio = bi.ReadyAudio ?? Info.ReadyAudio;
 							var readyTextNotification = bi.ReadyTextNotification ?? Info.ReadyTextNotification;
-							if (isBuilding && !hasPlayedSound)
+							if (isBuilding && !notified)
 							{
-								hasPlayedSound = Game.Sound.PlayNotification(rules, self.Owner, "Speech", readyAudio, self.Owner.Faction.InternalName);
+								Game.Sound.PlayNotification(rules, self.Owner, "Speech", readyAudio, self.Owner.Faction.InternalName);
 								TextNotificationsManager.AddTransientLine(self.Owner, readyTextNotification);
+								notified = true;
 							}
 							else if (!isBuilding)
 							{
@@ -550,10 +552,11 @@ namespace OpenRA.Mods.Common.Traits
 									Game.Sound.PlayNotification(rules, self.Owner, "Speech", readyAudio, self.Owner.Faction.InternalName);
 									TextNotificationsManager.AddTransientLine(self.Owner, readyTextNotification);
 								}
-								else if (!hasPlayedSound && time > 0)
+								else if (!notified && time > 0)
 								{
-									hasPlayedSound = Game.Sound.PlayNotification(rules, self.Owner, "Speech", Info.BlockedAudio, self.Owner.Faction.InternalName);
+									Game.Sound.PlayNotification(rules, self.Owner, "Speech", Info.BlockedAudio, self.Owner.Faction.InternalName);
 									TextNotificationsManager.AddTransientLine(self.Owner, Info.BlockedTextNotification);
+									notified = true;
 								}
 							}
 						})), !order.Queued);
@@ -628,11 +631,11 @@ namespace OpenRA.Mods.Common.Traits
 					// Refund what has been paid
 					if (item.ResourcesPaid > 0)
 					{
-						playerResources.GiveResources(item.ResourcesPaid);
+						playerResources.RefundResources(item.ResourcesPaid);
 						item.RemainingCost += item.ResourcesPaid;
 					}
 
-					playerResources.GiveCash(item.TotalCost - item.RemainingCost);
+					playerResources.RefundCash(item.TotalCost - item.RemainingCost);
 					EndProduction(item);
 				}
 
@@ -685,11 +688,11 @@ namespace OpenRA.Mods.Common.Traits
 				// Refund what has been paid
 				if (queued[i].ResourcesPaid > 0)
 				{
-					playerResources.GiveResources(queued[i].ResourcesPaid);
+					playerResources.RefundResources(queued[i].ResourcesPaid);
 					queued[i].RemainingCost += queued[i].ResourcesPaid;
 				}
 
-				playerResources.GiveCash(queued[i].TotalCost - queued[i].RemainingCost);
+				playerResources.RefundCash(queued[i].TotalCost - queued[i].RemainingCost);
 				EndProduction(queued[i]);
 			}
 		}

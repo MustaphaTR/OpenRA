@@ -10,9 +10,9 @@
 #endregion
 
 using System;
+using System.Collections.Frozen;
 using System.Collections.Generic;
 using System.Linq;
-using OpenRA.FileSystem;
 using OpenRA.Network;
 using OpenRA.Primitives;
 
@@ -28,7 +28,6 @@ namespace OpenRA
 
 		public string MapUid;
 		public string MapTitle;
-		public string MapData;
 		public int FinalGameTick;
 
 		/// <summary>Game start timestamp (when the recoding started).</summary>
@@ -41,25 +40,13 @@ namespace OpenRA
 		public TimeSpan Duration => EndTimeUtc > StartTimeUtc ? EndTimeUtc - StartTimeUtc : TimeSpan.Zero;
 
 		public IList<Player> Players { get; }
-		public HashSet<int> DisabledSpawnPoints = [];
-
-		public MapPreview MapPreview
-		{
-			get
-			{
-				var preview = Game.ModData.MapCache[MapUid];
-				if (preview.Status != MapStatus.Available && MapData != null)
-				{
-					var package = ZipFileLoader.ReadWriteZipFile.FromBase64String(MapData);
-					preview.UpdateFromMap(package, MapClassification.Generated);
-				}
-
-				return preview;
-			}
-		}
+		public FrozenSet<int> DisabledSpawnPoints = FrozenSet<int>.Empty;
 
 		public IEnumerable<Player> HumanPlayers { get { return Players.Where(p => p.IsHuman); } }
 		public bool IsSinglePlayer => HumanPlayers.Count() == 1;
+
+		[FieldLoader.Ignore]
+		public MapGenerationArgs MapGenerationArgs;
 
 		readonly Dictionary<OpenRA.Player, Player> playersByRuntime;
 
@@ -67,6 +54,18 @@ namespace OpenRA
 		{
 			Players = [];
 			playersByRuntime = [];
+		}
+
+		public MapPreview GetMapPreview(ModData modData)
+		{
+			var preview = modData.MapCache[MapUid];
+			if (preview.Status != MapStatus.Available && MapGenerationArgs != null)
+			{
+				preview.UpdateFromGenerationArgs(MapGenerationArgs);
+				preview.Generate();
+			}
+
+			return preview;
 		}
 
 		public static GameInformation Deserialize(string data, string path)
@@ -89,6 +88,10 @@ namespace OpenRA
 						case "Player":
 							info.Players.Add(FieldLoader.Load<Player>(node.Value));
 							break;
+
+						case "MapGenerationArgs":
+							info.MapGenerationArgs = FieldLoader.Load<MapGenerationArgs>(node.Value);
+							break;
 					}
 				}
 
@@ -110,6 +113,9 @@ namespace OpenRA
 
 			for (var i = 0; i < Players.Count; i++)
 				nodes.Add(new MiniYamlNode($"Player@{i}", FieldSaver.Save(Players[i])));
+
+			if (MapGenerationArgs != null)
+				nodes.Add(new MiniYamlNode("MapGenerationArgs", new MiniYaml("", MapGenerationArgs.Serialize())));
 
 			return nodes.WriteToString();
 		}

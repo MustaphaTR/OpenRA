@@ -514,7 +514,19 @@ Actors:
 	HarkonnenEntry2: waypoint
 		Owner: Neutral
 		Location: 2,29
+	OrdosPatrol1: waypoint
+		Owner: Neutral
+		Location: 33,19
+	OrdosPatrol2: waypoint
+		Owner: Neutral
+		Location: 37,41
+	Actor9: crate
+		Owner: Neutral
+		Location: 48,54
+	Actor10: crate
+		Owner: Neutral
+		Location: 49,53
 
 Rules: d2k|rules/campaign-rules.yaml, d2k|rules/campaign-tooltips.yaml, d2k|rules/campaign-palettes.yaml, rules.yaml
 
-FluentMessages: d2k|fluent/lua.ftl, d2k|fluent/campaign.ftl
+FluentMessages: d2k|fluent/lua.ftl, d2k|fluent/campaign.ftl, map.ftl

@@ -100,7 +100,8 @@ namespace OpenRA.Traits
 		readonly ProjectedCellLayer<ShroudCellType> resolvedType;
 
 		bool disabledChanged;
-		[Sync]
+
+		[VerifySync]
 		bool disabled;
 		public bool Disabled
 		{
@@ -182,12 +183,20 @@ namespace OpenRA.Traits
 			else
 			{
 				// PERF: Most cells are unchanged, use IndexOf for fast vectorized search.
-				var index = touched.IndexOf(true, 0);
+				var span = touched.AsMemory().Span;
+				var index = span.IndexOf(true);
 				while (index != -1)
 				{
-					touched[index] = false;
+					span[index] = false;
 					UpdateCell(index, self);
-					index = touched.IndexOf(true, index + 1);
+
+					if (index < span.Length - 1)
+					{
+						var sliceIndex = span[++index..].IndexOf(true);
+						index = sliceIndex == -1 ? -1 : index + sliceIndex;
+					}
+					else
+						index = -1;
 				}
 			}
 

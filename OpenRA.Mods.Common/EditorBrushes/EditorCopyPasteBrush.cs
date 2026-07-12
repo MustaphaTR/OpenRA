@@ -28,9 +28,9 @@ namespace OpenRA.Mods.Common.Widgets
 		readonly IResourceLayer resourceLayer;
 		readonly Func<MapBlitFilters> getCopyFilters;
 
-		public CPos? PastePreviewPosition { get; private set; }
+		public CPos PastePreviewPosition { get; private set; }
 
-		public CellRegion Region => clipboard.CellRegion;
+		public CellCoordsRegion Region => clipboard.CellCoords;
 
 		public EditorCopyPasteBrush(
 			EditorViewportControllerWidget editorWidget,
@@ -47,6 +47,7 @@ namespace OpenRA.Mods.Common.Widgets
 
 			editorActionManager = wr.World.WorldActor.Trait<EditorActionManager>();
 			editorActorLayer = wr.World.WorldActor.Trait<EditorActorLayer>();
+			PastePreviewPosition = worldRenderer.Viewport.ViewToWorld(Viewport.LastMousePos);
 		}
 
 		public bool HandleMouseInput(MouseInput mi)
@@ -89,25 +90,32 @@ namespace OpenRA.Mods.Common.Widgets
 		void IEditorBrush.TickRender(WorldRenderer wr, Actor self) { }
 		IEnumerable<IRenderable> IEditorBrush.RenderAboveShroud(Actor self, WorldRenderer wr)
 		{
-			if (PastePreviewPosition != null)
-			{
-				var preview = EditorBlit.PreviewBlitSource(
-					clipboard,
-					getCopyFilters(),
-					PastePreviewPosition.Value - Region.TopLeft,
-					wr);
-				foreach (var renderable in preview)
-					yield return renderable;
-			}
+			var filters = getCopyFilters();
+			var stickToGround = !filters.HasFlag(MapBlitFilters.Terrain)
+;
+			var preview = EditorBlit.PreviewBlitSource(
+				clipboard,
+				filters,
+				PastePreviewPosition - Region.TopLeft,
+				wr,
+				stickToGround);
+			foreach (var renderable in preview)
+				yield return renderable;
 		}
 
 		IEnumerable<IRenderable> IEditorBrush.RenderAnnotations(Actor self, WorldRenderer wr)
 		{
-			if (PastePreviewPosition != null)
-			{
-				yield return new EditorSelectionAnnotationRenderable(Region, editorWidget.SelectionAltColor, editorWidget.SelectionAltOffset, PastePreviewPosition);
-				yield return new EditorSelectionAnnotationRenderable(Region, editorWidget.PasteColor, int2.Zero, PastePreviewPosition);
-			}
+			yield return new EditorSelectionAnnotationRenderable(
+				Region,
+				editorWidget.SelectionAltColor,
+				editorWidget.SelectionAltOffset,
+				PastePreviewPosition - Region.TopLeft);
+
+			yield return new EditorSelectionAnnotationRenderable(
+				Region,
+				editorWidget.PasteColor,
+				int2.Zero,
+				PastePreviewPosition - Region.TopLeft);
 		}
 
 		public void Tick()
@@ -120,8 +128,14 @@ namespace OpenRA.Mods.Common.Widgets
 
 	sealed class CopyPasteEditorAction : IEditorAction
 	{
-		[FluentReference("amount")]
+		[FluentReference("tiles")]
 		const string CopiedTiles = "notification-copied-tiles";
+
+		[FluentReference("actors")]
+		const string CopiedActors = "notification-copied-actors";
+
+		[FluentReference("tiles", "actors")]
+		const string CopiedTilesAndActors = "notification-copied-tiles-actors";
 
 		public string Text { get; }
 
@@ -131,7 +145,15 @@ namespace OpenRA.Mods.Common.Widgets
 		{
 			this.editorBlit = editorBlit;
 
-			Text = FluentProvider.GetMessage(CopiedTiles, "amount", editorBlit.TileCount());
+			var actors = editorBlit.ActorCount();
+			var tiles = editorBlit.TileCount();
+
+			if (tiles > 0 && actors == 0)
+				Text = FluentProvider.GetMessage(CopiedTiles, "tiles", tiles);
+			else if (tiles == 0 && actors > 0)
+				Text = FluentProvider.GetMessage(CopiedActors, "actors", actors);
+			else
+				Text = FluentProvider.GetMessage(CopiedTilesAndActors, "tiles", tiles, "actors", actors);
 		}
 
 		public void Execute()

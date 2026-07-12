@@ -10,7 +10,9 @@
 #endregion
 
 using System;
+using System.Collections.Frozen;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Globalization;
 using System.Linq;
 using OpenRA.Traits;
@@ -26,8 +28,8 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Tooltip description for the starting cash option in the lobby.")]
 		public readonly string DefaultCashDropdownDescription = "The amount of cash that players start with";
 
-		[Desc("Starting cash options that are available in the lobby options.")]
-		public readonly int[] SelectableCash = [2500, 5000, 10000, 20000];
+		[Desc("Starting cash options that are available in the lobby options. DefaultCash will be included if not specified.")]
+		public readonly ImmutableArray<int> SelectableCash = [2500, 5000, 10000, 20000];
 
 		[Desc("Default starting cash option: should be one of the SelectableCash options.")]
 		public readonly int DefaultCash = 5000;
@@ -59,11 +61,13 @@ namespace OpenRA.Mods.Common.Traits
 		public readonly string CashTickDownNotification = null;
 
 		[Desc("Monetary value of each resource type.", "Dictionary of [resource type]: [value per unit].")]
-		public readonly Dictionary<string, int> ResourceValues = [];
+		public readonly FrozenDictionary<string, int> ResourceValues = FrozenDictionary<string, int>.Empty;
 
 		IEnumerable<LobbyOption> ILobbyOptions.LobbyOptions(MapPreview map)
 		{
-			var startingCash = SelectableCash.ToDictionary(c => c.ToStringInvariant(), c => "$" + c.ToString(NumberFormatInfo.CurrentInfo));
+			// Make sure that DefaultCash is included in the available options
+			var startingCash = SelectableCash.Append(DefaultCash).ToHashSet()
+				.ToDictionary(c => c.ToStringInvariant(), c => "$" + c.ToString(NumberFormatInfo.CurrentInfo));
 
 			if (startingCash.Count > 0)
 				yield return new LobbyOption(map, "startingcash",
@@ -93,13 +97,13 @@ namespace OpenRA.Mods.Common.Traits
 			lastNotificationTime = -Info.InsufficientFundsNotificationInterval;
 		}
 
-		[Sync]
+		[VerifySync]
 		public int Cash;
 
-		[Sync]
+		[VerifySync]
 		public int Resources;
 
-		[Sync]
+		[VerifySync]
 		public int ResourceCapacity;
 
 		public int Earned;
@@ -127,16 +131,29 @@ namespace OpenRA.Mods.Common.Traits
 			return Resources + amount <= ResourceCapacity;
 		}
 
-		public void GiveResources(int num)
+		public void GiveResources(int num, bool isRefund = false)
 		{
 			Resources += num;
-			Earned += num;
+
+			if (!isRefund)
+				Earned += num;
+			else
+				Spent -= num;
 
 			if (Resources > ResourceCapacity)
 			{
-				Earned -= Resources - ResourceCapacity;
+				if (!isRefund)
+					Earned -= Resources - ResourceCapacity;
+				else
+					Spent += Resources - ResourceCapacity;
+
 				Resources = ResourceCapacity;
 			}
+		}
+
+		public void RefundResources(int num)
+		{
+			GiveResources(num, isRefund: true);
 		}
 
 		public bool TakeResources(int num)
@@ -148,7 +165,7 @@ namespace OpenRA.Mods.Common.Traits
 			return true;
 		}
 
-		public void GiveCash(int num)
+		public void GiveCash(int num, bool isRefund = false)
 		{
 			if (Cash < int.MaxValue)
 			{
@@ -165,7 +182,7 @@ namespace OpenRA.Mods.Common.Traits
 				}
 			}
 
-			if (Earned < int.MaxValue)
+			if (!isRefund && Earned < int.MaxValue)
 			{
 				try
 				{
@@ -179,6 +196,25 @@ namespace OpenRA.Mods.Common.Traits
 					Earned = int.MaxValue;
 				}
 			}
+			else if (isRefund && Spent > int.MinValue)
+			{
+				try
+				{
+					checked
+					{
+						Spent -= num;
+					}
+				}
+				catch (OverflowException)
+				{
+					Spent = int.MinValue;
+				}
+			}
+		}
+
+		public void RefundCash(int num)
+		{
+			GiveCash(num, isRefund: true);
 		}
 
 		public bool TakeCash(int num, bool notifyLowFunds = false)

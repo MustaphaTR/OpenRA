@@ -7,7 +7,6 @@ button-quit = Quit
 
 ## Server Orders
 notification-custom-rules = This map contains custom rules. Game experience may change.
-notification-map-bots-disabled = Bots have been disabled on this map.
 notification-two-humans-required = This server requires at least two human players to start a match.
 notification-unknown-server-command = Unknown server command: { $command }.
 notification-admin-start-game = Only the host can start the game.
@@ -29,7 +28,6 @@ notification-unknown-map = Map was not found on server.
 notification-searching-map = Searching for map on the Resource Center...
 notification-admin-change-configuration = Only the host can change the configuration.
 notification-changed-map = { $player } changed the map to { $map }.
-notification-option-changed = { $player } changed { $name } to { $value }.
 notification-you-were-kicked = You have been kicked from the server.
 notification-admin-kicked = { $admin } kicked { $player } from the server.
 notification-kicked = { $player } was kicked from the server.
@@ -57,7 +55,6 @@ notification-you-were-banned = You have been banned from the server.
 notification-you-were-temp-banned = You have been temporarily banned from the server.
 notification-game-full = The game is full.
 notification-new-admin = { $player } is now the admin.
-notification-option-locked = { $option } cannot be changed.
 notification-invalid-configuration-command = Invalid configuration command.
 notification-admin-option = Only the host can set that option.
 notification-error-number-teams = Could not parse the number of teams: { $raw }.
@@ -83,16 +80,12 @@ notification-requires-authentication = Server requires players to have an OpenRA
 notification-no-permission-to-join = You do not have permission to join this server.
 notification-slot-closed = Your slot was closed by the host.
 
-## LobbySettingsNotification
-notification-lobby-option = { $name }: { $value }.
-
 ## ServerOrders, UnitOrders
 notification-joined = { $player } has joined the game.
 notification-lobby-disconnected = { $player } has left.
 
 ## UnitOrders
 notification-game-has-started = The game has started.
-notification-game-saved = Game saved.
 notification-game-paused = The game has been paused by { $player }.
 notification-game-unpaused = The game has been un-paused by { $player }.
 
@@ -156,7 +149,7 @@ menu-game-info =
     .objectives = Objectives
     .briefing = Briefing
     .options = Options
-    .debug = Debug
+    .debug = Cheats
     .chat = Chat
 
 ## GameInfoObjectivesLogic, GameInfoStatsLogic
@@ -165,7 +158,6 @@ label-mission-accomplished = Accomplished
 label-mission-failed = Failed
 
 ## GameInfoStatsLogic
-label-client-state-disconnected = Gone
 label-mute-player = Mute this player
 label-unmute-player = Unmute this player
 button-kick-player = Kick this player
@@ -207,6 +199,11 @@ label-chat-availability =
 
 ## LobbyLogic, ServerListLogic
 label-bot-player = AI Player
+
+## LobbyLogic
+notification-lobby-option = { $name }: { $value }.
+notification-lobby-option-changed = { $name } changed to { $value }.
+notification-map-bots-disabled = Bots have been disabled on this map.
 
 ## IngameMenuLogic
 menu-ingame =
@@ -403,6 +400,7 @@ options-mouse-scroll-type =
 options-control-scheme =
     .classic = Classic
     .modern = Modern
+    .otherrts = Other RTS
 
 ## SettingsLogic
 dialog-settings-save =
@@ -519,8 +517,9 @@ button-mapchooser-generated-maps-tab = Generate Map
 ## MissionBrowserLogic
 dialog-no-video =
     .title = Video not installed
-    .prompt = The game videos can be installed from the
-    "Manage Content" menu in the mod chooser.
+    .prompt =
+        The game videos can be installed from the
+        "Manage Content" menu.
     .cancel = Back
 
 dialog-cant-play-video =
@@ -553,6 +552,10 @@ options-replay-type =
 options-winstate =
     .victory = Victory
     .defeat = Defeat
+
+options-save-type =
+    .autosave = Autosave
+    .manual = Manual save
 
 options-replay-date =
     .today = Today
@@ -705,6 +708,9 @@ notification-saved-screenshot = Saved screenshot { $filename }
 ## ChatCommands
 notification-invalid-command = { $name } is not a valid command.
 
+## DebugMenuLogic
+tooltip-debug-command = Cheat command: { $command }
+
 ## DebugVisualizationCommands
 description-combat-geometry = toggles combat geometry overlay.
 description-render-geometry = toggles render geometry overlay.
@@ -713,7 +719,6 @@ description-depth-buffer = toggles depth buffer overlay.
 description-actor-tags-overlay = toggles actor tags overlay.
 
 ## DevCommands
-notification-cheats-disabled = Cheats are disabled.
 notification-invalid-cash-amount = Invalid cash amount.
 notification-invalid-actor-name = { $actor } is not a valid actor.
 notification-unbuildable-actor-name = { $actor } is not a producable actor.
@@ -735,12 +740,19 @@ description-dev-cheat-all = toggles all cheats and gives you some cash for your 
 description-dev-cheat-all-for-all = toggles all cheats for all players and gives everyone some cash for their troubles.
 description-dev-crash = crashes the game.
 description-levelup-actor = adds a specified number of levels to the selected actors.
-description-player-experience = adds a specified amount of player experience to the owner(s) of selected actors.
-description-power-outage = causes a 5-second power outage for the owner(s) of selected actors.
+description-player-experience = adds a specified amount of player experience to the local player.
+description-power-outage = causes a 5-second power outage for the local player.
+description-grow-resources = grows resources on the map.
+description-clear-shroud = reveals the entire map.
+description-reset-shroud = hides the entire map.
+description-heal-selected-actors = heals selected actors.
 description-kill-selected-actors = kills selected actors.
 description-dispose-selected-actors = disposes selected actors.
 description-produce-from-selected-actors = makes the selected actors produce given actor.
 description-clear-resources = removes all resources from the map.
+
+## DevCommands, DebugVisualizationCommands, CustomTerrainDebugOverlay, ActorMapOverlay, CellTriggerOverlay, ExitsDebugOverlayManager, HierarchicalPathFinderOverlay, PathFinderOverlay, TerrainGeometryOverlay
+notification-cheats-disabled = Cheats are disabled.
 
 ## HelpCommands
 notification-available-commands = Here are the available commands:
@@ -751,8 +763,12 @@ description-help-description = provides useful info about various commands.
 description-pause-description = pause or unpause the game.
 description-surrender-description = self-destruct everything and lose the game.
 
-## DeveloperMode
+## DeveloperMode, GainsExperience, PowerManager
 notification-cheat-used = Cheat used: { $cheat } by { $player }{ $suffix }.
+
+## DeveloperMode, DebugVisualizationCommands, CustomTerrainDebugOverlay, ActorMapOverlay, CellTriggerOverlay, ExitsDebugOverlayManager, HierarchicalPathFinderOverlay, PathFinderOverlay, TerrainGeometryOverlay
+notification-cheat-enabled = Cheat enabled: { $cheat } by { $player }.
+notification-cheat-disabled = Cheat disabled: { $cheat } by { $player }.
 
 ## CustomTerrainDebugOverlay
 description-custom-terrain-debug-overlay = toggles the custom terrain debug overlay.
@@ -768,6 +784,9 @@ description-path-debug-overlay = toggles a visualization of path searching.
 
 ## TerrainGeometryOverlay
 description-terrain-geometry-overlay = toggles the terrain geometry overlay.
+
+## ActorMapOverlay
+description-actor-map-overlay = toggles the actor map overlay.
 
 ## MapOptions, MissionBrowserLogic
 options-game-speed =
@@ -793,11 +812,9 @@ notification-time-limit-expired = Time limit has expired.
 notification-added-actor = Added { $name } ({ $id })
 
 ## EditorCopyPasteBrush
-notification-copied-tiles =
-    { $amount ->
-       [one] Copied one tile
-      *[other] Copied { $amount } tiles
-    }
+notification-copied-tiles = Copied { $tiles } tiles
+notification-copied-actors = Copied { $actors } actors
+notification-copied-tiles-actors = Copied { $tiles } tiles and { $actors } actors
 
 ## EditorDefaultBrush
 notification-selected-area = Selected area { $x },{ $y } ({ $width },{ $height })
@@ -810,9 +827,9 @@ notification-moved-actor = Moved { $id } from { $x1 },{ $y1 } to { $x2 },{ $y2 }
 
 ## EditorResourceBrush
 notification-added-resource =
-    { $amount ->
+    { $count ->
        [one] Added one cell of { $type }
-      *[other] Added { $amount } cells of { $type }
+      *[other] Added { $count } cells of { $type }
     }
 
 ## EditorTileBrush
@@ -820,18 +837,31 @@ notification-added-tile = Added tile { $id }
 notification-filled-tile = Filled with tile { $id }
 
 ## EditorMarkerLayerBrush
+notification-added-marker-tiles-markers =
+    .red = red
+    .orange = orange
+    .yellow = yellow
+    .green = green
+    .cyan = cyan
+    .blue = blue
+    .purple = purple
+    .magenta = magenta
 notification-added-marker-tiles =
-    { $amount ->
-       [one] Added one marker tile of type { $type }
-      *[other] Added { $amount } marker tiles of type { $type }
+    { $count ->
+       [one] Added { $type } marker tile
+      *[other] Added { $count } { $type } marker tiles
     }
 notification-removed-marker-tiles =
-    { $amount ->
-       [one] Removed one marker tile
-      *[other] Removed { $amount } marker tiles
+    { $count ->
+       [one] Removed marker tile
+      *[other] Removed { $count } marker tiles
     }
-notification-cleared-selected-marker-tiles = Cleared { $amount } marker tiles of type { $type }
-notification-cleared-all-marker-tiles = Cleared { $amount } marker tiles
+notification-cleared-selected-marker-tiles =
+    { $count ->
+       [one] Cleared { $type } marker tile
+      *[other] Cleared { $count } { $type } marker tiles
+    }
+notification-cleared-all-marker-tiles = Cleared { $count } marker tiles
 
 ## EditorActionManager
 notification-opened = Opened
@@ -857,6 +887,7 @@ notification-desync-compare-logs = Out of sync in frame { $frame }.
 ## WidgetUtils
 label-win-state-won = Won
 label-win-state-lost = Lost
+label-client-state-disconnected = Gone
 
 ## Player
 enumerated-bot-name =
@@ -1116,9 +1147,12 @@ keycode =
     .mouse5 = Mouse 5
 
 ## MapGeneratorToolLogic
-label-map-generator-failed-cancel = Dismiss
 notification-map-generator-generated = Generated using { $name }
-notification-map-generator-failed = Map generation failed
+
+dialog-notification-map-generator-failed =
+    .title = Map generation failed
+    .prompt = See debug.log for details.
+    .cancel = Dismiss
 
 ## EditorTilingPathBrush
 notification-tiling-path-started = Started tiling path

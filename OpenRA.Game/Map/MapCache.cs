@@ -20,7 +20,7 @@ using OpenRA.FileSystem;
 using OpenRA.Graphics;
 using OpenRA.Primitives;
 using OpenRA.Support;
-using OpenRA.Traits;
+using FS = OpenRA.FileSystem.FileSystem;
 
 namespace OpenRA
 {
@@ -31,8 +31,9 @@ namespace OpenRA
 		readonly Dictionary<IReadOnlyPackage, MapClassification> mapLocations = [];
 		public bool LoadPreviewImages = true;
 
-		readonly Cache<string, MapPreview> previews;
-		readonly ModData modData;
+		readonly Manifest manifest;
+		readonly FS modFiles;
+		Cache<string, MapPreview> previews;
 		readonly SheetBuilder sheetBuilder;
 		Thread previewLoaderThread;
 		bool previewLoaderThreadShutDown = true;
@@ -67,13 +68,11 @@ namespace OpenRA
 			return null;
 		}
 
-		public MapCache(ModData modData)
+		public MapCache(Manifest manifest, FS modFiles)
 		{
-			this.modData = modData;
-
-			var gridType = Exts.Lazy(() => modData.Manifest.Get<MapGrid>().Type);
-			previews = new Cache<string, MapPreview>(uid => new MapPreview(modData, uid, gridType.Value, this));
-			sheetBuilder = new SheetBuilder(SheetType.BGRA);
+			this.manifest = manifest;
+			this.modFiles = modFiles;
+			sheetBuilder = new SheetBuilder(SheetType.BGRA, manifest.RendererConstants.MapPreviewSheetSize);
 		}
 
 		public void UpdateMaps()
@@ -82,18 +81,21 @@ namespace OpenRA
 				tracker.UpdateMaps(this);
 		}
 
-		public void LoadMaps()
+		public void LoadMaps(ModData modData)
 		{
 			// Utility mod that does not support maps
-			if (!modData.Manifest.Contains<MapGrid>())
+			if (manifest.MapFolders.Count == 0)
 				return;
 
+			var gridType = modData.GetOrCreate<MapGrid>().Type;
+			previews = new Cache<string, MapPreview>(uid => new MapPreview(modData, uid, gridType, this));
+
 			// Enumerate map directories
-			foreach (var kv in modData.Manifest.MapFolders)
+			foreach (var kv in manifest.MapFolders)
 			{
 				var name = kv.Key;
 				var classification = string.IsNullOrEmpty(kv.Value)
-					? MapClassification.Unknown : Enum<MapClassification>.Parse(kv.Value);
+					? MapClassification.Unknown : Enum.Parse<MapClassification>(kv.Value);
 
 				IReadOnlyPackage package;
 				var optional = name.StartsWith('~');
@@ -108,7 +110,7 @@ namespace OpenRA
 					if (resolved.StartsWith(Platform.SupportDir, StringComparison.Ordinal) && !File.Exists(resolved))
 						Directory.CreateDirectory(resolved);
 
-					package = modData.ModFiles.OpenPackage(name);
+					package = modFiles.OpenPackage(name);
 				}
 				catch
 				{
@@ -124,12 +126,9 @@ namespace OpenRA
 
 			// PERF: Load the mod YAML once outside the loop, and reuse it when resolving each maps custom YAML.
 			var modDataRules = modData.GetRulesYaml();
-			var gridType = modData.Manifest.Get<MapGrid>().Type;
 			foreach (var kv in MapLocations)
-			{
 				foreach (var map in kv.Key.Contents)
 					LoadMapInternal(map, kv.Key, kv.Value, null, gridType, modDataRules);
-			}
 
 			// We only want to track maps in runtime, not at loadtime
 			LastModifiedMap = null;
@@ -148,7 +147,7 @@ namespace OpenRA
 			{
 				using (new PerfTimer(map))
 				{
-					mapPackage = package.OpenPackage(map, modData.ModFiles);
+					mapPackage = package.OpenPackage(map, modFiles);
 					if (mapPackage != null)
 					{
 						var uid = Map.ComputeUID(mapPackage);
@@ -178,12 +177,8 @@ namespace OpenRA
 
 		public IEnumerable<IReadWritePackage> EnumerateMapDirPackages(MapClassification classification = MapClassification.System)
 		{
-			// Utility mod that does not support maps
-			if (!modData.Manifest.Contains<MapGrid>())
-				yield break;
-
 			// Enumerate map directories
-			foreach (var kv in modData.Manifest.MapFolders)
+			foreach (var kv in manifest.MapFolders)
 			{
 				if (!Enum.TryParse(kv.Value, out MapClassification packageClassification))
 					continue;
@@ -201,7 +196,7 @@ namespace OpenRA
 				if (resolved.StartsWith(Platform.SupportDir, StringComparison.Ordinal) && (!Directory.Exists(resolved) || !File.Exists(resolved)))
 					continue;
 
-				using (var package = (IReadWritePackage)modData.ModFiles.OpenPackage(name))
+				using (var package = (IReadWritePackage)modFiles.OpenPackage(name))
 					yield return package;
 			}
 		}
@@ -221,47 +216,8 @@ namespace OpenRA
 
 			foreach (var mapDirPackage in mapDirPackages)
 				foreach (var map in mapDirPackage.Contents)
-					if (mapDirPackage.OpenPackage(map, modData.ModFiles) is IReadWritePackage mapPackage)
+					if (mapDirPackage.OpenPackage(map, modFiles) is IReadWritePackage mapPackage)
 						yield return mapPackage;
-		}
-
-		public void GenerateMap(MapGenerationArgs args)
-		{
-			var p = previews[args.Uid];
-			if (p.Class == MapClassification.Generated)
-				return;
-
-			p.UpdateFromGenerationArgs(args);
-
-			Task.Run(() =>
-			{
-				try
-				{
-					var generator = modData.DefaultRules.Actors[SystemActors.EditorWorld]
-						.TraitInfos<IMapGeneratorInfo>()
-						.FirstOrDefault(info => info.Type == args.Generator);
-
-					if (generator == null)
-						throw new Exception($"Unknown map generator type {args.Generator}");
-
-					var map = generator.Generate(modData, args);
-
-					// Uid is generated when the map is saved
-					map.Save(new ZipFileLoader.ReadWriteZipFile());
-
-					if (map.Uid != args.Uid)
-						throw new InvalidOperationException("Map generation UID mismatch");
-
-					Game.RunAfterTick(() => p.UpdateFromMap(map.Package, MapClassification.Generated));
-				}
-				catch (Exception e)
-				{
-					Log.Write("debug", "Map generation failed with error:");
-					Log.Write("debug", e);
-
-					p.UpdateFromGenerationArgs(null);
-				}
-			});
 		}
 
 		public void QueryRemoteMapDetails(string repositoryUrl, IEnumerable<string> uids,

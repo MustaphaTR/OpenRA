@@ -168,7 +168,7 @@ namespace OpenRA.Platforms.Default
 					Log.Write("graphics", $"SDL initialisation failed: {SDL.SDL_GetError()}");
 
 				SetSDLAttributes(profile);
-				Console.WriteLine($"Using SDL 2 with OpenGL ({profile}) renderer");
+				Console.WriteLine($"Using SDL {GetSDLVersion()} with OpenGL ({profile}) renderer");
 				if (videoDisplay < 0 || videoDisplay >= DisplayCount)
 					videoDisplay = 0;
 
@@ -511,6 +511,24 @@ namespace OpenRA.Platforms.Default
 		{
 			VerifyThreadAffinity();
 			return Sdl2Input.SetClipboardText(text);
+		}
+
+		public bool TryOpenUrl(string url)
+		{
+			try
+			{
+				return SDL.SDL_OpenURL(url) == 0;
+			}
+			catch
+			{
+				return false;
+			}
+		}
+
+		static string GetSDLVersion()
+		{
+			SDL.SDL_GetVersion(out var version);
+			return version.major + "." + version.minor + "." + version.patch;
 		}
 
 		static void SetSDLAttributes(GLProfile profile)

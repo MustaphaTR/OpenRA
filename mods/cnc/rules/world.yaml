@@ -156,6 +156,7 @@ World:
 	PathFinderOverlay:
 	AutoSave:
 	HierarchicalPathFinderOverlay:
+	ActorMapOverlay:
 	PlayerCommands:
 	HelpCommand:
 	ScreenShaker:
@@ -264,6 +265,11 @@ World:
 	ObjectivesPanel:
 		PanelName: SKIRMISH_STATS
 	RadarPings:
+	StartGameNotification:
+		Notification:
+		LoadedNotification:
+		SavedNotification:
+		SavedTextNotification: notification-game-saved
 	LoadWidgetAtGameStart:
 		ShellmapRoot: MENU_BACKGROUND
 	ScriptTriggers:

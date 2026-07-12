@@ -10,6 +10,7 @@
 #endregion
 
 using System;
+using System.Collections.Frozen;
 using System.Collections.Generic;
 using System.Linq;
 using OpenRA.Mods.Common.Activities;
@@ -40,7 +41,7 @@ namespace OpenRA.Mods.Common.Traits
 		[CursorReference(dictionaryReference: LintDictionaryReference.Values)]
 		[Desc($"Cursor to display when able to dock at target actor. Overrides the default cursor specified in {nameof(EnterCursor)}",
 			"A dictionary of [DockType]: [cursor name].")]
-		public readonly Dictionary<string, string> EnterCursorOverrides = [];
+		public readonly FrozenDictionary<string, string> EnterCursorOverrides = FrozenDictionary<string, string>.Empty;
 
 		[CursorReference]
 		[Desc("Cursor to display when unable to dock at target actor.")]
@@ -405,9 +406,9 @@ namespace OpenRA.Mods.Common.Traits
 					.GroupBy(dock => clientActor.World.Map.CellContaining(dock.Trait.DockPosition))
 					.ToDictionary(group => group.Key, group => group.First());
 
-				// Start a search from each docks position:
-				var path = mobile.PathFinder.FindPathToTargetCell(
-					clientActor, lookup.Keys, clientActor.Location, BlockedByActor.None,
+				// Start a search from each client actor:
+				var path = mobile.PathFinder.FindPathToTargetCells(
+					clientActor, clientActor.Location, lookup.Keys, BlockedByActor.None,
 					location =>
 					{
 						if (!lookup.TryGetValue(location, out var dock))
@@ -419,7 +420,7 @@ namespace OpenRA.Mods.Common.Traits
 					});
 
 				if (path.Count > 0)
-					return lookup[path[^1]];
+					return lookup[path[0]];
 			}
 			else
 			{

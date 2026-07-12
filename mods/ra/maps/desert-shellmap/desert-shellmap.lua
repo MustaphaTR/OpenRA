@@ -14,11 +14,11 @@ if DateTime.CurrentMonth == 10 and DateTime.CurrentDay == 31 then
 	ProxyType = "powerproxy.parazombies"
 	ProducedUnitTypes =
 	{
-		{ factory = AlliedBarracks1, types = { "e1", "e3" } },
-		{ factory = AlliedBarracks2, types = { "e1", "e3" } },
-		{ factory = SovietBarracks1, types = { "ant" } },
-		{ factory = SovietBarracks2, types = { "ant" } },
-		{ factory = SovietBarracks3, types = { "ant" } },
+		{ factory = AlliedBarracks1,   types = { "e1", "e3" } },
+		{ factory = AlliedBarracks2,   types = { "e1", "e3" } },
+		{ factory = SovietBarracks1,   types = { "ant" } },
+		{ factory = SovietBarracks2,   types = { "ant" } },
+		{ factory = SovietBarracks3,   types = { "ant" } },
 		{ factory = AlliedWarFactory1, types = { "jeep", "1tnk", "2tnk", "arty", "ctnk" } },
 		{ factory = SovietWarFactory1, types = { "3tnk", "4tnk", "v2rl", "ttnk", "apc" } }
 	}
@@ -28,11 +28,11 @@ else
 	ProxyType = "powerproxy.paratroopers"
 	ProducedUnitTypes =
 	{
-		{ factory = AlliedBarracks1, types = { "e1", "e3" } },
-		{ factory = AlliedBarracks2, types = { "e1", "e3" } },
-		{ factory = SovietBarracks1, types = { "dog", "e1", "e2", "e3", "e4", "shok" } },
-		{ factory = SovietBarracks2, types = { "dog", "e1", "e2", "e3", "e4", "shok" } },
-		{ factory = SovietBarracks3, types = { "dog", "e1", "e2", "e3", "e4", "shok" } },
+		{ factory = AlliedBarracks1,   types = { "e1", "e3" } },
+		{ factory = AlliedBarracks2,   types = { "e1", "e3" } },
+		{ factory = SovietBarracks1,   types = { "dog", "e1", "e2", "e3", "e4", "shok" } },
+		{ factory = SovietBarracks2,   types = { "dog", "e1", "e2", "e3", "e4", "shok" } },
+		{ factory = SovietBarracks3,   types = { "dog", "e1", "e2", "e3", "e4", "shok" } },
 		{ factory = AlliedWarFactory1, types = { "jeep", "1tnk", "2tnk", "arty", "ctnk" } },
 		{ factory = SovietWarFactory1, types = { "3tnk", "4tnk", "v2rl", "ttnk", "apc" } }
 	}
@@ -160,7 +160,7 @@ end
 
 ChronoshiftAlliedUnits = function()
 	local cells = Utils.ExpandFootprint({ ChronoshiftLocation.Location }, false)
-	local units = { }
+	local units = {}
 	for i = 1, #cells do
 		local unit = Actor.Create("2tnk", true, { Owner = Allies, Facing = Angle.North })
 		BindActorTriggers(unit)
@@ -170,20 +170,9 @@ ChronoshiftAlliedUnits = function()
 	Trigger.AfterDelay(DateTime.Seconds(60), ChronoshiftAlliedUnits)
 end
 
-Ticks = 0
-Speed = 5
-
-Tick = function()
-	Ticks = Ticks + 1
-
-	local t = (Ticks + 45) % (360 * Speed) * (math.pi / 180) / Speed;
-	Camera.Position = ViewportOrigin + WVec.New(19200 * math.sin(t), 20480 * math.cos(t), 0)
-end
-
 WorldLoaded = function()
 	Allies = Player.GetPlayer("Allies")
 	Soviets = Player.GetPlayer("Soviets")
-	ViewportOrigin = Camera.Position
 
 	SetupAlliedUnits()
 	SetupFactories()

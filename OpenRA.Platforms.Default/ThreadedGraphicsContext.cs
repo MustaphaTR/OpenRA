@@ -780,7 +780,7 @@ namespace OpenRA.Platforms.Default
 			setMatrix = tuple => { var t = ((string, float[]))tuple; shader.SetMatrix(t.Item1, t.Item2); };
 			setTexture = tuple => { var t = ((string, ITexture))tuple; shader.SetTexture(t.Item1, t.Item2); };
 			setVec1 = tuple => { var t = ((string, float))tuple; shader.SetVec(t.Item1, t.Item2); };
-			setVec2 = tuple => { var t = ((string, float[], int))tuple; shader.SetVec(t.Item1, t.Item2, t.Item3); };
+			setVec2 = tuple => { var t = ((string, ReadOnlyMemory<float>, int))tuple; shader.SetVec(t.Item1, t.Item2, t.Item3); };
 			setVec3 = tuple => { var t = ((string, float, float))tuple; shader.SetVec(t.Item1, t.Item2, t.Item3); };
 			setVec4 = tuple => { var t = ((string, float, float, float))tuple; shader.SetVec(t.Item1, t.Item2, t.Item3, t.Item4); };
 		}
@@ -815,7 +815,7 @@ namespace OpenRA.Platforms.Default
 			device.Post(setVec1, (name, x));
 		}
 
-		public void SetVec(string name, float[] vec, int length)
+		public void SetVec(string name, ReadOnlyMemory<float> vec, int length)
 		{
 			device.Post(setVec2, (name, vec, length));
 		}

@@ -10,6 +10,7 @@
 #endregion
 
 using System;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using OpenRA.FileFormats;
 using OpenRA.Primitives;
@@ -286,6 +287,35 @@ namespace OpenRA.Graphics
 			];
 		}
 
+		/// <summary>Rotates a quad about its center in the x-y plane.</summary>
+		/// <param name="des">Destination array of four verties representing the rotated quad (top-left, top-right, bottom-right, bottom-left).</param>
+		/// <param name="tl">The top left vertex of the quad.</param>
+		/// <param name="size">A float3 containing the X, Y, and Z lengths of the quad.</param>
+		/// <param name="rotation">The number of radians to rotate by.</param>
+		public static void RotateQuadInto(Span<float3> des, float3 tl, float3 size, float rotation)
+		{
+			var center = tl + 0.5f * size;
+			var angleSin = (float)Math.Sin(-rotation);
+			var angleCos = (float)Math.Cos(-rotation);
+
+			// Rotated offset for +/- x with +/- y
+			var ra = 0.5f * new float3(
+				size.X * angleCos - size.Y * angleSin,
+				size.X * angleSin + size.Y * angleCos,
+				(size.X * angleSin + size.Y * angleCos) * size.Z / size.Y);
+
+			// Rotated offset for +/- x with -/+ y
+			var rb = 0.5f * new float3(
+				size.X * angleCos + size.Y * angleSin,
+				size.X * angleSin - size.Y * angleCos,
+				(size.X * angleSin - size.Y * angleCos) * size.Z / size.Y);
+
+			des[0] = center - ra;
+			des[1] = center + rb;
+			des[2] = center + ra;
+			des[3] = center - rb;
+		}
+
 		/// <summary>
 		/// Returns the bounds of an object. Used for determining which objects need to be rendered on screen, and which do not.
 		/// </summary>
@@ -297,7 +327,9 @@ namespace OpenRA.Graphics
 			if (rotation == 0f)
 				return new Rectangle((int)offset.X, (int)offset.Y, (int)size.X, (int)size.Y);
 
-			var rotatedQuad = RotateQuad(offset, size, rotation);
+			Span<float3> rotatedQuad = stackalloc float3[4];
+			RotateQuadInto(rotatedQuad, offset, size, rotation);
+
 			var minX = rotatedQuad[0].X;
 			var maxX = rotatedQuad[0].X;
 			var minY = rotatedQuad[0].Y;
@@ -317,12 +349,38 @@ namespace OpenRA.Graphics
 				(int)Math.Ceiling(maxY) - (int)minY);
 		}
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Color PremultiplyAlpha(Color c)
 		{
-			if (c.A == byte.MaxValue)
+			var argb = c.ToArgb();
+			var a = argb >> 24;
+
+			// Fully opaque.
+			if (a == 255)
 				return c;
-			var a = c.A / 255f;
-			return Color.FromArgb(c.A, (byte)(c.R * a + 0.5f), (byte)(c.G * a + 0.5f), (byte)(c.B * a + 0.5f));
+
+			// Fully transparent.
+			if (a == 0)
+				return default;
+
+			// Extract channels.
+			var r = (argb >> 16) & 0xFF;
+			var g = (argb >> 8) & 0xFF;
+			var b = argb & 0xFF;
+
+			// Fast integer premultiply: (c * a) / 255
+			// The (x + (x >> 8)) >> 8 trick is bit-perfect for the 0-255 range.
+			r = r * a + 128;
+			r = (r + (r >> 8)) >> 8;
+
+			g = g * a + 128;
+			g = (g + (g >> 8)) >> 8;
+
+			b = b * a + 128;
+			b = (b + (b >> 8)) >> 8;
+
+			var result = (a << 24) | (r << 16) | (g << 8) | b;
+			return Color.FromArgb(result);
 		}
 
 		public static Color PremultipliedColorLerp(float t, Color c1, Color c2)

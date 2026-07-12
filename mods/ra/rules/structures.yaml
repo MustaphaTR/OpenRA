@@ -468,6 +468,8 @@ PDOX:
 	Inherits@shape: ^2x2Shape
 	Selectable:
 		Bounds: 2048, 2048
+	WithSpriteBody:
+		PauseOnCondition: disabled
 	Buildable:
 		Queue: Defense
 		BuildPaletteOrder: 120
@@ -2194,19 +2196,16 @@ WOOD:
 		Type: woodfence
 
 BARRACKS:
-	AlwaysVisible:
 	Interactable:
 	Tooltip:
 		Name: actor-barracks-name
 
 TECHCENTER:
-	AlwaysVisible:
 	Interactable:
 	Tooltip:
 		Name: actor-techcenter-name
 
 ANYPOWER:
-	AlwaysVisible:
 	Interactable:
 	Tooltip:
 		Name: actor-anypower-name

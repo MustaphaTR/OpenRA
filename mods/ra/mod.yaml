@@ -126,7 +126,7 @@ ChromeLayout:
 	ra|chrome/ingame-observer.yaml
 	ra|chrome/ingame-player.yaml
 	common|chrome/ingame-perf.yaml
-	common|chrome/ingame-debug.yaml
+	ra|chrome/ingame-debug.yaml
 	common|chrome/ingame-debug-hpf.yaml
 	common|chrome/ingame-debuginfo.yaml
 	common|chrome/ingame-infochat.yaml
@@ -156,6 +156,7 @@ ChromeLayout:
 	common|chrome/connection.yaml
 	common|chrome/replaybrowser.yaml
 	common|chrome/gamesave-browser.yaml
+	common|chrome/load-game-browser.yaml
 	ra|chrome/gamesave-loading.yaml
 	common|chrome/dropdowns.yaml
 	common|chrome/musicplayer.yaml
@@ -170,6 +171,7 @@ ChromeLayout:
 FluentMessages:
 	common|fluent/common.ftl
 	common|fluent/chrome.ftl
+	common|fluent/ingame-debug.ftl
 	common|fluent/hotkeys.ftl
 	common|fluent/rules.ftl
 	ra|fluent/ra.ftl
@@ -217,7 +219,6 @@ ServerTraits:
 	SkirmishLogic
 	PlayerPinger
 	MasterServerPinger
-	LobbySettingsNotification
 
 ChromeMetrics:
 	common|metrics.yaml

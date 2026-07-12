@@ -1,12 +1,85 @@
 Player:
 	PlayerResources:
-		DefaultCash: 6000
+		DefaultCash: 7000
+	ExternalCondition@AIMain:
+		Condition: base-rebuilder
+	ExternalCondition@AIMainWithDefense:
+		Condition: defense-rebuilder
+	BaseBuilderBotModule@MainBase:
+		RequiresCondition: base-rebuilder
+		BuildingQueues: Building, Upgrade
+		MinimumExcessPower: 0
+		MaximumExcessPower: 250
+		MaxBaseRadius: 40
+		ConstructionYardTypes: construction_yard
+		RefineryTypes: refinery
+		PowerTypes: wind_trap
+		ProductionTypes: light_factory, heavy_factory, barracks
+		SiloTypes: silo
+		DefenseTypes: medium_gun_turret,large_gun_turret
+		SellRefineryInterval: -1
+		BuildingLimits:
+			barracks: 1
+			refinery: 1
+			outpost: 1
+			light_factory: 1
+			heavy_factory: 1
+			high_tech_factory: 1
+			starport: 1
+			wind_trap: 7
+			silo: 1
+		BuildingFractions:
+			wind_trap: 1
+			barracks: 1
+			starport: 1
+			refinery: 1
+			outpost: 1
+			light_factory: 1
+			heavy_factory: 1
+			high_tech_factory: 1
+	BaseBuilderBotModule@MainBaseWithDefence:
+		RequiresCondition: defense-rebuilder
+		BuildingQueues: Building, Upgrade
+		MinimumExcessPower: 0
+		MaximumExcessPower: 250
+		MaxBaseRadius: 40
+		ConstructionYardTypes: construction_yard
+		RefineryTypes: refinery
+		PowerTypes: wind_trap
+		ProductionTypes: light_factory, heavy_factory, barracks
+		SiloTypes: silo
+		DefenseTypes: medium_gun_turret,large_gun_turret
+		PlaceDefenseTowardsEnemyChance: 50
+		SellRefineryInterval: -1
+		BuildingLimits:
+			barracks: 1
+			refinery: 1
+			outpost: 1
+			light_factory: 1
+			heavy_factory: 1
+			high_tech_factory: 1
+			starport: 1
+			wind_trap: 7
+			silo: 1
+			medium_gun_turret: 4
+			large_gun_turret: 4
+		BuildingFractions:
+			wind_trap: 1
+			barracks: 1
+			refinery: 1
+			outpost: 1
+			starport: 1
+			light_factory: 1
+			heavy_factory: 1
+			high_tech_factory: 1
+			medium_gun_turret: 1
+			large_gun_turret: 1
 
 World:
 	LuaScript:
 		Scripts: campaign.lua, utils.lua, harkonnen07.lua, harkonnen07-AI.lua
 	MissionData:
-		Briefing: Your target is the Atreides High Tech Factory, the weak link in the Duke's plan to combine forces with Imperial Troops. Without this facility, the Imperial Carryalls will soon fall into disrepair and be unable to ferry further reinforcements to the battle.\n\nThe Atreides force is large and well-fortified - a frontal assault will fail. However, one Construction Yard to the West of their position is isolated and lightly defended. A small strike force has been airlifted deep into enemy territory. Capture the Construction Yard and use it against the Atreides.
+		Briefing: briefing
 		BriefingVideo: H_BR07_E.VQA
 	MapOptions:
 		TechLevel: nopowers

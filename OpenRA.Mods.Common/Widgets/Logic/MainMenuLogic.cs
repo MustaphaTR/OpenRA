@@ -83,18 +83,9 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			var contentButton = mainMenu.GetOrNull<ButtonWidget>("CONTENT_BUTTON");
 			if (contentButton != null)
 			{
-				var contentInstaller = modData.FileSystemLoader as ContentInstallerFileSystemLoader;
+				var contentInstaller = modData.FileSystemLoader as IFileSystemExternalContent;
 				contentButton.Disabled = contentInstaller == null;
-				contentButton.OnClick = () =>
-				{
-					// Switching mods changes the world state (by disposing it),
-					// so we can't do this inside the input handler.
-					Game.RunAfterTick(() =>
-					{
-						if (contentInstaller != null)
-							Game.InitializeMod(contentInstaller.ContentInstallerMod, new Arguments());
-					});
-				};
+				contentButton.OnClick = () => contentInstaller?.ManageContent(modData);
 			}
 
 			mainMenu.Get<ButtonWidget>("SETTINGS_BUTTON").OnClick = () =>
@@ -129,7 +120,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			skirmishButton.Disabled = !hasMaps;
 
 			var loadButton = singleplayerMenu.Get<ButtonWidget>("LOAD_BUTTON");
-			loadButton.IsDisabled = () => !GameSaveBrowserLogic.IsLoadPanelEnabled(modData.Manifest);
+			loadButton.IsDisabled = () => !LoadGameBrowserLogic.IsLoadPanelEnabled(modData.Manifest);
 			loadButton.OnClick = OpenGameSaveBrowserPanel;
 
 			var encyclopediaButton = singleplayerMenu.GetOrNull<ButtonWidget>("ENCYCLOPEDIA_BUTTON");
@@ -242,7 +233,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			Game.OnRemoteDirectConnect += OnRemoteDirectConnect;
 
 			// Check for updates in the background
-			var webServices = modData.Manifest.Get<WebServices>();
+			var webServices = modData.GetOrCreate<WebServices>();
 			if (Game.Settings.Debug.CheckVersion)
 				webServices.CheckModVersion();
 
@@ -521,12 +512,10 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 		void OpenGameSaveBrowserPanel()
 		{
 			SwitchMenu(MenuType.None);
-			Ui.OpenWindow("GAMESAVE_BROWSER_PANEL", new WidgetArgs
+			Ui.OpenWindow("LOAD_GAME_BROWSER_PANEL", new WidgetArgs
 			{
 				{ "onExit", () => SwitchMenu(MenuType.Singleplayer) },
 				{ "onStart", () => { RemoveShellmapUI(); lastGameState = MenuPanel.GameSaves; } },
-				{ "isSavePanel", false },
-				{ "world", null }
 			});
 		}
 

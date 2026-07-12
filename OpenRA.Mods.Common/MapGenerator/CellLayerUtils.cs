@@ -100,19 +100,19 @@ namespace OpenRA.Mods.Common.MapGenerator
 		}
 
 		/// <summary>Get the closest -X-Y corner of a CPos cell to a WPos.</summary>
-		public static CPos WPosToCorner(WPos cpos, MapGridType gridType)
+		public static CPos WPosToCorner(WPos wpos, MapGridType gridType)
 		{
 			switch (gridType)
 			{
 				case MapGridType.Rectangular:
 					return new CPos(
-						FloorDiv(cpos.X + 512, 1024),
-						FloorDiv(cpos.Y + 512, 1024),
+						FloorDiv(wpos.X + 512, 1024),
+						FloorDiv(wpos.Y + 512, 1024),
 						0);
 				case MapGridType.RectangularIsometric:
 					return new CPos(
-						FloorDiv(cpos.Y + cpos.X, 1448),
-						FloorDiv(cpos.Y - cpos.X, 1448),
+						FloorDiv(wpos.Y + wpos.X, 1448),
+						FloorDiv(wpos.Y - wpos.X + 1448, 1448),
 						0);
 				default:
 					throw new NotImplementedException();
@@ -139,10 +139,45 @@ namespace OpenRA.Mods.Common.MapGenerator
 			}
 		}
 
+		/// <summary>Get the WVec representing the same translation as the given CVec, with a height offset.</summary>
+		public static WVec CVecToWVec(CVec cvec, int dz, MapGridType gridType)
+		{
+			switch (gridType)
+			{
+				case MapGridType.Rectangular:
+					return new WVec(
+						cvec.X * 1024,
+						cvec.Y * 1024,
+						0);
+				case MapGridType.RectangularIsometric:
+					return new WVec(
+						(cvec.X - cvec.Y) * 724,
+						(cvec.X + cvec.Y) * 724,
+						724 * dz);
+				default:
+					throw new NotImplementedException();
+			}
+		}
+
 		/// <summary>Get the WPos center of a CPos cell.</summary>
 		public static WPos CPosToWPos(CPos cpos, MapGridType gridType)
 		{
 			var wvec = CVecToWVec(new CVec(cpos.X, cpos.Y), gridType);
+			switch (gridType)
+			{
+				case MapGridType.Rectangular:
+					return new WPos(512, 512, 0) + wvec;
+				case MapGridType.RectangularIsometric:
+					return new WPos(724, 724, 0) + wvec;
+				default:
+					throw new NotImplementedException();
+			}
+		}
+
+		/// <summary>Get the WPos center of a CPos cell with a height offset.</summary>
+		public static WPos CPosToWPos(CPos cpos, int dz, MapGridType gridType)
+		{
+			var wvec = CVecToWVec(new CVec(cpos.X, cpos.Y), dz, gridType);
 			switch (gridType)
 			{
 				case MapGridType.Rectangular:
@@ -561,11 +596,12 @@ namespace OpenRA.Mods.Common.MapGenerator
 			Func<CPos, P, P?> filler,
 			ImmutableArray<CVec> spread) where P : struct
 		{
+			var current = new List<(CPos CPos, P Prop)>();
 			var next = seeds.ToList();
 			while (next.Count != 0)
 			{
-				var current = next;
-				next = [];
+				(next, current) = (current, next);
+				next.Clear();
 				foreach (var (source, prop) in current)
 				{
 					var newProp = filler(source, prop);
@@ -618,6 +654,12 @@ namespace OpenRA.Mods.Common.MapGenerator
 		public static CellLayer<bool> Intersect(IEnumerable<CellLayer<bool>> layers)
 		{
 			return Aggregate(layers, (a, b) => a && b);
+		}
+
+		/// <summary>Return logical AND / conjunction / intersection of layers.</summary>
+		public static CellLayer<bool> Union(IEnumerable<CellLayer<bool>> layers)
+		{
+			return Aggregate(layers, (a, b) => a || b);
 		}
 
 		/// <summary>

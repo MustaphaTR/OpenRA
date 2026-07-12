@@ -10,6 +10,7 @@
 #endregion
 
 using System;
+using System.Collections.Frozen;
 using System.Collections.Generic;
 using System.Linq;
 using OpenRA.Mods.Common.Activities;
@@ -24,15 +25,15 @@ namespace OpenRA.Mods.Common.Traits
 	{
 		[ActorReference]
 		[Desc("Actor types that are valid for naval squads.")]
-		public readonly HashSet<string> NavalUnitsTypes = [];
+		public readonly FrozenSet<string> NavalUnitsTypes = FrozenSet<string>.Empty;
 
 		[ActorReference]
 		[Desc("Actor types that are excluded from ground attacks.")]
-		public readonly HashSet<string> AirUnitsTypes = [];
+		public readonly FrozenSet<string> AirUnitsTypes = FrozenSet<string>.Empty;
 
 		[ActorReference]
 		[Desc("Actor types that should generally be excluded from attack squads.")]
-		public readonly HashSet<string> ExcludeFromSquadsTypes = [];
+		public readonly FrozenSet<string> ExcludeFromSquadsTypes = FrozenSet<string>.Empty;
 
 		[ActorReference]
 		[Desc("Actor types that are randomly sent around the base after their production.")]
@@ -40,15 +41,15 @@ namespace OpenRA.Mods.Common.Traits
 
 		[ActorReference]
 		[Desc("Actor types that are considered construction yards (base builders).")]
-		public readonly HashSet<string> ConstructionYardTypes = [];
+		public readonly FrozenSet<string> ConstructionYardTypes = FrozenSet<string>.Empty;
 
 		[ActorReference]
 		[Desc("Enemy building types around which to scan for targets for naval squads.")]
-		public readonly HashSet<string> NavalProductionTypes = [];
+		public readonly FrozenSet<string> NavalProductionTypes = FrozenSet<string>.Empty;
 
 		[ActorReference]
 		[Desc("Own actor types that are prioritized when defending.")]
-		public readonly HashSet<string> ProtectionTypes = [];
+		public readonly FrozenSet<string> ProtectionTypes = FrozenSet<string>.Empty;
 
 		[ActorReference]
 		[Desc("Units that form a guerrilla squad.")]
@@ -129,12 +130,13 @@ namespace OpenRA.Mods.Common.Traits
 			return randomConstructionYard?.Location ?? initialBaseCenter;
 		}
 
+		const int MaxRespondToAttackCooldown = 30;
+
 		public readonly World World;
 		public readonly Player Player;
 		public readonly int RepeatedAltertTicks = 15;
 
 		public readonly Predicate<Actor> UnitCannotBeOrdered;
-		readonly List<UnitWposWrapper> unitsHangingAroundTheBase = [];
 
 		// Units that the bot already knows about. Any unit not on this list needs to be given a role.
 		readonly List<Actor> activeUnits = [];
@@ -147,12 +149,18 @@ namespace OpenRA.Mods.Common.Traits
 		IBotPositionsUpdated[] notifyPositionsUpdated;
 		IBotNotifyIdleBaseUnits[] notifyIdleBaseUnits;
 
+		List<Actor> unitsHangingAroundTheBase = [];
 		CPos initialBaseCenter;
 		Actor airStrikeTarget;
 
+		Actor protectFrom;
+
+		int rushTicks;
+		int assignRolesTicks;
 		int attackForceTicks;
 
 		int minAttackForceDelayTicks;
+		int respondToAttackCooldown = MaxRespondToAttackCooldown; // prevent too many responses to the same wave of attacks
 
 		int alertedTicks;
 
@@ -342,6 +350,9 @@ namespace OpenRA.Mods.Common.Traits
 				unitsHangingAroundTheBase.RemoveAll(u => UnitCannotBeOrdered(u.Actor));
 				CreateAttackForce(bot);
 			}
+
+			if (respondToAttackCooldown-- == MaxRespondToAttackCooldown)
+				ProtectOwn(bot, protectFrom);
 		}
 
 		void FindNewUnits(IBot bot)

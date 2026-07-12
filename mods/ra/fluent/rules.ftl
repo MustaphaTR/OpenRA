@@ -27,6 +27,8 @@ notification-ally-under-attack = Our ally is under attack.
 notification-silos-needed = Silos needed.
 
 ## world.yaml
+notification-game-saved = Game saved.
+
 options-starting-units =
     .mcv-only = MCV Only
     .light-support = Light Support
@@ -34,7 +36,7 @@ options-starting-units =
 
 resource-minerals = Valuable Minerals
 
-map-generator-experimental = Experimental RMG
+map-generator-classic = Map Generator
 map-generator-clear = Clear Terrain
 
 ## Faction
@@ -196,7 +198,9 @@ meta-crate =
     .name = Crate
     .generic-name = Crate
 
-meta-mine-name = Mine
+meta-mine =
+    .name = Mine
+    .generic-name = Mine
 
 ## fakes.yaml
 actor-fpwr =
@@ -966,7 +970,10 @@ label-ra-map-generator-choice-terrain-type-puddles =
    .description = Open spaces with small ponds
 label-ra-map-generator-choice-terrain-type-gardens =
    .label = Gardens
-   .description = Featureful terrain with ponds, cliffs, and forests
+   .description = Densely-packed terrain with ponds, cliffs, and forests
+label-ra-map-generator-choice-terrain-type-plots =
+   .label = Plots
+   .description = Loosely-packed terrain with ponds, cliffs, and forests
 label-ra-map-generator-choice-terrain-type-plains =
    .label = Plains
    .description = Open spaces with sparse trees and cliffs

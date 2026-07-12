@@ -8,6 +8,7 @@ on:
     branches: [ bleed, 'prep-*' ]
     paths-ignore:
       - '*.md'
+      - '*.py'
 
 permissions:
   contents: read  #  to fetch code (actions/checkout)
@@ -19,10 +20,10 @@ jobs:
 
     steps:
       - name: Clone Repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
 
       - name: Install .NET 8.0
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           dotnet-version: '8.0.x'
 
@@ -43,10 +44,10 @@ jobs:
 
     steps:
       - name: Clone Repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
 
       - name: Install .NET 8.0
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           dotnet-version: '8.0.x'
 

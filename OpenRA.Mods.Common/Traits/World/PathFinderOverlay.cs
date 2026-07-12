@@ -40,10 +40,20 @@ namespace OpenRA.Mods.Common.Traits
 
 	public class PathFinderOverlay : IRenderAnnotations, IWorldLoaded, IChatCommand
 	{
-		const string CommandName = "path-debug";
+		public const string CommandName = "path-debug";
+		public const string OrderName = "DevPathDebug";
+
+		[FluentReference]
+		const string CheatsDisabled = "notification-cheats-disabled";
 
 		[FluentReference]
 		const string CommandDescription = "description-path-debug-overlay";
+
+		[FluentReference("cheat", "player")]
+		const string CheatEnabled = "notification-cheat-enabled";
+
+		[FluentReference("cheat", "player")]
+		const string CheatDisabled = "notification-cheat-disabled";
 
 		sealed class Record : PathSearch.IRecorder, IEnumerable<(CPos Source, CPos Destination, int CostSoFar, int EstimatedRemainingCost)>
 		{
@@ -68,6 +78,9 @@ namespace OpenRA.Mods.Common.Traits
 		readonly SpriteFont font;
 		public bool Enabled { get; private set; }
 
+		DeveloperMode devMode;
+		World world;
+
 		Actor forActor;
 		bool record;
 		CPos[] sourceCells;
@@ -86,10 +99,12 @@ namespace OpenRA.Mods.Common.Traits
 
 		void IWorldLoaded.WorldLoaded(World w, WorldRenderer wr)
 		{
+			world = w;
 			var console = w.WorldActor.TraitOrDefault<ChatCommands>();
 			var help = w.WorldActor.TraitOrDefault<HelpCommand>();
+			devMode = world.LocalPlayer?.PlayerActor.Trait<DeveloperMode>();
 
-			if (console == null || help == null)
+			if (console == null || help == null || devMode == null)
 				return;
 
 			console.RegisterCommand(CommandName, this);
@@ -98,8 +113,22 @@ namespace OpenRA.Mods.Common.Traits
 
 		void IChatCommand.InvokeCommand(string name, string arg)
 		{
-			if (name == CommandName)
-				Enabled ^= true;
+			if (name != CommandName)
+				return;
+
+			if (devMode == null || !devMode.Enabled)
+			{
+				TextNotificationsManager.Debug(FluentProvider.GetMessage(CheatsDisabled));
+				return;
+			}
+
+			Enabled ^= true;
+
+			var notification = Enabled ? CheatEnabled : CheatDisabled;
+			var playerName = world.LocalPlayer != null ? world.LocalPlayer.ResolvedPlayerName : "";
+			TextNotificationsManager.Debug(FluentProvider.GetMessage(notification,
+				"cheat", OrderName,
+				"player", playerName));
 		}
 
 		public void NewRecording(Actor actor, IEnumerable<CPos> sources, CPos? target)

@@ -9,6 +9,7 @@
  */
 #endregion
 
+using System.Collections.Immutable;
 using OpenRA.Primitives;
 
 namespace OpenRA
@@ -30,7 +31,7 @@ namespace OpenRA
 		public string Faction;
 
 		public bool LockColor = false;
-		public Color Color = Game.ModData.Manifest.Get<DefaultPlayer>().Color;
+		public Color Color = Game.ModData.GetOrCreate<DefaultPlayer>().Color;
 
 		/// <summary>
 		/// Sets the "Home" location, which can be used by traits and scripts to e.g. set the initial camera
@@ -53,8 +54,8 @@ namespace OpenRA
 		public bool LockHandicap = false;
 		public int Handicap = 0;
 
-		public string[] Allies = [];
-		public string[] Enemies = [];
+		public ImmutableArray<string> Allies = [];
+		public ImmutableArray<string> Enemies = [];
 
 		public PlayerReference() { }
 		public PlayerReference(MiniYaml my) { FieldLoader.Load(this, my); }

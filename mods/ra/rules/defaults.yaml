@@ -274,6 +274,7 @@
 	GpsDot:
 		String: Vehicle
 	WithDamageOverlay:
+		StartSequence: start
 	Guard:
 	Guardable:
 	Tooltip:
@@ -536,6 +537,7 @@
 	GpsDot:
 		String: Ship
 	WithDamageOverlay:
+		StartSequence: start
 	FireWarheadsOnDeath:
 		Weapon: UnitExplodeShip
 		EmptyWeapon: UnitExplodeShip
@@ -575,6 +577,7 @@
 	-MustBeDestroyed:
 	WithDamageOverlay:
 		MinimumDamageState: Critical
+		StartSequence: start
 
 ^NeutralPlane:
 	Inherits@1: ^ExistsInWorld
@@ -984,18 +987,30 @@
 		Palette: effect
 		MinimumDamageState: Light
 		MaximumDamageState: Medium
+		StartSequence: start
+		LoopCount: 1, 5
+		InitialDelay: 0, 25
+		EndSequence: end
 	WithDamageOverlay@MediumBurn:
 		DamageTypes: Incendiary
 		Image: burn-m
 		Palette: effect
 		MinimumDamageState: Medium
 		MaximumDamageState: Heavy
+		StartSequence: start
+		LoopCount: 1, 5
+		InitialDelay: 0, 25
+		EndSequence: end
 	WithDamageOverlay@LargeBurn:
 		DamageTypes: Incendiary
 		Image: burn-l
 		Palette: effect
 		MinimumDamageState: Heavy
 		MaximumDamageState: Dead
+		StartSequence: start
+		LoopCount: 1, 5
+		InitialDelay: 0, 25
+		EndSequence: end
 	HiddenUnderShroud:
 	MapEditorData:
 		ExcludeTilesets: INTERIOR
@@ -1128,7 +1143,6 @@
 
 ^Bridge:
 	Inherits@shape: ^1x1Shape
-	AlwaysVisible:
 	Tooltip:
 		Name: meta-bridge-name
 		ShowOwnerRow: false
@@ -1251,7 +1265,8 @@
 		DetectionTypes: Mine
 		InitialDelay: 0
 	Tooltip:
-		Name: meta-mine-name
+		Name: meta-mine.name
+		GenericName: meta-mine.generic-name
 	Targetable:
 		TargetTypes: GroundActor, Mine
 	Immobile:

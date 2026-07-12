@@ -9,7 +9,7 @@
  */
 #endregion
 
-using System.Collections.Generic;
+using System.Collections.Immutable;
 using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.Traits
@@ -18,7 +18,7 @@ namespace OpenRA.Mods.Common.Traits
 		"this trait grants a level-up to newly spawned actors.")]
 	public class ProducibleWithLevelInfo : TraitInfo, Requires<GainsExperienceInfo>
 	{
-		public readonly string[] Prerequisites = [];
+		public readonly ImmutableArray<string> Prerequisites = [];
 
 		[Desc("Only grant this level for certain factions.")]
 		public readonly HashSet<string> Factions = [];
