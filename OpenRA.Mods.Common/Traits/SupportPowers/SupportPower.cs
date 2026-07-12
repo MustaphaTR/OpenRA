@@ -31,7 +31,7 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Palette used for the icon.")]
 		public readonly string IconPalette = "chrome";
 
-		[FluentReference(optional: true)]
+		[FluentReference(dictionaryReference: LintDictionaryReference.Values)]
 		public readonly Dictionary<int, string> Names = [];
 
 		[Desc("An optional list of generic names (i.e. \"Ability\" or \"Superpower\")" +
