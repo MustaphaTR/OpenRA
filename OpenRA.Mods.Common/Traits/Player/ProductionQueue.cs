@@ -34,7 +34,7 @@ namespace OpenRA.Mods.Common.Traits
 		public readonly string Group = null;
 
 		[Desc("Only enable this queue for certain factions.")]
-		public readonly FrozenSet<string> Factions = FrozenSet<string>.Empty;
+		public readonly FrozenSet<string> Factions = [];
 
 		[Desc("Show the queue for these factions, even if it doesn't have any buildable unit in it.")]
 		public readonly HashSet<string> AlwaysShowForFactions = [];

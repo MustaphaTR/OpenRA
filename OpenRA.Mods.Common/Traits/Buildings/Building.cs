@@ -31,7 +31,7 @@ namespace OpenRA.Mods.Common.Traits
 	public class BuildingInfo : TraitInfo, IOccupySpaceInfo, IPlaceBuildingDecorationInfo
 	{
 		[Desc("Where you are allowed to place the building (Water, Clear, ...)")]
-		public readonly FrozenSet<string> TerrainTypes = FrozenSet<string>.Empty;
+		public readonly FrozenSet<string> TerrainTypes = [];
 
 		[Desc("Terrain that the building can be placed on, but not at the same time with ones defined under `TerrainTypes`.")]
 		public readonly HashSet<string> SecondaryTerrainTypes = [];

@@ -18,7 +18,7 @@ namespace OpenRA.Mods.Common.Traits
 	{
 		[FieldLoader.Require]
 		[Desc("Types of buildable area this actor gives.")]
-		public readonly FrozenSet<string> AreaTypes = FrozenSet<string>.Empty;
+		public readonly FrozenSet<string> AreaTypes = [];
 
 		[Desc("Is this buildable area is only valid for buildings built from the this actor.")]
 		public readonly bool OnlyAllowPlacementFromSelf = false;
@@ -31,6 +31,6 @@ namespace OpenRA.Mods.Common.Traits
 		public GivesBuildableArea(GivesBuildableAreaInfo info)
 			: base(info) { }
 
-		public FrozenSet<string> AreaTypes => !IsTraitDisabled ? Info.AreaTypes : FrozenSet<string>.Empty;
+		public FrozenSet<string> AreaTypes => !IsTraitDisabled ? Info.AreaTypes : [];
 	}
 }

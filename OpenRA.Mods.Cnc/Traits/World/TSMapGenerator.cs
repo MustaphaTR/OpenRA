@@ -24,52 +24,8 @@ namespace OpenRA.Mods.Cnc.Traits
 {
 	[TraitLocation(SystemActors.EditorWorld)]
 	[Desc("A purpose-built Tiberian Sun map generator.")]
-	public sealed class TSMapGeneratorInfo : TraitInfo, IEditorMapGeneratorInfo
+	public sealed class TSMapGeneratorInfo : MapGeneratorBaseInfo
 	{
-		[FieldLoader.Require]
-		[Desc("Human-readable name this generator uses.")]
-		[FluentReference]
-		public readonly string Name = null;
-
-		[FieldLoader.Require]
-		[Desc("Internal id for this map generator.")]
-		public readonly string Type = null;
-
-		[FieldLoader.Require]
-		[Desc("Tilesets that are compatible with this map generator.")]
-		public readonly ImmutableArray<string> Tilesets = default;
-
-		[FluentReference]
-		[Desc("The title to use for generated maps.")]
-		public readonly string MapTitle = "label-random-map";
-
-		[Desc("The widget tree to open when the tool is selected.")]
-		public readonly string PanelWidget = "MAP_GENERATOR_TOOL_PANEL";
-
-		// This is purely of interest to the linter.
-		[FieldLoader.LoadUsing(nameof(FluentReferencesLoader))]
-		[FluentReference]
-		public readonly ImmutableArray<string> FluentReferences = default;
-
-		[FieldLoader.LoadUsing(nameof(SettingsLoader))]
-		public readonly MiniYaml Settings;
-
-		string IMapGeneratorInfo.Type => Type;
-		string IMapGeneratorInfo.Name => Name;
-		string IMapGeneratorInfo.MapTitle => MapTitle;
-		ImmutableArray<string> IEditorMapGeneratorInfo.Tilesets => Tilesets;
-
-		static MiniYaml SettingsLoader(MiniYaml my)
-		{
-			return my.NodeWithKey("Settings").Value;
-		}
-
-		static object FluentReferencesLoader(MiniYaml my)
-		{
-			return new MapGeneratorSettings(null, my.NodeWithKey("Settings").Value)
-				.Options.SelectMany(o => o.GetFluentReferences()).ToImmutableArray();
-		}
-
 		const int FractionMax = Terraformer.FractionMax;
 		const int EntityBonusMax = 1000000;
 
@@ -365,21 +321,12 @@ namespace OpenRA.Mods.Cnc.Traits
 			}
 		}
 
-		public IMapGeneratorSettings GetSettings()
+		public override Map Generate(ModData modData, MapGenerationArgs args)
 		{
-			return new MapGeneratorSettings(this, Settings);
-		}
-
-		public Map Generate(ModData modData, MapGenerationArgs args)
-		{
-			var terrainInfo = modData.DefaultTerrainInfo[args.Tileset];
-			var size = args.Size;
-
-			var map = new Map(modData, terrainInfo, size);
 			var actorPlans = new List<ActorPlan>();
-
-			var param = new Parameters(map, args.Settings);
-
+			var terrainInfo = modData.DefaultTerrainInfo[args.Tileset];
+			var map = new Map(modData, terrainInfo, args.Size);
+			var param = new Parameters(map, GenerateParameterYaml(modData, args));
 			var terraformer = new Terraformer(args, map, modData, actorPlans, param.Mirror, param.Rotations);
 
 			CellLayer<MultiBrush.Replaceability> PlayableToReplaceable()
@@ -932,44 +879,15 @@ namespace OpenRA.Mods.Cnc.Traits
 			return map;
 		}
 
-		public bool TryGenerateMetadata(ModData modData, MapGenerationArgs args, out MapPlayers players, out Dictionary<string, MiniYaml> ruleDefinitions)
-		{
-			try
-			{
-				var playerCount = FieldLoader.GetValue<int>("Players", args.Settings.NodeWithKey("Players").Value.Value);
-
-				// Generated maps use the default ruleset
-				ruleDefinitions = [];
-				players = new MapPlayers(modData.DefaultRules, playerCount);
-
-				return true;
-			}
-			catch
-			{
-				players = null;
-				ruleDefinitions = null;
-				return false;
-			}
-		}
-
 		public override object Create(ActorInitializer init)
 		{
-			return new TSMapGenerator(this);
+			return new TSMapGenerator(init, this);
 		}
 	}
 
-	public class TSMapGenerator : IEditorTool
+	public class TSMapGenerator : MapGeneratorBase
 	{
-		public string Label { get; }
-		public string PanelWidget { get; }
-		public TraitInfo TraitInfo { get; }
-		public bool IsEnabled => true;
-
-		public TSMapGenerator(TSMapGeneratorInfo info)
-		{
-			Label = info.Name;
-			PanelWidget = info.PanelWidget;
-			TraitInfo = info;
-		}
+		public TSMapGenerator(ActorInitializer init, TSMapGeneratorInfo info)
+			: base(init, info) { }
 	}
 }
