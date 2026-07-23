@@ -1,6 +1,7 @@
 <Solution>
   <Project Path="OpenRA.Game/OpenRA.Game.csproj" />
   <Project Path="OpenRA.Launcher/OpenRA.Launcher.csproj" />
+  <Project Path="OpenRA.Mods.AS/OpenRA.Mods.AS.csproj" />
   <Project Path="OpenRA.Mods.Cnc/OpenRA.Mods.Cnc.csproj" />
   <Project Path="OpenRA.Mods.Common/OpenRA.Mods.Common.csproj" />
   <Project Path="OpenRA.Mods.D2k/OpenRA.Mods.D2k.csproj" />
