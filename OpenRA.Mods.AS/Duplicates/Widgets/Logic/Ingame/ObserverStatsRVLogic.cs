@@ -114,7 +114,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			this.worldRenderer = worldRenderer;
 
 			MiniYaml yaml;
-			var keyNames = Enum.GetNames(typeof(ObserverStatsRVPanel));
+			var keyNames = Enum.GetNames<ObserverStatsRVPanel>();
 			var statsHotkeys = new HotkeyReference[keyNames.Length];
 			for (var i = 0; i < keyNames.Length; i++)
 				statsHotkeys[i] = logicArgs.TryGetValue("Statistics" + keyNames[i] + "Key", out yaml) ? modData.Hotkeys[yaml.Value] : new HotkeyReference();
