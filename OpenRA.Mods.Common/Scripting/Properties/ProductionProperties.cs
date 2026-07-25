@@ -139,7 +139,7 @@ namespace OpenRA.Mods.Common.Scripting
 				return false;
 
 			var queue = queues.Where(q => actorTypes.All(t => GetBuildableInfo(t, q.Info.Type) != null))
-				.FirstOrDefault(q => !q.AllQueued().Any());
+				.FirstOrDefault(q => q.BuildableItems().Any() && !q.AllQueued().Any());
 
 			if (queue == null)
 				return false;
