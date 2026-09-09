@@ -14,6 +14,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using OpenRA.FileSystem;
 
 namespace OpenRA
@@ -109,6 +110,7 @@ namespace OpenRA
 		const int SpacesPerLevel = 4;
 		static readonly Func<string, string> StringIdentity = s => s;
 		static readonly Func<MiniYaml, MiniYaml> MiniYamlIdentity = my => my;
+		static readonly Lock ConflictScratchLock = new();
 		static readonly Dictionary<string, MiniYamlNode> ConflictScratch = [];
 
 		public readonly string Value;
@@ -206,6 +208,7 @@ namespace OpenRA
 			// This saves on long-term memory usage as parsed values can often live a long time.
 			// A caller can also provide a pool as input, allowing de-duplication across multiple parses.
 			stringPool ??= [];
+			var stringPoolLookup = stringPool.GetAlternateLookup<ReadOnlySpan<char>>();
 
 			var result = new List<List<MiniYamlNode>>
 			{
@@ -323,16 +326,20 @@ namespace OpenRA
 					while (parsedLines.Count > 0 && parsedLines[^1].Level > level)
 						BuildCompletedSubNode(level);
 
-					var keyString = key.IsEmpty ? null : key.ToString();
-					var valueString = value.IsEmpty ? null : value.ToString();
+					string GetOrAdd(ReadOnlySpan<char> value)
+					{
+						if (stringPoolLookup.TryGetValue(value, out var result))
+							return result;
+						stringPool.Add(result = value.ToString());
+						return result;
+					}
+
+					var keyString = key.IsEmpty ? null : GetOrAdd(key);
+					var valueString = value.IsEmpty ? null : GetOrAdd(value);
 
 					// Note: We need to support empty comments here to ensure that empty comments
 					// (i.e. a lone # at the end of a line) can be correctly re-serialized
-					var commentString = comment == ReadOnlySpan<char>.Empty ? null : comment.ToString();
-
-					keyString = keyString == null ? null : stringPool.GetOrAdd(keyString);
-					valueString = valueString == null ? null : stringPool.GetOrAdd(valueString);
-					commentString = commentString == null ? null : stringPool.GetOrAdd(commentString);
+					var commentString = comment == ReadOnlySpan<char>.Empty ? null : GetOrAdd(comment);
 
 					parsedLines.Add((level, keyString, valueString, commentString, location));
 				}
@@ -561,7 +568,7 @@ namespace OpenRA
 			var resolvedExistingNodes = WeakResolveRemovals(existingNodes?.Nodes);
 			var resolvedOverrideNodes = WeakResolveRemovals(overrideNodes?.Nodes);
 
-			lock (ConflictScratch)
+			lock (ConflictScratchLock)
 			{
 				try
 				{

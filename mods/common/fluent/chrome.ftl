@@ -497,6 +497,10 @@ label-mapchooser-random-map-error = Map Generation Failed
 button-mapchooser-random-map-generate = Generate
 label-mapchooser-random-map-tileset = Environment:
 label-mapchooser-random-map-size = Map Size:
+label-mapchooser-random-map-preview-visibility = Preview Visibility:
+label-mapchooser-random-map-preview-visibility-all = Visible To Everyone
+label-mapchooser-random-map-preview-visibility-mapchooser = Map Chooser Only
+label-mapchooser-random-map-preview-visibility-none = Hidden
 label-mapchooser-random-map-error-desc = Adjust the settings or try again.
 
 ## missionbrowser.yaml
@@ -601,6 +605,7 @@ checkbox-check-version-container = Check for Updates
 checkbox-perftext-container = Show Performance Text
 checkbox-sendsysinfo-container = Send System Information
 label-sendsysinfo-checkbox-container-desc = Your Operating System, OpenGL and .NET runtime versions, and language settings will be sent along with an anonymous ID to help prioritize future development.
+checkbox-enable-discord-service-container = Enable Discord Rich Presence
 label-debug-section-header = Developer
 label-debug-hidden-container-a = Additional developer-specific options can be enabled via the
 label-debug-hidden-container-b = Debug.DisplayDeveloperSettings setting or launch flag

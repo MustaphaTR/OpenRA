@@ -14,6 +14,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Globalization;
 using System.Linq;
+using System.Numerics;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -211,24 +212,10 @@ namespace OpenRA
 			return result;
 		}
 
-		public static float Product(this IEnumerable<float> xs)
-		{
-			return xs.Aggregate(1f, (a, x) => a * x);
-		}
-
 		public static IEnumerable<T> SymmetricDifference<T>(this IEnumerable<T> xs, IEnumerable<T> ys)
 		{
 			// this is probably a shockingly-slow way to do this, but it's concise.
 			return xs.Except(ys).Concat(ys.Except(xs));
-		}
-
-		public static IEnumerable<T> Iterate<T>(this T t, Func<T, T> f)
-		{
-			while (true)
-			{
-				yield return t;
-				t = f(t);
-			}
 		}
 
 		public static T MinBy<T, U>(this IEnumerable<T> ts, Func<T, U> selector)
@@ -282,18 +269,12 @@ namespace OpenRA
 
 		public static int NextPowerOf2(int v)
 		{
-			--v;
-			v |= v >> 1;
-			v |= v >> 2;
-			v |= v >> 4;
-			v |= v >> 8;
-			++v;
-			return v;
+			return (int)BitOperations.RoundUpToPowerOf2((uint)v);
 		}
 
 		public static bool IsPowerOf2(int v)
 		{
-			return (v & (v - 1)) == 0;
+			return BitOperations.IsPow2(v);
 		}
 
 		public static Size NextPowerOf2(this Size s) { return new Size(NextPowerOf2(s.Width), NextPowerOf2(s.Height)); }
@@ -501,57 +482,83 @@ namespace OpenRA
 			return result;
 		}
 
-		public static byte ParseByteInvariant(string s)
+		public static byte ParseByteInvariant(ReadOnlySpan<char> s)
 		{
 			return byte.Parse(s, NumberStyles.Integer, NumberFormatInfo.InvariantInfo);
 		}
 
-		public static ushort ParseUshortInvariant(string s)
+		public static ushort ParseUInt16Invariant(ReadOnlySpan<char> s)
 		{
 			return ushort.Parse(s, NumberStyles.Integer, NumberFormatInfo.InvariantInfo);
 		}
 
-		public static short ParseInt16Invariant(string s)
+		public static short ParseInt16Invariant(ReadOnlySpan<char> s)
 		{
 			return short.Parse(s, NumberStyles.Integer, NumberFormatInfo.InvariantInfo);
 		}
 
-		public static int ParseInt32Invariant(string s)
+		public static int ParseInt32Invariant(ReadOnlySpan<char> s)
 		{
 			return int.Parse(s, NumberStyles.Integer, NumberFormatInfo.InvariantInfo);
 		}
 
-		public static float ParseFloatOrPercentInvariant(string s)
+		public static long ParseInt64Invariant(ReadOnlySpan<char> s)
 		{
-			var f = float.Parse(s.Replace("%", ""), NumberStyles.Float, NumberFormatInfo.InvariantInfo);
-			return f * (s.Contains('%') ? 0.01f : 1f);
+			return long.Parse(s, NumberStyles.Integer, NumberFormatInfo.InvariantInfo);
 		}
 
-		public static bool TryParseByteInvariant(string s, out byte i)
+		public static float ParseFloatOrPercentInvariant(ReadOnlySpan<char> s)
+		{
+			var raw = s;
+			var mult = 1f;
+			if (s.Contains('%'))
+			{
+				raw = s.ToString().Replace("%", "");
+				mult = 0.01f;
+			}
+
+			var f = float.Parse(raw, NumberStyles.Float, NumberFormatInfo.InvariantInfo);
+			return f * mult;
+		}
+
+		public static bool TryParseByteInvariant(ReadOnlySpan<char> s, out byte i)
 		{
 			return byte.TryParse(s, NumberStyles.Integer, NumberFormatInfo.InvariantInfo, out i);
 		}
 
-		public static bool TryParseUshortInvariant(string s, out ushort i)
+		public static bool TryParseUInt16Invariant(ReadOnlySpan<char> s, out ushort i)
 		{
 			return ushort.TryParse(s, NumberStyles.Integer, NumberFormatInfo.InvariantInfo, out i);
 		}
 
-		public static bool TryParseInt32Invariant(string s, out int i)
+		public static bool TryParseInt16Invariant(ReadOnlySpan<char> s, out short i)
+		{
+			return short.TryParse(s, NumberStyles.Integer, NumberFormatInfo.InvariantInfo, out i);
+		}
+
+		public static bool TryParseInt32Invariant(ReadOnlySpan<char> s, out int i)
 		{
 			return int.TryParse(s, NumberStyles.Integer, NumberFormatInfo.InvariantInfo, out i);
 		}
 
-		public static bool TryParseInt64Invariant(string s, out long i)
+		public static bool TryParseInt64Invariant(ReadOnlySpan<char> s, out long i)
 		{
 			return long.TryParse(s, NumberStyles.Integer, NumberFormatInfo.InvariantInfo, out i);
 		}
 
-		public static bool TryParseFloatOrPercentInvariant(string s, out float f)
+		public static bool TryParseFloatOrPercentInvariant(ReadOnlySpan<char> s, out float f)
 		{
-			if (float.TryParse(s?.Replace("%", ""), NumberStyles.Float, NumberFormatInfo.InvariantInfo, out f))
+			var raw = s;
+			var mult = 1f;
+			if (s.Contains('%'))
 			{
-				f *= s.Contains('%') ? 0.01f : 1f;
+				raw = s.ToString().Replace("%", "");
+				mult = 0.01f;
+			}
+
+			if (float.TryParse(raw, NumberStyles.Float, NumberFormatInfo.InvariantInfo, out f))
+			{
+				f *= mult;
 				return true;
 			}
 
@@ -633,25 +640,25 @@ namespace OpenRA
 			return default;
 		}
 
-		public static LineSplitEnumerator SplitLines(this string str, char separator)
+		public static SplitEnumerator Split(this ReadOnlySpan<char> str, char separator)
 		{
-			return new LineSplitEnumerator(str.AsSpan(), separator);
+			return new SplitEnumerator(str, separator);
 		}
 	}
 
-	public ref struct LineSplitEnumerator
+	public ref struct SplitEnumerator
 	{
 		ReadOnlySpan<char> str;
 		readonly char separator;
 
-		public LineSplitEnumerator(ReadOnlySpan<char> str, char separator)
+		public SplitEnumerator(ReadOnlySpan<char> str, char separator)
 		{
 			this.str = str;
 			this.separator = separator;
 			Current = default;
 		}
 
-		public readonly LineSplitEnumerator GetEnumerator() => this;
+		public readonly SplitEnumerator GetEnumerator() => this;
 
 		public bool MoveNext()
 		{

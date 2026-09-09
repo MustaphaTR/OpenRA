@@ -168,6 +168,7 @@ namespace OpenRA
 			new("Bounds"),
 			new("Visibility"),
 			new("Categories"),
+			new("HideSpawnPreviews", required: false, ignoreIfValue: "False"),
 			new("LockPreview", required: false, ignoreIfValue: "False"),
 			new("Players", nameof(PlayerDefinitions)),
 			new("Actors", nameof(ActorDefinitions)),
@@ -194,8 +195,27 @@ namespace OpenRA
 		public Rectangle Bounds;
 		public MapVisibility Visibility = MapVisibility.Lobby;
 		public ImmutableArray<string> Categories = ["Conquest"];
+		public bool HideSpawnPreviews;
 
 		public Size MapSize { get; private set; }
+
+		/// <summary>
+		/// <para>
+		/// Files to add to a map package when saving. This is useful for logic
+		/// which has no access to the underlying IReadWritePackage used to store map files.
+		/// </para>
+		/// <para>
+		/// Files are added using the string key as the file name and the byte array as the
+		/// content. The byte array associated with a string key cannot be null. map.bin and
+		/// map.yaml may not be supplied via this mechanism. map.png may be supplied, but must be
+		/// accompanied by setting LockPreview to true.
+		/// </para>
+		/// <para>
+		/// Note that by default, Save() will carry over files from an original map package if not
+		/// listed here.
+		/// </para>
+		/// </summary>
+		public readonly Dictionary<string, byte[]> StagedMapFiles = [];
 
 		// Player and actor yaml. Public for access by the map importers and lint checks.
 		public IReadOnlyCollection<MiniYamlNode> PlayerDefinitions = [];
@@ -660,6 +680,18 @@ namespace OpenRA
 				}
 			}
 
+			foreach (var forbidden in new[] { "map.bin", "map.yaml" })
+				if (StagedMapFiles.ContainsKey(forbidden))
+					throw new InvalidOperationException($"StagedMapFiles contains forbidden `{forbidden}` key");
+
+			foreach (var (filename, data) in StagedMapFiles.Order())
+			{
+				if (data == null)
+					throw new NullReferenceException($"Staged map file `{filename}` has null data");
+
+				UpdatePackage(filename, data);
+			}
+
 			if (!LockPreview)
 				UpdatePackage("map.png", SavePreview());
 
@@ -741,7 +773,7 @@ namespace OpenRA
 
 			if (terrainInfo.MinHeightColorBrightness != 1.0f || terrainInfo.MaxHeightColorBrightness != 1.0f)
 			{
-				var scale = float2.Lerp(terrainInfo.MinHeightColorBrightness, terrainInfo.MaxHeightColorBrightness, Height[uv] * 1f / Grid.MaximumTerrainHeight);
+				var scale = Util.Lerp(terrainInfo.MinHeightColorBrightness, terrainInfo.MaxHeightColorBrightness, Height[uv] * 1f / Grid.MaximumTerrainHeight);
 				left = Color.FromArgb((int)(scale * left.R).Clamp(0, 255), (int)(scale * left.G).Clamp(0, 255), (int)(scale * left.B).Clamp(0, 255));
 				right = Color.FromArgb((int)(scale * right.R).Clamp(0, 255), (int)(scale * right.G).Clamp(0, 255), (int)(scale * right.B).Clamp(0, 255));
 			}
@@ -802,8 +834,8 @@ namespace OpenRA
 			(Color Left, Color Right) terrainColor = default;
 
 			var colorsByPosition = positions
-				.GroupBy(p => p.Uv)
-				.ToDictionary(g => g.Key, g => g.First().Color);
+				.AggregateBy(p => p.Uv, default(Color), (_, p) => p.Color)
+				.ToDictionary();
 			for (var y = 0; y < height; y++)
 			{
 				for (var x = 0; x < width; x++)

@@ -38,6 +38,10 @@ if [ -n "${MACOS_DEVELOPER_CERTIFICATE_BASE64}" ] && [ -n "${MACOS_DEVELOPER_CER
 	echo "Importing signing certificate"
 	echo "${MACOS_DEVELOPER_CERTIFICATE_BASE64}" | base64 --decode > build.p12
 	security create-keychain -p build build.keychain
+
+	# Ensure keychain is deleted upon script exit, even on failure
+	trap 'security delete-keychain build.keychain 2>/dev/null || true' EXIT
+
 	security default-keychain -s build.keychain
 	security unlock-keychain -p build build.keychain
 	security import build.p12 -k build.keychain -P "${MACOS_DEVELOPER_CERTIFICATE_PASSWORD}" -T /usr/bin/codesign >/dev/null 2>&1
@@ -51,6 +55,9 @@ OUTPUTDIR="${2}"
 SRCDIR="$(pwd)/../.."
 BUILTDIR="$(pwd)/build"
 ARTWORK_DIR="$(pwd)/../artwork/"
+
+# Clean up any leftover build directories from previous aborted runs
+rm -rf "${BUILTDIR}"
 
 modify_plist() {
 	sed "s|${1}|${2}|g" "${3}" > "${3}.tmp" && mv "${3}.tmp" "${3}"
@@ -85,7 +92,7 @@ build_app() {
 	# Assemble multi-resolution icon
 	mkdir "${MOD_ID}.iconset"
 	cp "${ARTWORK_DIR}/${MOD_ID}_16x16.png" "${MOD_ID}.iconset/icon_16x16.png"
-	cp "${ARTWORK_DIR}/${MOD_ID}_32x32.png" "${MOD_ID}.iconset/icon_16x16@2.png"
+	cp "${ARTWORK_DIR}/${MOD_ID}_32x32.png" "${MOD_ID}.iconset/icon_16x16@2x.png"
 	cp "${ARTWORK_DIR}/${MOD_ID}_32x32.png" "${MOD_ID}.iconset/icon_32x32.png"
 	cp "${ARTWORK_DIR}/${MOD_ID}_64x64.png" "${MOD_ID}.iconset/icon_32x32@2x.png"
 	cp "${ARTWORK_DIR}/${MOD_ID}_128x128.png" "${MOD_ID}.iconset/icon_128x128.png"
@@ -126,17 +133,9 @@ modify_plist "{MINIMUM_SYSTEM_VERSION}" "10.15" "${TEMPLATE_DIR}/Contents/Info.p
 clang apphost.c -o "${TEMPLATE_DIR}/Contents/MacOS/apphost-x86_64" -framework AppKit -target x86_64-apple-macos10.15
 clang apphost.c -o "${TEMPLATE_DIR}/Contents/MacOS/apphost-arm64" -framework AppKit -target arm64-apple-macos10.15
 
-# Compile universal (x86_64 + arm64) Launcher
-clang launcher.m -o "${TEMPLATE_DIR}/Contents/MacOS/Launcher-x86_64" -framework AppKit -target x86_64-apple-macos10.15
-clang launcher.m -o "${TEMPLATE_DIR}/Contents/MacOS/Launcher-arm64" -framework AppKit -target arm64-apple-macos10.15
-lipo -create -output "${TEMPLATE_DIR}/Contents/MacOS/Launcher" "${TEMPLATE_DIR}/Contents/MacOS/Launcher-x86_64" "${TEMPLATE_DIR}/Contents/MacOS/Launcher-arm64"
-rm "${TEMPLATE_DIR}/Contents/MacOS/Launcher-x86_64" "${TEMPLATE_DIR}/Contents/MacOS/Launcher-arm64"
-
-# Compile universal (x86_64 + arm64) Utility
-clang utility.m -o "${TEMPLATE_DIR}/Contents/MacOS/Utility-x86_64" -framework AppKit -target x86_64-apple-macos10.15
-clang utility.m -o "${TEMPLATE_DIR}/Contents/MacOS/Utility-arm64" -framework AppKit -target arm64-apple-macos10.15
-lipo -create -output "${TEMPLATE_DIR}/Contents/MacOS/Utility" "${TEMPLATE_DIR}/Contents/MacOS/Utility-x86_64" "${TEMPLATE_DIR}/Contents/MacOS/Utility-arm64"
-rm "${TEMPLATE_DIR}/Contents/MacOS/Utility-x86_64" "${TEMPLATE_DIR}/Contents/MacOS/Utility-arm64"
+# Compile universal (x86_64 + arm64) Launcher and Utility
+clang launcher.m -o "${TEMPLATE_DIR}/Contents/MacOS/Launcher" -framework AppKit -arch x86_64 -arch arm64 -mmacosx-version-min=10.15
+clang utility.m -o "${TEMPLATE_DIR}/Contents/MacOS/Utility" -framework AppKit -arch x86_64 -arch arm64 -mmacosx-version-min=10.15
 
 build_app "${TEMPLATE_DIR}" "${BUILTDIR}/OpenRA - Red Alert.app" "ra" "Red Alert" "699222659766026240"
 build_app "${TEMPLATE_DIR}" "${BUILTDIR}/OpenRA - Tiberian Dawn.app" "cnc" "Tiberian Dawn" "699223250181292033"
@@ -144,12 +143,39 @@ build_app "${TEMPLATE_DIR}" "${BUILTDIR}/OpenRA - Dune 2000.app" "d2k" "Dune 200
 
 rm -rf "${TEMPLATE_DIR}"
 
+# Replace duplicate .NET runtime files with hard links to improve compression
+echo "Deduplicating runtime files between mods"
+for MOD in "Red Alert" "Tiberian Dawn"; do
+	for p in "x86_64" "arm64"; do
+		for f in "${BUILTDIR}/OpenRA - ${MOD}.app/Contents/MacOS/${p}"/*; do
+			g="${BUILTDIR}/OpenRA - Dune 2000.app/Contents/MacOS/${p}/"$(basename "${f}")
+			if [ -e "${g}" ] && cmp -s "${f}" "${g}"; then
+				echo "Deduplicating ${f}"
+				rm "${f}"
+				ln "${g}" "${f}"
+			fi
+		done
+	done
+done
+
+echo "Deduplicating runtime files between architectures"
+for MOD in "Red Alert" "Tiberian Dawn" "Dune 2000"; do
+	for f in "${BUILTDIR}/OpenRA - ${MOD}.app/Contents/MacOS/x86_64"/*; do
+		g="${BUILTDIR}/OpenRA - ${MOD}.app/Contents/MacOS/arm64/"$(basename "${f}")
+		if [ -e "${g}" ] && cmp -s "${f}" "${g}"; then
+			echo "Deduplicating ${f}"
+			rm "${f}"
+			ln "${g}" "${f}"
+		fi
+	done
+done
+
 echo "Packaging disk image"
 if hdiutil info | grep -q "/Volumes/OpenRA"; then
-  echo "Some process is stealing our resources! /Volumes/OpenRA is already mounted!"
+	echo "Some process is stealing our resources! /Volumes/OpenRA is already mounted!"
 fi
 
-hdiutil create "build.dmg" -format UDRW -volname "OpenRA" -fs HFS+ -srcfolder build
+hdiutil create "build.dmg" -format UDRW -volname "OpenRA" -fs HFS+ -srcfolder "${BUILTDIR}"
 DMG_DEVICE=$(hdiutil attach -readwrite -noverify -noautoopen "build.dmg" | egrep '^/dev/' | sed 1q | awk '{print $1}')
 sleep 2
 
@@ -160,67 +186,36 @@ tiffutil -cathidpicheck "${ARTWORK_DIR}/macos-background.png" "${ARTWORK_DIR}/ma
 cp "${BUILTDIR}/OpenRA - Red Alert.app/Contents/Resources/ra.icns" "/Volumes/OpenRA/.VolumeIcon.icns"
 
 echo '
-   tell application "Finder"
-     tell disk "'OpenRA'"
-           open
-           set current view of container window to icon view
-           set toolbar visible of container window to false
-           set statusbar visible of container window to false
-           set the bounds of container window to {400, 100, 1040, 580}
-           set theViewOptions to the icon view options of container window
-           set arrangement of theViewOptions to not arranged
-           set icon size of theViewOptions to 72
-           set background picture of theViewOptions to file ".background:background.tiff"
-           make new alias file at container window to POSIX file "/Applications" with properties {name:"Applications"}
-           set position of item "'OpenRA - Tiberian Dawn.app'" of container window to {160, 106}
-           set position of item "'OpenRA - Red Alert.app'" of container window to {320, 106}
-           set position of item "'OpenRA - Dune 2000.app'" of container window to {480, 106}
-           set position of item "Applications" of container window to {320, 298}
-           set position of item ".background" of container window to {160, 298}
-           set position of item ".fseventsd" of container window to {160, 298}
-           set position of item ".VolumeIcon.icns" of container window to {160, 298}
-           update without registering applications
-           delay 5
-           close
-     end tell
-   end tell
+tell application "Finder"
+	tell disk "'OpenRA'"
+		open
+		set current view of container window to icon view
+		set toolbar visible of container window to false
+		set statusbar visible of container window to false
+		set the bounds of container window to {400, 100, 1040, 580}
+		set theViewOptions to the icon view options of container window
+		set arrangement of theViewOptions to not arranged
+		set icon size of theViewOptions to 72
+		set background picture of theViewOptions to file ".background:background.tiff"
+		make new alias file at container window to POSIX file "/Applications" with properties {name:"Applications"}
+		set position of item "'OpenRA - Tiberian Dawn.app'" of container window to {160, 106}
+		set position of item "'OpenRA - Red Alert.app'" of container window to {320, 106}
+		set position of item "'OpenRA - Dune 2000.app'" of container window to {480, 106}
+		set position of item "Applications" of container window to {320, 298}
+		set position of item ".background" of container window to {160, 298}
+		set position of item ".fseventsd" of container window to {160, 298}
+		set position of item ".VolumeIcon.icns" of container window to {160, 298}
+		update without registering applications
+		delay 5
+		close
+	end tell
+end tell
 ' | osascript
 
 # HACK: Copy the volume icon again - something in the previous step seems to delete it...?
 cp "${BUILTDIR}/OpenRA - Red Alert.app/Contents/Resources/ra.icns" "/Volumes/OpenRA/.VolumeIcon.icns"
 SetFile -c icnC "/Volumes/OpenRA/.VolumeIcon.icns"
 SetFile -a C "/Volumes/OpenRA"
-
-# Replace duplicate .NET runtime files with hard links to improve compression
-for MOD in "Red Alert" "Tiberian Dawn"; do
-	for p in "x86_64" "arm64"; do
-		for f in "/Volumes/OpenRA/OpenRA - ${MOD}.app/Contents/MacOS/${p}"/*; do
-			g="/Volumes/OpenRA/OpenRA - Dune 2000.app/Contents/MacOS/${p}/"$(basename "${f}")
-			hashf=$(shasum "${f}" | awk '{ print $1 }') || :
-			hashg=$(shasum "${g}" | awk '{ print $1 }') || :
-			if [ -n "${hashf}" ] && [ "${hashf}" = "${hashg}" ]; then
-				echo "Deduplicating ${f}"
-				rm "${f}"
-				ln "${g}" "${f}"
-			fi
-		done
-	done
-done
-
-for MOD in "Red Alert" "Tiberian Dawn" "Dune 2000"; do
-	for f in "/Volumes/OpenRA/OpenRA - ${MOD}.app/Contents/MacOS/x86_64"/*; do
-		g="/Volumes/OpenRA/OpenRA - ${MOD}.app/Contents/MacOS/arm64/"$(basename "${f}")
-		if [ -e "${g}" ]; then
-			hashf=$(shasum "${f}" | awk '{ print $1 }') || :
-			hashg=$(shasum "${g}" | awk '{ print $1 }') || :
-			if [ -n "${hashf}" ] && [ "${hashf}" = "${hashg}" ]; then
-				echo "Deduplicating ${f}"
-				rm "${f}"
-				ln "${g}" "${f}"
-			fi
-		fi
-	done
-done
 
 chmod -Rf go-w /Volumes/OpenRA
 sync
@@ -229,36 +224,24 @@ sync
 hdiutil detach "${DMG_DEVICE}"
 rm -rf "${BUILTDIR}"
 
-if [ -n "${MACOS_DEVELOPER_CERTIFICATE_BASE64}" ] && [ -n "${MACOS_DEVELOPER_CERTIFICATE_PASSWORD}" ] && [ -n "${MACOS_DEVELOPER_IDENTITY}" ]; then
-	security delete-keychain build.keychain
-fi
+DMG_NAME="OpenRA-${TAG}.dmg"
+FINAL_DMG_PATH="${OUTPUTDIR}/${DMG_NAME}"
 
+hdiutil convert "build.dmg" -format ULFO -ov -o "${FINAL_DMG_PATH}"
+rm "build.dmg"
+
+# Submit build for notarization
 if [ -n "${MACOS_DEVELOPER_USERNAME}" ] && [ -n "${MACOS_DEVELOPER_PASSWORD}" ] && [ -n "${MACOS_DEVELOPER_IDENTITY}" ]; then
 	echo "Submitting build for notarization"
 
-	# Reset xcode search path to fix xcrun not finding altool
+	# Reset xcode search path to fix xcrun not finding altool/notarytool
 	sudo xcode-select -r
 
-	# Create a temporary read-only dmg for submission (notarization service rejects read/write images)
-	hdiutil convert "build.dmg" -format ULFO -ov -o "build-notarization.dmg"
+	# Submit the final DMG directly to notarytool
+	xcrun notarytool submit "${FINAL_DMG_PATH}" --wait --apple-id "${MACOS_DEVELOPER_USERNAME}" --password "${MACOS_DEVELOPER_PASSWORD}" --team-id "${MACOS_DEVELOPER_IDENTITY}"
 
-	xcrun notarytool submit "build-notarization.dmg" --wait --apple-id "${MACOS_DEVELOPER_USERNAME}" --password "${MACOS_DEVELOPER_PASSWORD}" --team-id "${MACOS_DEVELOPER_IDENTITY}"
-
-	rm "build-notarization.dmg"
-
-	echo "Stapling tickets"
-	DMG_DEVICE=$(hdiutil attach -readwrite -noverify -noautoopen "build.dmg" | egrep '^/dev/' | sed 1q | awk '{print $1}')
-	sleep 2
-
-	xcrun stapler staple "/Volumes/OpenRA/OpenRA - Red Alert.app"
-	xcrun stapler staple "/Volumes/OpenRA/OpenRA - Tiberian Dawn.app"
-	xcrun stapler staple "/Volumes/OpenRA/OpenRA - Dune 2000.app"
-
-	sync
-	sync
-
-	hdiutil detach "${DMG_DEVICE}"
+	echo "Stapling tickets to DMG"
+	xcrun stapler staple "${FINAL_DMG_PATH}"
 fi
 
-hdiutil convert "build.dmg" -format ULFO -ov -o "${OUTPUTDIR}/OpenRA-${TAG}.dmg"
-rm "build.dmg"
+echo "Packaging complete: ${FINAL_DMG_PATH}"

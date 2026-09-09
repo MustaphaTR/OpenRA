@@ -12,13 +12,16 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Threading;
 
 namespace OpenRA.Graphics
 {
 	public sealed class TerrainSpriteLayer : IDisposable
 	{
 		// PERF: we can reuse the IndexBuffer as all layers have the same size.
+		static readonly Lock IndexBuffersLock = new();
 		static readonly ConditionalWeakTable<World, IndexBufferRc> IndexBuffers = [];
 		readonly IndexBufferRc indexBufferWrapper;
 
@@ -54,7 +57,7 @@ namespace OpenRA.Graphics
 			vertexBuffer = Game.Renderer.Context.CreateEmptyVertexBuffer<Vertex>(vertices.Length);
 
 			indexRowStride = 6 * map.MapSize.Width;
-			lock (IndexBuffers)
+			lock (IndexBuffersLock)
 			{
 				indexBufferWrapper = IndexBuffers.GetValue(world, world => new IndexBufferRc(world));
 				indexBufferWrapper.AddRef();
@@ -96,7 +99,7 @@ namespace OpenRA.Graphics
 
 		public void Update(CPos cell, Sprite sprite, PaletteReference palette, float scale = 1f, float alpha = 1f, bool ignoreTint = false)
 		{
-			var xyz = float3.Zero;
+			var xyz = Vector3.Zero;
 			if (sprite != null)
 			{
 				var cellOrigin = map.CenterOfCell(cell) - new WVec(0, 0, map.Grid.Ramps[map.Ramp[cell]].CenterHeightOffset);
@@ -114,7 +117,7 @@ namespace OpenRA.Graphics
 				for (var i = 0; i < 4; i++)
 				{
 					var v = vertices[offset + i];
-					vertices[offset + i] = new Vertex(v.X, v.Y, v.Z, v.S, v.T, v.U, v.V, v.C, v.A * float3.Ones, v.A);
+					vertices[offset + i] = new Vertex(v.X, v.Y, v.Z, v.S, v.T, v.U, v.V, v.C, v.A * Vector3.One, v.A);
 				}
 
 				return;
@@ -165,7 +168,7 @@ namespace OpenRA.Graphics
 			throw new InvalidDataException("Sheet overflow");
 		}
 
-		public void Update(MPos uv, Sprite sprite, PaletteReference palette, in float3 pos, float scale, float alpha, bool ignoreTint)
+		public void Update(MPos uv, Sprite sprite, PaletteReference palette, in Vector3 pos, float scale, float alpha, bool ignoreTint)
 		{
 			int2 samplers;
 			if (sprite != null)
@@ -192,7 +195,7 @@ namespace OpenRA.Graphics
 				return;
 
 			var offset = vertexRowStride * uv.V + 4 * uv.U;
-			Util.FastCreateQuad(vertices, pos, sprite, samplers, palette?.TextureIndex ?? 0, offset, scale * sprite.Size, alpha * float3.Ones, alpha);
+			Util.FastCreateQuad(vertices, pos, sprite, samplers, palette?.TextureIndex ?? 0, offset, scale * sprite.Size, alpha * Vector3.One, alpha);
 			palettes[uv.V * map.MapSize.Width + uv.U] = palette;
 
 			if (worldRenderer.TerrainLighting != null)
@@ -239,7 +242,7 @@ namespace OpenRA.Graphics
 
 			vertexBuffer.Dispose();
 
-			lock (IndexBuffers)
+			lock (IndexBuffersLock)
 				indexBufferWrapper.Dispose();
 		}
 

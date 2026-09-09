@@ -15,6 +15,7 @@ using System.Collections.Immutable;
 using System.Collections.ObjectModel;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Numerics;
 using OpenRA.Activities;
 using OpenRA.FileSystem;
 using OpenRA.GameRules;
@@ -437,7 +438,7 @@ namespace OpenRA.Traits
 	public interface ITerrainLighting
 	{
 		event Action<MPos> CellChanged;
-		float3 TintAt(WPos pos);
+		Vector3 TintAt(WPos pos);
 	}
 
 	public interface IRenderAboveShroud
@@ -660,5 +661,6 @@ namespace OpenRA.Traits
 
 		Map Generate(ModData modData, MapGenerationArgs args);
 		bool TryGenerateMetadata(ModData modData, MapGenerationArgs args, out MapPlayers players, out Dictionary<string, MiniYaml> rules);
+		bool ValidateArgs(ModData modData, MapGenerationArgs args);
 	}
 }

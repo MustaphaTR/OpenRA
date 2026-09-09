@@ -11,6 +11,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Numerics;
 using OpenRA.FileFormats;
 using OpenRA.Primitives;
 
@@ -76,9 +77,13 @@ namespace OpenRA.Graphics
 			this.margin = margin;
 		}
 
-		public Sprite Add(ISpriteFrame frame, bool premultiplied = false) { return Add(frame.Data, frame.Type, frame.Size, 0, frame.Offset, premultiplied); }
-		public Sprite Add(byte[] src, SpriteFrameType type, Size size, bool premultiplied = false) { return Add(src, type, size, 0, float3.Zero, premultiplied); }
-		public Sprite Add(byte[] src, SpriteFrameType type, Size size, float zRamp, in float3 spriteOffset, bool premultiplied = false)
+		public Sprite Add(ISpriteFrame frame, bool premultiplied = false)
+		{
+			return Add(frame.Data, frame.Type, frame.Size, 0, frame.Offset.AsVector3(), premultiplied);
+		}
+
+		public Sprite Add(byte[] src, SpriteFrameType type, Size size, bool premultiplied = false) { return Add(src, type, size, 0, Vector3.Zero, premultiplied); }
+		public Sprite Add(byte[] src, SpriteFrameType type, Size size, float zRamp, in Vector3 spriteOffset, bool premultiplied = false)
 		{
 			if (Current == null)
 			{
@@ -92,7 +97,7 @@ namespace OpenRA.Graphics
 
 			var rect = Allocate(size, zRamp, spriteOffset);
 			Util.FastCopyIntoChannel(rect, src, type, premultiplied);
-			Current.CommitBufferedData();
+			Current.CommitBufferedData(rect.Bounds);
 			return rect;
 		}
 
@@ -100,7 +105,7 @@ namespace OpenRA.Graphics
 		{
 			var rect = Allocate(new Size(src.Width, src.Height), scale);
 			Util.FastCopyIntoSprite(rect, src);
-			Current.CommitBufferedData();
+			Current.CommitBufferedData(rect.Bounds);
 			return rect;
 		}
 
@@ -113,8 +118,8 @@ namespace OpenRA.Graphics
 			return (TextureChannel)nextChannel;
 		}
 
-		public Sprite Allocate(Size imageSize, float scale = 1f) { return Allocate(imageSize, 0, float3.Zero, scale); }
-		public Sprite Allocate(Size imageSize, float zRamp, in float3 spriteOffset, float scale = 1f)
+		public Sprite Allocate(Size imageSize, float scale = 1f) { return Allocate(imageSize, 0, Vector3.Zero, scale); }
+		public Sprite Allocate(Size imageSize, float zRamp, in Vector3 spriteOffset, float scale = 1f)
 		{
 			if (Current == null)
 			{

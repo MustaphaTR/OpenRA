@@ -10,6 +10,7 @@
 #endregion
 
 using System;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using OpenRA.FileFormats;
@@ -25,57 +26,46 @@ namespace OpenRA.Graphics
 		public static uint[] CreateQuadIndices(int quads)
 		{
 			var indices = new uint[quads * 6];
-			ReadOnlySpan<uint> cornerVertexMap = [0, 1, 2, 2, 3, 0];
-			for (var i = 0; i < indices.Length; i++)
-				indices[i] = cornerVertexMap[i % 6] + (uint)(4 * (i / 6));
+			uint vertexOffset = 0;
+
+			for (var i = 0; i < indices.Length; i += 6)
+			{
+				indices[i] = vertexOffset;
+				indices[i + 1] = vertexOffset + 1;
+				indices[i + 2] = vertexOffset + 2;
+				indices[i + 3] = vertexOffset + 2;
+				indices[i + 4] = vertexOffset + 3;
+				indices[i + 5] = vertexOffset;
+				vertexOffset += 4;
+			}
 
 			return indices;
 		}
 
-		public static void FastCreateQuad(Vertex[] vertices, in float3 o, Sprite r, int2 samplers, int paletteTextureIndex, int nv,
-			in float3 size, in float3 tint, float alpha, float rotation = 0f)
+		public static void FastCreateQuad(Vertex[] vertices, in Vector3 o, Sprite r, int2 samplers, int paletteTextureIndex, int nv,
+			in Vector3 size, in Vector3 tint, float alpha, float rotation = 0f)
 		{
-			float3 a, b, c, d;
-
 			// Rotate sprite if rotation angle is not equal to 0
 			if (rotation != 0f)
 			{
-				var center = o + 0.5f * size;
-				var angleSin = (float)Math.Sin(-rotation);
-				var angleCos = (float)Math.Cos(-rotation);
-
-				// Rotated offset for +/- x with +/- y
-				var ra = 0.5f * new float3(
-					size.X * angleCos - size.Y * angleSin,
-					size.X * angleSin + size.Y * angleCos,
-					(size.X * angleSin + size.Y * angleCos) * size.Z / size.Y);
-
-				// Rotated offset for +/- x with -/+ y
-				var rb = 0.5f * new float3(
-					size.X * angleCos + size.Y * angleSin,
-					size.X * angleSin - size.Y * angleCos,
-					(size.X * angleSin - size.Y * angleCos) * size.Z / size.Y);
-
-				a = center - ra;
-				b = center + rb;
-				c = center + ra;
-				d = center - rb;
+				Span<Vector3> rot = stackalloc Vector3[4];
+				RotateQuadInto(rot, o, size, rotation);
+				FastCreateQuad(vertices, rot[0], rot[1], rot[2], rot[3], r, samplers, paletteTextureIndex, tint, alpha, nv);
 			}
 			else
 			{
-				a = o;
-				b = new float3(o.X + size.X, o.Y, o.Z);
-				c = new float3(o.X + size.X, o.Y + size.Y, o.Z + size.Z);
-				d = new float3(o.X, o.Y + size.Y, o.Z + size.Z);
-			}
+				var b = new Vector3(o.X + size.X, o.Y, o.Z);
+				var c = new Vector3(o.X + size.X, o.Y + size.Y, o.Z + size.Z);
+				var d = new Vector3(o.X, o.Y + size.Y, o.Z + size.Z);
 
-			FastCreateQuad(vertices, a, b, c, d, r, samplers, paletteTextureIndex, tint, alpha, nv);
+				FastCreateQuad(vertices, o, b, c, d, r, samplers, paletteTextureIndex, tint, alpha, nv);
+			}
 		}
 
 		public static void FastCreateQuad(Vertex[] vertices,
-			in float3 a, in float3 b, in float3 c, in float3 d,
+			in Vector3 a, in Vector3 b, in Vector3 c, in Vector3 d,
 			Sprite r, int2 samplers, int paletteTextureIndex,
-			in float3 tint, float alpha, int nv)
+			in Vector3 tint, float alpha, int nv)
 		{
 			float sl = 0;
 			float st = 0;
@@ -257,58 +247,38 @@ namespace OpenRA.Graphics
 
 		/// <summary>Rotates a quad about its center in the x-y plane.</summary>
 		/// <param name="tl">The top left vertex of the quad.</param>
-		/// <param name="size">A float3 containing the X, Y, and Z lengths of the quad.</param>
+		/// <param name="size">A Vector3 containing the X, Y, and Z lengths of the quad.</param>
 		/// <param name="rotation">The number of radians to rotate by.</param>
 		/// <returns>An array of four vertices representing the rotated quad (top-left, top-right, bottom-right, bottom-left).</returns>
-		public static float3[] RotateQuad(float3 tl, float3 size, float rotation)
+		public static Vector3[] RotateQuad(Vector3 tl, Vector3 size, float rotation)
 		{
-			var center = tl + 0.5f * size;
-			var angleSin = (float)Math.Sin(-rotation);
-			var angleCos = (float)Math.Cos(-rotation);
-
-			// Rotated offset for +/- x with +/- y
-			var ra = 0.5f * new float3(
-				size.X * angleCos - size.Y * angleSin,
-				size.X * angleSin + size.Y * angleCos,
-				(size.X * angleSin + size.Y * angleCos) * size.Z / size.Y);
-
-			// Rotated offset for +/- x with -/+ y
-			var rb = 0.5f * new float3(
-				size.X * angleCos + size.Y * angleSin,
-				size.X * angleSin - size.Y * angleCos,
-				(size.X * angleSin - size.Y * angleCos) * size.Z / size.Y);
-
-			return
-			[
-				center - ra,
-				center + rb,
-				center + ra,
-				center - rb
-			];
+			var des = new Vector3[4];
+			RotateQuadInto(des, tl, size, rotation);
+			return des;
 		}
 
 		/// <summary>Rotates a quad about its center in the x-y plane.</summary>
-		/// <param name="des">Destination array of four verties representing the rotated quad (top-left, top-right, bottom-right, bottom-left).</param>
+		/// <param name="des">Destination array of four vertices representing the rotated quad (top-left, top-right, bottom-right, bottom-left).</param>
 		/// <param name="tl">The top left vertex of the quad.</param>
-		/// <param name="size">A float3 containing the X, Y, and Z lengths of the quad.</param>
+		/// <param name="size">A Vector3 containing the X, Y, and Z lengths of the quad.</param>
 		/// <param name="rotation">The number of radians to rotate by.</param>
-		public static void RotateQuadInto(Span<float3> des, float3 tl, float3 size, float rotation)
+		public static void RotateQuadInto(Span<Vector3> des, Vector3 tl, Vector3 size, float rotation)
 		{
 			var center = tl + 0.5f * size;
-			var angleSin = (float)Math.Sin(-rotation);
-			var angleCos = (float)Math.Cos(-rotation);
+			var rotMatrix = Matrix3x2.CreateRotation(-rotation);
+
+			var halfX = size.X * 0.5f;
+			var halfY = size.Y * 0.5f;
+			var zScale = size.Z / size.Y;
+
+			var ra2D = Vector2.Transform(new Vector2(halfX, halfY), rotMatrix);
+			var rb2D = Vector2.Transform(new Vector2(halfX, -halfY), rotMatrix);
 
 			// Rotated offset for +/- x with +/- y
-			var ra = 0.5f * new float3(
-				size.X * angleCos - size.Y * angleSin,
-				size.X * angleSin + size.Y * angleCos,
-				(size.X * angleSin + size.Y * angleCos) * size.Z / size.Y);
+			var ra = new Vector3(ra2D, ra2D.Y * zScale);
 
 			// Rotated offset for +/- x with -/+ y
-			var rb = 0.5f * new float3(
-				size.X * angleCos + size.Y * angleSin,
-				size.X * angleSin - size.Y * angleCos,
-				(size.X * angleSin - size.Y * angleCos) * size.Z / size.Y);
+			var rb = new Vector3(rb2D, rb2D.Y * zScale);
 
 			des[0] = center - ra;
 			des[1] = center + rb;
@@ -322,12 +292,12 @@ namespace OpenRA.Graphics
 		/// <param name="offset">The top left vertex of the object.</param>
 		/// <param name="size">A float 3 containing the X, Y, and Z lengths of the object.</param>
 		/// <param name="rotation">The angle to rotate the object by (use 0f if there is no rotation).</param>
-		public static Rectangle BoundingRectangle(float3 offset, float3 size, float rotation)
+		public static Rectangle BoundingRectangle(Vector3 offset, Vector3 size, float rotation)
 		{
 			if (rotation == 0f)
 				return new Rectangle((int)offset.X, (int)offset.Y, (int)size.X, (int)size.Y);
 
-			Span<float3> rotatedQuad = stackalloc float3[4];
+			Span<Vector3> rotatedQuad = stackalloc Vector3[4];
 			RotateQuadInto(rotatedQuad, offset, size, rotation);
 
 			var minX = rotatedQuad[0].X;
@@ -394,5 +364,8 @@ namespace OpenRA.Graphics
 				(int)((byte)(t * a2 * c2.G + 0.5f) + (1 - t) * (byte)(a1 * c1.G + 0.5f)),
 				(int)((byte)(t * a2 * c2.B + 0.5f) + (1 - t) * (byte)(a1 * c1.B + 0.5f))));
 		}
+
+		public static float Lerp(float a, float b, float t) { return a + t * (b - a); }
+		public static Vector2 FromAngle(float a) { return new Vector2((float)Math.Sin(a), (float)Math.Cos(a)); }
 	}
 }

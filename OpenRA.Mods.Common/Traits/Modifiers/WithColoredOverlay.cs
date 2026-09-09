@@ -10,6 +10,7 @@
 #endregion
 
 using System.Collections.Generic;
+using System.Numerics;
 using OpenRA.Graphics;
 using OpenRA.Primitives;
 using OpenRA.Traits;
@@ -27,14 +28,15 @@ namespace OpenRA.Mods.Common.Traits
 
 	public class WithColoredOverlay : ConditionalTrait<WithColoredOverlayInfo>, IRenderModifier
 	{
-		readonly float3 tint;
+		readonly Vector3 tint;
 		readonly float alpha;
 
 		public WithColoredOverlay(WithColoredOverlayInfo info)
 			: base(info)
 		{
-			tint = new float3(info.Color.R, info.Color.G, info.Color.B) / 255f;
-			alpha = info.Color.A / 255f;
+			var color = info.Color.ToVector4();
+			tint = color.AsVector3();
+			alpha = color.W;
 		}
 
 		IEnumerable<IRenderable> IRenderModifier.ModifyRender(Actor self, WorldRenderer wr, IEnumerable<IRenderable> r)

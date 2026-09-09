@@ -24,13 +24,16 @@ namespace OpenRA.Platforms.Default
 	sealed class ThreadedGraphicsContext : IGraphicsContext
 	{
 		// PERF: Maintain several object pools to reduce allocations.
+		readonly Lock vertexBufferPoolsLock = new();
 		readonly Dictionary<Type, object> vertexBufferPools = [];
+		readonly Lock messagePoolLock = new();
 		readonly Stack<Message> messagePool = [];
+		readonly object messagesMonitor = new();
 		readonly Queue<Message> messages = [];
 
 		public readonly int VertexBatchSize;
 		public readonly int IndexBatchSize;
-		readonly object syncObject = new();
+		readonly object constructorMonitor = new();
 		readonly Thread renderThread;
 		volatile ExceptionDispatchInfo messageException;
 
@@ -63,12 +66,12 @@ namespace OpenRA.Platforms.Default
 				Name = "ThreadedGraphicsContext RenderThread",
 				IsBackground = true
 			};
-			lock (syncObject)
+			lock (constructorMonitor)
 			{
 				// Start and wait for the rendering thread to have initialized before returning.
 				// Otherwise, the delegates may not have been set yet.
 				renderThread.Start(context);
-				Monitor.Wait(syncObject);
+				Monitor.Wait(constructorMonitor);
 			}
 		}
 
@@ -77,7 +80,7 @@ namespace OpenRA.Platforms.Default
 			using (var context = (Sdl2GraphicsContext)contextObject)
 			{
 				// This lock allows the constructor to block until initialization completes.
-				lock (syncObject)
+				lock (constructorMonitor)
 				{
 					context.InitializeOpenGL();
 
@@ -140,7 +143,7 @@ namespace OpenRA.Platforms.Default
 					doSetBlendMode = mode => context.SetBlendMode((BlendMode)mode);
 					doSetVSync = enabled => context.SetVSyncEnabled((bool)enabled);
 
-					Monitor.Pulse(syncObject);
+					Monitor.Pulse(constructorMonitor);
 				}
 
 				// Run a message loop.
@@ -149,14 +152,14 @@ namespace OpenRA.Platforms.Default
 				Message message;
 				while (true)
 				{
-					lock (messages)
+					lock (messagesMonitor)
 					{
 						if (messages.Count == 0)
 						{
 							if (messageException != null)
 								break;
 
-							Monitor.Wait(messages);
+							Monitor.Wait(messagesMonitor);
 						}
 
 						message = messages.Dequeue();
@@ -172,7 +175,7 @@ namespace OpenRA.Platforms.Default
 
 		internal T[] GetVertices<T>(int size)
 		{
-			lock (vertexBufferPools)
+			lock (vertexBufferPoolsLock)
 			{
 				Stack<T[]> pool;
 				if (!vertexBufferPools.TryGetValue(typeof(T), out var poolObject))
@@ -193,7 +196,7 @@ namespace OpenRA.Platforms.Default
 		internal void ReturnVertices<T>(T[] vertices)
 		{
 			if (vertices.Length == VertexBatchSize)
-				lock (vertexBufferPools)
+				lock (vertexBufferPoolsLock)
 					((Stack<T[]>)vertexBufferPools[typeof(T)]).Push(vertices);
 		}
 
@@ -283,7 +286,7 @@ namespace OpenRA.Platforms.Default
 
 				if (wasSend)
 				{
-					lock (device.messagePool)
+					lock (device.messagePoolLock)
 						device.messagePool.Push(this);
 				}
 				else
@@ -308,7 +311,7 @@ namespace OpenRA.Platforms.Default
 
 		Message GetMessage()
 		{
-			lock (messagePool)
+			lock (messagePoolLock)
 				if (messagePool.Count > 0)
 					return messagePool.Pop();
 
@@ -320,11 +323,11 @@ namespace OpenRA.Platforms.Default
 			var exception = messageException;
 			exception?.Throw();
 
-			lock (messages)
+			lock (messagesMonitor)
 			{
 				messages.Enqueue(message);
 				if (messages.Count == 1)
-					Monitor.Pulse(messages);
+					Monitor.Pulse(messagesMonitor);
 			}
 		}
 
@@ -332,7 +335,7 @@ namespace OpenRA.Platforms.Default
 		{
 			QueueMessage(message);
 			var result = message.Result();
-			lock (messagePool)
+			lock (messagePoolLock)
 				messagePool.Push(message);
 			return result;
 		}
@@ -666,6 +669,8 @@ namespace OpenRA.Platforms.Default
 		readonly Func<byte[]> getData;
 		readonly Action<object> setData1;
 		readonly Func<object, object> setData2;
+		readonly Action<object> setSubData1;
+		readonly Func<object, object> setSubData2;
 		readonly Action<object> setData3;
 		readonly Func<object, object> setData4;
 		readonly Action<object> setData5;
@@ -682,6 +687,8 @@ namespace OpenRA.Platforms.Default
 			getData = texture.GetData;
 			setData1 = tuple => { var t = ((byte[], int, int))tuple; texture.SetData(t.Item1, t.Item2, t.Item3); };
 			setData2 = tuple => { setData1(tuple); return null; };
+			setSubData1 = tuple => { var t = ((byte[], int, int, int, int))tuple; texture.SetSubData(t.Item1, t.Item2, t.Item3, t.Item4, t.Item5); };
+			setSubData2 = tuple => { setSubData1(tuple); return null; };
 			setData3 = tuple => { var t = ((float[], int, int))tuple; texture.SetFloatData(t.Item1, t.Item2, t.Item3); };
 			setData4 = tuple => { setData3(tuple); return null; };
 			setData5 = rect => texture.SetDataFromReadBuffer((Rectangle)rect);
@@ -725,6 +732,25 @@ namespace OpenRA.Platforms.Default
 				// If the length is large and would result in an array on the Large Object Heap (LOH),
 				// send a message and block to avoid LOH allocation as this requires a Gen2 collection.
 				device.Send(setData2, (colors, width, height));
+			}
+		}
+
+		public void SetSubData(byte[] colors, int xoffset, int yoffset, int width, int height)
+		{
+			// Objects 85000 bytes or more will be directly allocated in the Large Object Heap (LOH).
+			// https://docs.microsoft.com/en-us/dotnet/standard/garbage-collection/large-object-heap
+			if (colors.Length < 85000)
+			{
+				// If we are able to create a small array the GC can collect easily, post a message to avoid blocking.
+				var temp = new byte[colors.Length];
+				Array.Copy(colors, temp, temp.Length);
+				device.Post(setSubData1, (temp, xoffset, yoffset, width, height));
+			}
+			else
+			{
+				// If the length is large and would result in an array on the Large Object Heap (LOH),
+				// send a message and block to avoid LOH allocation as this requires a Gen2 collection.
+				device.Send(setSubData2, (colors, xoffset, yoffset, width, height));
 			}
 		}
 

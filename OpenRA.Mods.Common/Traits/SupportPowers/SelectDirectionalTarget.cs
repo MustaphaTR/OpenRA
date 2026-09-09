@@ -11,6 +11,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Numerics;
 using OpenRA.Graphics;
 using OpenRA.Mods.Common.Graphics;
 using OpenRA.Mods.Common.Widgets;
@@ -33,7 +34,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		CPos targetCell;
 		int2 targetLocation;
-		float2 dragDirection;
+		Vector2 dragDirection;
 		bool activated;
 		bool dragStarted;
 		Arrow currentArrow;
@@ -80,11 +81,11 @@ namespace OpenRA.Mods.Common.Traits
 
 			if (mi.Event == MouseInputEvent.Move)
 			{
-				dragDirection += mi.Delta;
+				dragDirection += mi.Delta.ToVector2();
 
 				var angle = AngleOf(dragDirection);
-				if (dragDirection.Length > MaxDragThreshold)
-					dragDirection = -MaxDragThreshold * float2.FromAngle((float)(angle * (Math.PI / 180)));
+				if (dragDirection.Length() > MaxDragThreshold)
+					dragDirection = -MaxDragThreshold * OpenRA.Graphics.Util.FromAngle((float)(angle * (Math.PI / 180)));
 
 				currentArrow = GetArrow(angle);
 
@@ -113,7 +114,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		void IOrderGenerator.SelectionChanged(World world, IEnumerable<Actor> selected) { }
 
-		bool IsOutsideDragZone => dragStarted && dragDirection.Length > MinDragThreshold;
+		bool IsOutsideDragZone => dragStarted && dragDirection.Length() > MinDragThreshold;
 
 		IEnumerable<IRenderable> IOrderGenerator.Render(WorldRenderer wr, World world) { yield break; }
 
@@ -160,7 +161,7 @@ namespace OpenRA.Mods.Common.Traits
 		}
 
 		// Starting at (0, -1) and rotating in CCW
-		static double AngleOf(float2 delta)
+		static double AngleOf(Vector2 delta)
 		{
 			var radian = Math.Atan2(delta.Y, delta.X);
 			var d = radian * (180 / Math.PI);

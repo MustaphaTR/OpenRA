@@ -59,8 +59,8 @@ namespace OpenRA.Mods.Common.Widgets
 			IEnumerable<Actor> rollover;
 			if (IsValidDragbox)
 			{
-				var a = worldRenderer.Viewport.WorldToViewPx(dragStart);
-				var b = worldRenderer.Viewport.WorldToViewPx(mousePos);
+				var a = worldRenderer.Viewport.WorldToViewPx(dragStart).ToVector3();
+				var b = worldRenderer.Viewport.WorldToViewPx(mousePos).ToVector3();
 
 				var color = normalSelectionColor;
 				if (modifiers.HasFlag(Modifiers.Alt) && !modifiers.HasFlag(Modifiers.Ctrl))
@@ -230,6 +230,21 @@ namespace OpenRA.Mods.Common.Widgets
 
 				return World.OrderGenerator.GetCursor(World, cell, worldPixel, mi);
 			});
+		}
+
+		public override bool HandleKeyPress(KeyInput e)
+		{
+			if (World.OrderGenerator is not UnitOrderGenerator uog)
+				return false;
+
+			if (uog.HasIssuedQueuedCommand && e.Event == KeyInputEvent.Up && (e.Key == Keycode.LSHIFT || e.Key == Keycode.RSHIFT))
+			{
+				World.CancelInputMode();
+				uog.HasIssuedQueuedCommand = false;
+				return true;
+			}
+
+			return false;
 		}
 	}
 }

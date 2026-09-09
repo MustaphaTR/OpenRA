@@ -178,6 +178,7 @@ EmergencyBuildRate = {}
 ---@param target cpos -- position where emergency event take place
 EmergencyBehaviour = function(player, target)
 	HoldProduction[player] = false
+	Attacking[player] = false
 	if Difficulty == "hard" then
 		player.Cash = player.Cash + 2000
 	end
@@ -508,7 +509,9 @@ FindTargetsInArea = function(owner, unit)
 
 		if #enemies > 0 then
 			unit.Hunt()
-			unit.Wait(10)
+			Trigger.AfterDelay(420, function()
+				if not unit.IsDead then unit.Stop() end
+			end)
 		else
 			unit.Wait(Utils.RandomInteger(200 , 500))
 			if DefencePerimeter[owner] ~= nil then
