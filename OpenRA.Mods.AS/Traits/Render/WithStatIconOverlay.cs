@@ -9,6 +9,7 @@
  */
 #endregion
 
+using System.Numerics;
 using OpenRA.Graphics;
 using OpenRA.Mods.Common.Traits;
 using OpenRA.Traits;
@@ -49,11 +50,11 @@ namespace OpenRA.Mods.AS.Traits
 			Sprite = anim.Image;
 		}
 
-		public float2 GetOffset(int2 iconSize, float iconScale = 1f)
+		public Vector2 GetOffset(Vector2 iconSize, float iconScale = 1f)
 		{
 			var x = (Sprite.Size.X * iconScale - iconSize.X) / 2;
 			var y = (Sprite.Size.Y * iconScale - iconSize.Y) / 2;
-			return new float2(x, y);
+			return new Vector2(x, y);
 		}
 	}
 }

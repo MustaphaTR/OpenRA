@@ -39,7 +39,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				for (var i = 1; i < largeIconCount; i++)
 				{
 					var iconClone = largeIcons[0].Clone() as ActorIconWidget;
-					iconClone.Bounds.X += (iconClone.IconSize.X + largeIconSpacing.X) * i;
+					iconClone.Bounds.X += (int)(iconClone.IconSize.X + largeIconSpacing.X) * i;
 
 					widget.AddChild(iconClone);
 					largeIcons.Add(iconClone);
@@ -70,15 +70,15 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				for (var i = 1; i < largeIconCount + smallIconCount; i++)
 				{
 					var iconClone = smallIcons[0].Clone() as ActorIconWidget;
-					iconClone.Bounds.X += (iconClone.IconSize.X + smallIconSpacing.X) * (i % smallIconRows);
-					iconClone.Bounds.Y += (iconClone.IconSize.Y + smallIconSpacing.Y) * (i / smallIconRows);
+					iconClone.Bounds.X += (int)(iconClone.IconSize.X + smallIconSpacing.X) * (i % smallIconRows);
+					iconClone.Bounds.Y += (int)(iconClone.IconSize.Y + smallIconSpacing.Y) * (i / smallIconRows);
 
 					widget.AddChild(iconClone);
 					smallIcons.Add(iconClone);
 
 					var healthBarClone = smallHealthBars[0].Clone() as HealthBarWidget;
-					healthBarClone.Bounds.X += (iconClone.IconSize.X + smallIconSpacing.X) * (i % smallIconRows);
-					healthBarClone.Bounds.Y += (iconClone.IconSize.Y + smallIconSpacing.Y) * (i / smallIconRows);
+					healthBarClone.Bounds.X += (int)(iconClone.IconSize.X + smallIconSpacing.X) * (i % smallIconRows);
+					healthBarClone.Bounds.Y += (int)(iconClone.IconSize.Y + smallIconSpacing.Y) * (i / smallIconRows);
 
 					widget.AddChild(healthBarClone);
 					smallHealthBars.Add(healthBarClone);
@@ -101,7 +101,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 					for (var i = 1; i < upgradeIconCount; i++)
 					{
 						var iconClone = upgradeIcons[0].Clone() as ActorIconWidget;
-						iconClone.Bounds.X += (iconClone.IconSize.X + upgradeIconSpacing.X) * i;
+						iconClone.Bounds.X += (int)(iconClone.IconSize.X + upgradeIconSpacing.X) * i;
 
 						widget.AddChild(iconClone);
 						upgradeIcons.Add(iconClone);

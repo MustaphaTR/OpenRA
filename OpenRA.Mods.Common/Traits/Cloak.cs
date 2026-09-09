@@ -152,8 +152,9 @@ namespace OpenRA.Mods.Common.Traits
 		{
 			remainingTime = info.InitialDelay;
 
-			cloakedColor = new Vector3(info.CloakedColor.R, info.CloakedColor.G, info.CloakedColor.B) / 255f;
-			cloakedColorAlpha = info.CloakedColor.A / 255f;
+			var cColor = info.CloakedColor.ToVector4();
+			cloakedColor = cColor.AsVector3();
+			cloakedColorAlpha = cColor.W;
 			alphaChange = (info.MaxCloakedAlpha - info.MinCloakedAlpha) / Math.Max(1, info.CloakAlphaChangeInterval);
 		}
 

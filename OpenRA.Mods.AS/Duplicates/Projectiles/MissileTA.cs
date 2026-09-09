@@ -11,7 +11,9 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
+using System.Numerics;
 using OpenRA.GameRules;
 using OpenRA.Graphics;
 using OpenRA.Mods.Common;
@@ -32,7 +34,7 @@ namespace OpenRA.Mods.TA.Projectiles
 
 		[SequenceReference(nameof(Image), allowNullImage: true)]
 		[Desc("Loop a randomly chosen sequence of Image from this list while this projectile is moving.")]
-		public readonly string[] Sequences = ["idle"];
+		public readonly ImmutableArray<string> Sequences = ["idle"];
 
 		[PaletteReference(nameof(IsPlayerPalette))]
 		[Desc("Palette used to render the projectile sequence.")]
@@ -144,7 +146,7 @@ namespace OpenRA.Mods.TA.Projectiles
 
 		[SequenceReference(nameof(JetImage), allowNullImage: true)]
 		[Desc("Loop a randomly chosen sequence of JetImage from this list while this projectile is moving.")]
-		public readonly string[] JetSequences = ["idle"];
+		public readonly ImmutableArray<string> JetSequences = ["idle"];
 
 		[PaletteReference(nameof(JetUsePlayerPalette))]
 		[Desc("Palette used to render the jet sequence. ")]
@@ -158,7 +160,7 @@ namespace OpenRA.Mods.TA.Projectiles
 
 		[SequenceReference(nameof(TrailImage), allowNullImage: true)]
 		[Desc("Loop a randomly chosen sequence of TrailImage from this list while this projectile is moving.")]
-		public readonly string[] TrailSequences = ["idle"];
+		public readonly ImmutableArray<string> TrailSequences = ["idle"];
 
 		[PaletteReference(nameof(TrailUsePlayerPalette))]
 		[Desc("Palette used to render the trail sequence.")]
@@ -263,6 +265,7 @@ namespace OpenRA.Mods.TA.Projectiles
 		readonly Animation anim;
 		readonly Animation jetanim;
 		readonly Animation jammedanim;
+
 		readonly WVec gravity;
 		readonly int minLaunchSpeed;
 		readonly int maxLaunchSpeed;
@@ -271,6 +274,10 @@ namespace OpenRA.Mods.TA.Projectiles
 		readonly WAngle minLaunchAngle;
 		readonly WAngle maxLaunchAngle;
 		WDist cruiseHt;
+
+		readonly Vector3 shadowColor;
+		readonly float shadowAlpha;
+
 		int ticks;
 
 		int ticksToNextSmoke;
@@ -291,9 +298,6 @@ namespace OpenRA.Mods.TA.Projectiles
 
 		WVec tarVel;
 		WVec predVel;
-
-		readonly float3 shadowColor;
-		readonly float shadowAlpha;
 
 		[VerifySync]
 		WPos pos;
@@ -400,8 +404,9 @@ namespace OpenRA.Mods.TA.Projectiles
 					info.ContrailLength, info.ContrailDelay, info.ContrailZOffset);
 			}
 
-			shadowColor = new float3(info.ShadowColor.R, info.ShadowColor.G, info.ShadowColor.B) / 255f;
-			shadowAlpha = info.ShadowColor.A / 255f;
+			var sColor = info.ShadowColor.ToVector4();
+			shadowColor = sColor.AsVector3();
+			shadowAlpha = sColor.W;
 		}
 
 		static int LoopRadius(int speed, int rot)

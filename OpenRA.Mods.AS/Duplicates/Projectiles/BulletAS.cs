@@ -9,8 +9,11 @@
 #endregion
 
 using System;
+using System.Collections.Frozen;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
+using System.Numerics;
 using OpenRA.GameRules;
 using OpenRA.Graphics;
 using OpenRA.Mods.Common;
@@ -26,7 +29,7 @@ namespace OpenRA.Mods.AS.Projectiles
 	public class BulletASInfo : IProjectileInfo
 	{
 		[Desc("Projectile speed in WDist / tick, two values indicate variable velocity.")]
-		public readonly WDist[] Speed = [new(17)];
+		public readonly ImmutableArray<WDist> Speed = [new(17)];
 
 		[Desc("The maximum/constant/incremental inaccuracy used in conjunction with the InaccuracyType property.")]
 		public readonly WDist Inaccuracy = WDist.Zero;
@@ -42,10 +45,10 @@ namespace OpenRA.Mods.AS.Projectiles
 
 		[SequenceReference(nameof(Image), allowNullImage: true)]
 		[Desc("Loop a randomly chosen sequence of Image from this list while this projectile is moving.")]
-		public readonly string[] Sequences = ["idle"];
+		public readonly ImmutableArray<string> Sequences = ["idle"];
 
-		[Desc("The palette used to draw this projectile.")]
 		[PaletteReference(nameof(IsPlayerPalette))]
+		[Desc("The palette used to draw this projectile.")]
 		public readonly string Palette = "effect";
 
 		public readonly bool IsPlayerPalette = false;
@@ -63,9 +66,9 @@ namespace OpenRA.Mods.AS.Projectiles
 		[Desc("Trail animation.")]
 		public readonly string TrailImage = null;
 
-		[Desc("Loop a randomly chosen sequence of TrailImage from this list while this projectile is moving.")]
 		[SequenceReference(nameof(TrailImage), allowNullImage: true)]
-		public readonly string[] TrailSequences = ["idle"];
+		[Desc("Loop a randomly chosen sequence of TrailImage from this list while this projectile is moving.")]
+		public readonly ImmutableArray<string> TrailSequences = ["idle"];
 
 		[Desc("Is this blocked by actors with BlocksProjectiles trait.")]
 		public readonly bool Blockable = true;
@@ -74,7 +77,7 @@ namespace OpenRA.Mods.AS.Projectiles
 		public readonly WDist Width = new(1);
 
 		[Desc("Arc in WAngles, two values indicate variable arc.")]
-		public readonly WAngle[] LaunchAngle = [WAngle.Zero];
+		public readonly ImmutableArray<WAngle> LaunchAngle = [WAngle.Zero];
 
 		[Desc("Up to how many times does this bullet bounce when touching ground without hitting a target.",
 			"0 implies exploding on contact with the originally targeted position.")]
@@ -84,7 +87,7 @@ namespace OpenRA.Mods.AS.Projectiles
 		public readonly string BounceSound = null;
 
 		[Desc("Terrain where the projectile explodes instead of bouncing.")]
-		public readonly HashSet<string> InvalidBounceTerrain = [];
+		public readonly FrozenSet<string> InvalidBounceTerrain = [];
 
 		[Desc("Modify distance of each bounce by this percentage of previous distance.")]
 		public readonly int BounceRangeModifier = 60;
@@ -154,36 +157,32 @@ namespace OpenRA.Mods.AS.Projectiles
 	public class BulletAS : IProjectile, ISync
 	{
 		readonly BulletASInfo info;
-		readonly ProjectileArgs args;
-		readonly Animation anim;
-
-		readonly float3 shadowColor;
-		readonly float shadowAlpha;
-
-		[VerifySync]
+		protected readonly ProjectileArgs Args;
+		protected readonly Animation Animation;
 		readonly WAngle angle;
-		[VerifySync]
 		readonly WDist speed;
-		[VerifySync]
 		readonly WAngle facing;
-
 		readonly string trailPalette;
 		readonly string paletteName;
+
+		readonly Vector3 shadowColor;
+		readonly float shadowAlpha;
 
 		readonly ContrailRenderable contrail;
 
 		[VerifySync]
-		WPos pos, lastPos, target, source;
+		protected WPos pos, lastPos, target, source;
+
 		int length;
 		int ticks, smokeTicks;
 		int remainingBounces;
 
-		public Actor SourceActor { get { return args.SourceActor; } }
+		public Actor SourceActor { get { return Args.SourceActor; } }
 
 		public BulletAS(BulletASInfo info, ProjectileArgs args)
 		{
 			this.info = info;
-			this.args = args;
+			Args = args;
 			pos = args.Source;
 			source = args.Source;
 
@@ -220,8 +219,8 @@ namespace OpenRA.Mods.AS.Projectiles
 
 			if (!string.IsNullOrEmpty(info.Image))
 			{
-				anim = new Animation(world, info.Image, new Func<WAngle>(GetEffectiveFacing));
-				anim.PlayRepeating(info.Sequences.Random(world.SharedRandom));
+				Animation = new Animation(world, info.Image, new Func<WAngle>(GetEffectiveFacing));
+				Animation.PlayRepeating(info.Sequences.Random(world.SharedRandom));
 			}
 
 			if (info.ContrailLength > 0)
@@ -243,8 +242,9 @@ namespace OpenRA.Mods.AS.Projectiles
 			smokeTicks = info.TrailDelay;
 			remainingBounces = info.BounceCount;
 
-			shadowColor = new float3(info.ShadowColor.R, info.ShadowColor.G, info.ShadowColor.B) / 255f;
-			shadowAlpha = info.ShadowColor.A / 255f;
+			var sColor = info.ShadowColor.ToVector4();
+			shadowColor = sColor.AsVector3();
+			shadowAlpha = sColor.W;
 		}
 
 		WAngle GetEffectiveFacing()
@@ -262,9 +262,9 @@ namespace OpenRA.Mods.AS.Projectiles
 			return new WAngle(effective);
 		}
 
-		public void Tick(World world)
+		public virtual void Tick(World world)
 		{
-			anim?.Tick();
+			Animation?.Tick();
 
 			lastPos = pos;
 			pos = WPos.LerpQuadratic(source, target, angle, ticks, length);
@@ -275,7 +275,8 @@ namespace OpenRA.Mods.AS.Projectiles
 
 		bool ShouldExplode(World world)
 		{
-			if (info.Blockable && BlocksProjectiles.AnyBlockingActorsBetween(world, args.SourceActor.Owner, lastPos, pos, info.Width, out var blockedPos))
+			// Check for walls or other blocking obstacles
+			if (info.Blockable && BlocksProjectiles.AnyBlockingActorsBetween(world, Args.SourceActor.Owner, lastPos, pos, info.Width, out var blockedPos))
 			{
 				pos = blockedPos;
 				return true;
@@ -305,7 +306,7 @@ namespace OpenRA.Mods.AS.Projectiles
 				if (info.InvalidBounceTerrain.Contains(world.Map.GetTerrainInfo(cell).Type))
 					return true;
 
-				if (AnyValidTargetsInRadius(world, pos, info.Width, args.SourceActor, true))
+				if (AnyValidTargetsInRadius(world, pos, info.Width, Args.SourceActor, true))
 					return true;
 
 				target += (pos - source) * info.BounceRangeModifier / 100;
@@ -328,10 +329,10 @@ namespace OpenRA.Mods.AS.Projectiles
 				return true;
 
 			// After first bounce, check for targets each tick
-			if (remainingBounces < info.BounceCount && AnyValidTargetsInRadius(world, pos, info.Width, args.SourceActor, true))
+			if (remainingBounces < info.BounceCount && AnyValidTargetsInRadius(world, pos, info.Width, Args.SourceActor, true))
 				return true;
 
-			if (!info.PointDefenseTypes.IsEmpty && world.ActorsWithTrait<IPointDefense>().Any(x => x.Trait.Destroy(pos, args.SourceActor.Owner, info.PointDefenseTypes)))
+			if (!info.PointDefenseTypes.IsEmpty && world.ActorsWithTrait<IPointDefense>().Any(x => x.Trait.Destroy(pos, Args.SourceActor.Owner, info.PointDefenseTypes)))
 				return true;
 
 			return false;
@@ -342,10 +343,10 @@ namespace OpenRA.Mods.AS.Projectiles
 			if (info.ContrailLength > 0)
 				yield return contrail;
 
-			if (anim == null || ticks >= length)
+			if (Animation == null)
 				yield break;
 
-			var world = args.SourceActor.World;
+			var world = Args.SourceActor.World;
 			if (!world.FogObscures(pos))
 			{
 				var palette = wr.Palette(paletteName);
@@ -354,13 +355,13 @@ namespace OpenRA.Mods.AS.Projectiles
 				{
 					var dat = world.Map.DistanceAboveTerrain(pos);
 					var shadowPos = pos - new WVec(0, 0, dat.Length);
-					foreach (var r in anim.Render(shadowPos, palette))
+					foreach (var r in Animation.Render(shadowPos, palette))
 						yield return ((IModifyableRenderable)r)
 							.WithTint(shadowColor, ((IModifyableRenderable)r).TintModifiers | TintModifiers.ReplaceColor)
 							.WithAlpha(shadowAlpha);
 				}
 
-				foreach (var r in anim.Render(pos, palette))
+				foreach (var r in Animation.Render(pos, palette))
 					yield return r;
 			}
 		}
@@ -372,13 +373,13 @@ namespace OpenRA.Mods.AS.Projectiles
 
 			world.AddFrameEndTask(w => w.Remove(this));
 
-			var warheadArgs = new WarheadArgs(args)
+			var warheadArgs = new WarheadArgs(Args)
 			{
-				ImpactOrientation = new WRot(WAngle.Zero, Util.GetVerticalAngle(lastPos, pos), args.Facing),
+				ImpactOrientation = new WRot(WAngle.Zero, Util.GetVerticalAngle(lastPos, pos), Args.Facing),
 				ImpactPosition = pos,
 			};
 
-			args.Weapon.Impact(Target.FromPos(pos), warheadArgs);
+			Args.Weapon.Impact(Target.FromPos(pos), warheadArgs);
 		}
 
 		bool AnyValidTargetsInRadius(World world, WPos pos, WDist radius, Actor firedBy, bool checkTargetType)
@@ -392,9 +393,10 @@ namespace OpenRA.Mods.AS.Projectiles
 					continue;
 
 				// If the impact position is within any actor's HitShape, we have a direct hit
-				var activeShapes = victim.TraitsImplementing<HitShape>().Where(Exts.IsTraitEnabled);
-				if (activeShapes.Any(i => i.DistanceFromEdge(victim, pos).Length <= 0))
-					return true;
+				// PERF: Avoid using TraitsImplementing<HitShape> that needs to find the actor in the trait dictionary.
+				foreach (var targetPos in victim.EnabledTargetablePositions)
+					if (targetPos is HitShape h && h.DistanceFromEdge(victim, pos).Length <= 0)
+						return true;
 			}
 
 			return false;

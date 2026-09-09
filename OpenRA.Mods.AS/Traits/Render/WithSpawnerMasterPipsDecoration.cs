@@ -62,14 +62,14 @@ namespace OpenRA.Mods.AS.Traits.Render
 			pips.PlayRepeating(Info.EmptySequence);
 
 			var palette = wr.Palette(Info.Palette);
-			var pipSize = pips.Image.Size.XY.ToInt2();
+			var pipSize = int2.FromVector(pips.Image.Size);
 			var pipStride = Info.PipStride != int2.Zero ? Info.PipStride : new int2(pipSize.X, 0);
 			screenPos -= pipSize / 2;
 
 			foreach (var item in spawner.SlaveEntries.Where(x => x.IsValid && !x.IsLaunched))
 			{
 				pips.PlayRepeating(Info.StoredSequence);
-				yield return new UISpriteRenderable(pips.Image, self.CenterPosition, screenPos, 0, palette, 1f);
+				yield return new UISpriteRenderable(pips.Image, self.CenterPosition, screenPos.ToVector2(), 0, palette, 1f);
 
 				screenPos += pipStride;
 			}
@@ -77,7 +77,7 @@ namespace OpenRA.Mods.AS.Traits.Render
 			foreach (var item in spawner.SlaveEntries.Where(x => x.IsValid && x.IsLaunched))
 			{
 				pips.PlayRepeating(Info.SpawnedSequence);
-				yield return new UISpriteRenderable(pips.Image, self.CenterPosition, screenPos, 0, palette, 1f);
+				yield return new UISpriteRenderable(pips.Image, self.CenterPosition, screenPos.ToVector2(), 0, palette, 1f);
 
 				screenPos += pipStride;
 			}
@@ -85,7 +85,7 @@ namespace OpenRA.Mods.AS.Traits.Render
 			foreach (var item in spawner.SlaveEntries.Where(x => !x.IsValid))
 			{
 				pips.PlayRepeating(Info.EmptySequence);
-				yield return new UISpriteRenderable(pips.Image, self.CenterPosition, screenPos, 0, palette, 1f);
+				yield return new UISpriteRenderable(pips.Image, self.CenterPosition, screenPos.ToVector2(), 0, palette, 1f);
 
 				screenPos += pipStride;
 			}
