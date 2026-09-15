@@ -555,6 +555,15 @@ namespace OpenRA.Mods.Common.Scripting
 			GetScriptTriggers(actor).RegisterCallback(Trigger.OnSold, func, Context);
 		}
 
+		[Desc("Call a function when a SuperWeapon is activated by this actor. The callback function will be called as func(actor: actor, orderName: string).")]
+		public void OnSuperWeaponActivated(Actor actor, [ScriptEmmyTypeOverride("fun()")] LuaFunction func)
+		{
+			if (actor == null)
+				throw new NullReferenceException(nameof(actor));
+
+			GetScriptTriggers(actor).RegisterCallback(Trigger.OnSuperWeaponActivated, func, Context);
+		}
+
 		[Desc("Call a function when the game timer expires. The callback function will be called as func().")]
 		public void OnTimerExpired([ScriptEmmyTypeOverride("fun()")] LuaFunction func)
 		{
