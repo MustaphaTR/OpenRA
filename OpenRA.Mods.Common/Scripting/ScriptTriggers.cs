@@ -24,7 +24,7 @@ namespace OpenRA.Mods.Common.Scripting
 		OnIdle, OnDamaged, OnKilled, OnProduction, OnOtherProduction, OnBuildingPlaced, OnPlayerWon, OnPlayerLost,
 		OnObjectiveAdded, OnObjectiveCompleted, OnObjectiveFailed, OnCapture, OnInfiltrated,
 		OnAddedToWorld, OnRemovedFromWorld, OnDiscovered, OnPlayerDiscovered,
-		OnPassengerEntered, OnPassengerExited, OnSold, OnSuperWeaponActivated, OnTimerExpired
+		OnPassengerEntered, OnPassengerExited, OnSold, OnSupportPowerActivated, OnTimerExpired
 	}
 
 	[Desc("Allows map scripts to attach triggers to this actor via the Triggers global.")]
@@ -522,13 +522,12 @@ namespace OpenRA.Mods.Common.Scripting
 			if (world.Disposing)
 				return;
 
-			foreach (var f in Triggerables(Trigger.OnSuperWeaponActivated))
+			foreach (var f in Triggerables(Trigger.OnSupportPowerActivated))
 			{
 				try
 				{
-					using (var actor = self.ToLuaValue(f.Context))
 					using (var name = orderName.ToLuaValue(f.Context))
-						f.Function.Call(actor, name).Dispose();
+						f.Function.Call(f.Self, name).Dispose();
 				}
 				catch (Exception ex)
 				{
