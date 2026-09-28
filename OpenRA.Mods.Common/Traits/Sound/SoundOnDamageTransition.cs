@@ -20,6 +20,9 @@ namespace OpenRA.Mods.Common.Traits.Sound
 		[Desc("Play a random sound from this list when damaged.")]
 		public readonly ImmutableArray<string> DamagedSounds = [];
 
+		[Desc("Play a random sound from this list when critically damaged.")]
+		public readonly ImmutableArray<string> CriticalSounds = [];
+
 		[Desc("Play a random sound from this list when destroyed.")]
 		public readonly ImmutableArray<string> DestroyedSounds = [];
 
@@ -62,6 +65,11 @@ namespace OpenRA.Mods.Common.Traits.Sound
 				else if (e.DamageState >= DamageState.Heavy && e.PreviousDamageState < DamageState.Heavy)
 				{
 					var sound = info.DamagedSounds.RandomOrDefault(rand);
+					Game.Sound.Play(SoundType.World, sound, pos, info.SoundVolume);
+				}
+				else if (e.DamageState >= DamageState.Critical && e.PreviousDamageState < DamageState.Critical)
+				{
+					var sound = info.CriticalSounds.RandomOrDefault(rand);
 					Game.Sound.Play(SoundType.World, sound, pos, info.SoundVolume);
 				}
 			}
