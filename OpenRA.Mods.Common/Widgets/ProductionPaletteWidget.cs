@@ -102,6 +102,9 @@ namespace OpenRA.Mods.Common.Widgets
 		public int IconRowOffset = 0;
 		public int MaxIconRowOffset = int.MaxValue;
 
+		public bool Horizontal = false;
+		public int ScrollSpeed = 1;
+
 		readonly Lazy<TooltipContainerWidget> tooltipContainer;
 		ProductionQueue currentQueue;
 		HotkeyReference[] hotkeys;
@@ -195,7 +198,7 @@ namespace OpenRA.Mods.Common.Widgets
 		public void ScrollDown()
 		{
 			if (CanScrollDown)
-				IconRowOffset++;
+				IconRowOffset += ScrollSpeed;
 		}
 
 		public bool CanScrollDown
@@ -211,7 +214,7 @@ namespace OpenRA.Mods.Common.Widgets
 		public void ScrollUp()
 		{
 			if (CanScrollUp)
-				IconRowOffset--;
+				IconRowOffset -= Math.Min(IconRowOffset, ScrollSpeed);
 		}
 
 		public bool CanScrollUp => IconRowOffset > 0;
@@ -526,13 +529,18 @@ namespace OpenRA.Mods.Common.Widgets
 			var rb = RenderBounds;
 			var faction = producer.Trait.Faction;
 
-			foreach (var item in AllBuildables.Skip(IconRowOffset * Columns).Take(MaxIconRowOffset * Columns))
+			var minLocation = IconRowOffset * Columns;
+			foreach (var item in AllBuildables)
 			{
 				var bi = BuildableInfo.GetTraitForQueue(item, CurrentQueue.Info.Type);
 				var iconLocation = bi.ForceIconLocation ? bi.GetBuildPaletteOrder(item, CurrentQueue) : DisplayedIconCount;
 
-				var x = iconLocation % Columns;
-				var y = iconLocation / Columns;
+				if (minLocation > iconLocation)
+					continue;
+
+				var adjustedIconLocation = iconLocation - minLocation;
+				var x = Horizontal ? adjustedIconLocation / Columns : adjustedIconLocation % Columns;
+				var y = Horizontal ? adjustedIconLocation % Columns : adjustedIconLocation / Columns;
 				var rect = new Rectangle(rb.X + x * (IconSize.X + IconMargin.X), rb.Y + y * (IconSize.Y + IconMargin.Y), IconSize.X, IconSize.Y);
 
 				var rsi = item.TraitInfo<RenderSpritesInfo>();
@@ -545,7 +553,7 @@ namespace OpenRA.Mods.Common.Widgets
 				{
 					Actor = item,
 					Name = item.Name,
-					Hotkey = iconLocation < HotkeyCount ? hotkeys[iconLocation] : null,
+					Hotkey = adjustedIconLocation < HotkeyCount ? hotkeys[adjustedIconLocation] : null,
 					Sprite = icon.Image,
 					Palette = worldRenderer.Palette(palette),
 					IconClockPalette = worldRenderer.Palette(ClockPalette),
@@ -560,6 +568,9 @@ namespace OpenRA.Mods.Common.Widgets
 					DisplayedIconCount = iconLocation + 1;
 				else
 					DisplayedIconCount++;
+
+				if (DisplayedIconCount > minLocation + MaxIconRowOffset * Columns)
+					break;
 			}
 
 			eventBounds = icons.Keys.Union();

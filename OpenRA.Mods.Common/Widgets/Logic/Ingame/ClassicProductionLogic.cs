@@ -82,35 +82,72 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 					var rows = Math.Max(palette.MinimumRows, (icons + palette.Columns - 1) / palette.Columns);
 					rows = Math.Min(rows, palette.MaximumRows);
 
-					if (background != null)
+					if (palette.Horizontal)
 					{
-						background.RemoveChildren();
-
-						var rowHeight = backgroundTemplate.Bounds.Height;
-						for (var i = 0; i < rows; i++)
+						if (background != null)
 						{
-							var row = backgroundTemplate.Clone();
-							row.Bounds.Y = i * rowHeight;
-							background.AddChild(row);
+							background.RemoveChildren();
+
+							var rowWidth = backgroundTemplate.Bounds.Width;
+							for (var i = 0; i < rows; i++)
+							{
+								var row = backgroundTemplate.Clone();
+								row.Bounds.X = i * rowWidth;
+								background.AddChild(row);
+							}
+
+							if (backgroundBottom == null)
+								return;
+
+							backgroundBottom.Bounds.X = rows * rowWidth;
+							background.AddChild(backgroundBottom);
 						}
 
-						if (backgroundBottom == null)
-							return;
-
-						backgroundBottom.Bounds.Y = rows * rowHeight;
-						background.AddChild(backgroundBottom);
-					}
-
-					if (foreground != null)
-					{
-						foreground.RemoveChildren();
-
-						var rowHeight = foregroundTemplate.Bounds.Height;
-						for (var i = 0; i < rows; i++)
+						if (foreground != null)
 						{
-							var row = foregroundTemplate.Clone();
-							row.Bounds.Y = i * rowHeight;
-							foreground.AddChild(row);
+							foreground.RemoveChildren();
+
+							var rowWidth = foregroundTemplate.Bounds.Width;
+							for (var i = 0; i < rows; i++)
+							{
+								var row = foregroundTemplate.Clone();
+								row.Bounds.X = i * rowWidth;
+								foreground.AddChild(row);
+							}
+						}
+					}
+					else
+					{
+						if (background != null)
+						{
+							background.RemoveChildren();
+
+							var rowHeight = backgroundTemplate.Bounds.Height;
+							for (var i = 0; i < rows; i++)
+							{
+								var row = backgroundTemplate.Clone();
+								row.Bounds.Y = i * rowHeight;
+								background.AddChild(row);
+							}
+
+							if (backgroundBottom == null)
+								return;
+
+							backgroundBottom.Bounds.Y = rows * rowHeight;
+							background.AddChild(backgroundBottom);
+						}
+
+						if (foreground != null)
+						{
+							foreground.RemoveChildren();
+
+							var rowHeight = foregroundTemplate.Bounds.Height;
+							for (var i = 0; i < rows; i++)
+							{
+								var row = foregroundTemplate.Clone();
+								row.Bounds.Y = i * rowHeight;
+								foreground.AddChild(row);
+							}
 						}
 					}
 				}
@@ -166,21 +203,34 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 
 		static void SetMaximumVisibleRows(ProductionPaletteWidget productionPalette)
 		{
-			var screenHeight = Game.Renderer.Resolution.Height;
-
 			// Get height of currently displayed icons
 			var containerWidget = Ui.Root.GetOrNull<ContainerWidget>("SIDEBAR_PRODUCTION");
 
 			if (containerWidget == null)
 				return;
 
-			var sidebarProductionHeight = containerWidget.Bounds.Y;
+			if (productionPalette.Horizontal)
+			{
+				var screenWidth = Game.Renderer.Resolution.Width;
+				var sidebarProductionWidth = containerWidget.Bounds.X;
 
-			// Check if icon heights exceed y resolution
-			var maxItemsHeight = screenHeight - sidebarProductionHeight;
+				// Check if icon heights exceed y resolution
+				var maxItemsWidth = screenWidth - sidebarProductionWidth;
 
-			var maxIconRowOffest = maxItemsHeight / productionPalette.IconSize.Y - 1;
-			productionPalette.MaxIconRowOffset = Math.Min(maxIconRowOffest, productionPalette.MaximumRows);
+				var maxIconRowOffest = maxItemsWidth / productionPalette.IconSize.X - 1;
+				productionPalette.MaxIconRowOffset = Math.Min(maxIconRowOffest, productionPalette.MaximumRows);
+			}
+			else
+			{
+				var screenHeight = Game.Renderer.Resolution.Height;
+				var sidebarProductionHeight = containerWidget.Bounds.Y;
+
+				// Check if icon heights exceed y resolution
+				var maxItemsHeight = screenHeight - sidebarProductionHeight;
+
+				var maxIconRowOffest = maxItemsHeight / productionPalette.IconSize.Y - 1;
+				productionPalette.MaxIconRowOffset = Math.Min(maxIconRowOffest, productionPalette.MaximumRows);
+			}
 		}
 	}
 }
