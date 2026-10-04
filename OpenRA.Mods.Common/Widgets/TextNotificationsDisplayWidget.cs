@@ -23,6 +23,7 @@ namespace OpenRA.Mods.Common.Widgets
 		public readonly int BottomSpacing = 0;
 		public readonly int LogLength = 8;
 		public readonly bool HideOverflow = true;
+		public readonly bool TopToBottom = false;
 
 		public string ChatTemplate = "CHAT_LINE_TEMPLATE";
 		public string SystemTemplate = "SYSTEM_LINE_TEMPLATE";
@@ -51,7 +52,7 @@ namespace OpenRA.Mods.Common.Widgets
 			var wholeLines = (int)Math.Floor((double)((Bounds.Height - BottomSpacing) / lineHeight));
 			var visibleChildrenHeight = wholeLines * lineHeight;
 
-			var y = RenderOrigin.Y + Bounds.Height - visibleChildrenHeight;
+			var y = RenderOrigin.Y + (TopToBottom ? 0 : Bounds.Height - visibleChildrenHeight);
 			overflowDrawBounds = new Rectangle(RenderOrigin.X, y, Bounds.Width, visibleChildrenHeight);
 		}
 
@@ -84,15 +85,21 @@ namespace OpenRA.Mods.Common.Widgets
 			var notificationWidget = templates[notification.Pool].Clone();
 			WidgetUtils.SetupTextNotification(notificationWidget, notification, Bounds.Width, false);
 
-			if (Children.Count == 0)
-				notificationWidget.Bounds.Y = Bounds.Bottom - notificationWidget.Bounds.Height - BottomSpacing;
+			if (TopToBottom)
+				foreach (var line in Children)
+					line.Bounds.Y += notificationWidget.Bounds.Height + ItemSpacing;
 			else
 			{
-				foreach (var line in Children)
-					line.Bounds.Y -= notificationWidget.Bounds.Height + ItemSpacing;
+				if (Children.Count == 0)
+					notificationWidget.Bounds.Y = Bounds.Bottom - notificationWidget.Bounds.Height - BottomSpacing;
+				else
+				{
+					foreach (var line in Children)
+						line.Bounds.Y -= notificationWidget.Bounds.Height + ItemSpacing;
 
-				var lastLine = Children[^1];
-				notificationWidget.Bounds.Y = lastLine.Bounds.Bottom + ItemSpacing;
+					var lastLine = Children[^1];
+					notificationWidget.Bounds.Y = lastLine.Bounds.Bottom + ItemSpacing;
+				}
 			}
 
 			AddChild(notificationWidget);
@@ -112,8 +119,12 @@ namespace OpenRA.Mods.Common.Widgets
 			RemoveChild(mostRecentChild);
 			expirations.RemoveAt(expirations.Count - 1);
 
-			for (var i = Children.Count - 1; i >= 0; i--)
-				Children[i].Bounds.Y += mostRecentChild.Bounds.Height + ItemSpacing;
+			if (TopToBottom)
+				for (var i = Children.Count - 1; i >= 0; i--)
+					Children[i].Bounds.Y -= mostRecentChild.Bounds.Height + ItemSpacing;
+			else
+				for (var i = Children.Count - 1; i >= 0; i--)
+					Children[i].Bounds.Y += mostRecentChild.Bounds.Height + ItemSpacing;
 		}
 
 		void RemoveNotification()
