@@ -28,6 +28,7 @@ namespace OpenRA.Mods.Common.Widgets
 	public class ProductionIcon
 	{
 		public ActorInfo Actor;
+		public BuildableInfo Buildable;
 		public string Name;
 		public HotkeyReference Hotkey;
 		public Sprite Sprite;
@@ -552,6 +553,7 @@ namespace OpenRA.Mods.Common.Widgets
 				var pi = new ProductionIcon()
 				{
 					Actor = item,
+					Buildable = bi,
 					Name = item.Name,
 					Hotkey = adjustedIconLocation < HotkeyCount ? hotkeys[adjustedIconLocation] : null,
 					Sprite = icon.Image,
@@ -569,7 +571,7 @@ namespace OpenRA.Mods.Common.Widgets
 				else
 					DisplayedIconCount++;
 
-				if (DisplayedIconCount > minLocation + MaxIconRowOffset * Columns)
+				if (DisplayedIconCount >= minLocation + MaxIconRowOffset * Columns)
 					break;
 			}
 
@@ -627,14 +629,15 @@ namespace OpenRA.Mods.Common.Widgets
 					{
 						if (CurrentQueue is not BulkProductionQueue)
 						{
+							var readyText = icon.Buildable.ReadyText != null ? FluentProvider.GetMessage(icon.Buildable.ReadyText) : ReadyText;
 							if (ReadyTextStyle == ReadyTextStyleOptions.Solid || orderManager.LocalFrameNumber * worldRenderer.World.Timestep / 360 % 2 == 0)
-								overlayFont.DrawTextWithContrast(ReadyText, icon.Pos + readyOffset, TextColor, Color.Black, 1);
+								overlayFont.DrawTextWithContrast(readyText, icon.Pos + readyOffset, TextColor, Color.Black, 1);
 							else if (ReadyTextStyle == ReadyTextStyleOptions.AlternatingColor)
-								overlayFont.DrawTextWithContrast(ReadyText, icon.Pos + readyOffset, ReadyTextAltColor, Color.Black, 1);
+								overlayFont.DrawTextWithContrast(readyText, icon.Pos + readyOffset, ReadyTextAltColor, Color.Black, 1);
 						}
 					}
 					else if (first.Paused)
-						overlayFont.DrawTextWithContrast(HoldText,
+						overlayFont.DrawTextWithContrast(icon.Buildable.OnHoldText != null ? FluentProvider.GetMessage(icon.Buildable.OnHoldText) : HoldText,
 							icon.Pos + holdOffset,
 							TextColor, Color.Black, 1);
 					else if (!waiting && DrawTime)

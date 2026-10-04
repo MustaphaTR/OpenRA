@@ -79,6 +79,9 @@ namespace OpenRA.Mods.Common.Traits
 			"Defaults to what is set for the Queue actor built from.")]
 		public readonly string ReadyTextNotification = null;
 
+		[Desc("Override for the text shown on the cameo when the production of this actor is complete.")]
+		public readonly string ReadyText = null;
+
 		[NotificationReference("Speech")]
 		[Desc("Notification played when you can't queue another actor",
 			"when the queue length limit is exceeded.",
@@ -120,6 +123,9 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Notification displayed when player right-clicks on the build palette icon.",
 			"Defaults to what is set for the Queue actor built from.")]
 		public readonly string OnHoldTextNotification = null;
+
+		[Desc("Override for the text shown on the cameo when the production of this actor is on hold.")]
+		public readonly string OnHoldText = null;
 
 		[NotificationReference("Speech")]
 		[Desc("Notification played when player right-clicks on a build palette icon that is already on hold.",
