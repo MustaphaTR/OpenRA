@@ -137,6 +137,10 @@ namespace OpenRA.Mods.Common.Traits
 			"Defaults to what is set for the Queue actor built from.")]
 		public readonly string CancelledTextNotification = null;
 
+		[Desc("Show sell value of the producer actor instead of cost of this actor in the tooltip.",
+			"Used by the hacky 'Sell' button in Generals Alpha.")]
+		public readonly bool ShowSellValue = false;
+
 		public int GetBuildPaletteOrder(ActorInfo ai, ProductionQueue queue)
 		{
 			var paletteOrder = BuildPaletteOrder;

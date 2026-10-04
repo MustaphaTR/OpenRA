@@ -102,13 +102,7 @@ namespace OpenRA.Mods.Common.Traits
 				self.QueueActivity(false, new Sell(self, info.ShowTicks));
 			else
 			{
-				// Copied from Sell activity.
-				var sellValue = self.GetSellValue();
-
-				// Cast to long to avoid overflow when multiplying by the health
-				var hp = health != null ? health.Value.HP : 1L;
-				var maxHP = health != null ? health.Value.MaxHP : 1L;
-				var refund = (int)(sellValue * info.RefundPercent * hp / (100 * maxHP));
+				var refund = CalculateSellValue();
 				refund = self.Owner.PlayerActor.Trait<PlayerResources>().ChangeCash(refund); // No point caching this, this code should be running once per actor ever.
 
 				foreach (var ns in self.TraitsImplementing<INotifySold>())
@@ -124,6 +118,17 @@ namespace OpenRA.Mods.Common.Traits
 			}
 		}
 
+		public int CalculateSellValue()
+		{
+			// Copied from Sell activity.
+			var sellValue = self.GetSellValue();
+
+			// Cast to long to avoid overflow when multiplying by the health
+			var hp = health != null ? health.Value.HP : 1L;
+			var maxHP = health != null ? health.Value.MaxHP : 1L;
+			return (int)(sellValue * info.RefundPercent * hp / (100 * maxHP));
+		}
+
 		public bool IsTooltipVisible(Player forPlayer)
 		{
 			if (info.ShowTooltipText && !IsTraitDisabled && self.World.OrderGenerator is SellOrderGenerator)
@@ -133,17 +138,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		public string TooltipText
 		{
-			get
-			{
-				var sellValue = self.GetSellValue();
-
-				// Cast to long to avoid overflow when multiplying by the health
-				var hp = health != null ? health.Value.HP : 1L;
-				var maxHP = health != null ? health.Value.MaxHP : 1L;
-				var refund = (int)(sellValue * info.RefundPercent * hp / (100 * maxHP));
-
-				return "Refund: $" + refund;
-			}
+			get { return "Refund: $" + CalculateSellValue(); }
 		}
 	}
 }

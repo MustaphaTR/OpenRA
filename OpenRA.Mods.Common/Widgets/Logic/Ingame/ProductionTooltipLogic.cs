@@ -75,7 +75,12 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 
 				var cost = 0;
 				if (tooltipIcon.ProductionQueue != null)
-					cost = tooltipIcon.ProductionQueue.GetProductionCost(actor);
+				{
+					if (tooltipIcon.Buildable.ShowSellValue)
+						cost = tooltipIcon.ProductionQueue.Actor.TraitOrDefault<Sellable>().CalculateSellValue() * -1;
+					else
+						cost = tooltipIcon.ProductionQueue.GetProductionCost(actor);
+				}
 				else
 				{
 					var valued = actor.TraitInfoOrDefault<ValuedInfo>();
